@@ -91,7 +91,7 @@ document.getElementById('question-form').addEventListener('submit', function(eve
 
 // Add click handler for the share button
 document.getElementById('share-button').addEventListener('click', function() {
-    const textToCopy = 'lmgroktfy.com is great, check it out';
+    const textToCopy = 'lmgroktfy.com';
     navigator.clipboard.writeText(textToCopy)
         .then(() => {
             console.log('[Share] Text copied to clipboard:', textToCopy);
