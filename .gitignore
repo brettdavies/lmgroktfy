@@ -8,3 +8,6 @@
 .cursorconfig
 .cursorrules
 .cursorignore
+
+# MacOS
+.DS_Store
