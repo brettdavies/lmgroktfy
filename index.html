@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Let me Grok that for you</title>
+    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <div class="theme-gradient"></div>
+    <div id="main-container">
+        <h1>Let me <span class="gradient-text">Grok</span> that for you</h1>
+        <form id="question-form" class="form-container">
+            <div class="input-wrapper">
+                <input type="text" id="question-input" placeholder="Ask your question here..." required>
+                <button type="submit" class="primary-button">Let me Grok that for you</button>
+            </div>
+        </form>
+        <div id="loading" class="status-message" style="display: none;">
+            <span class="loading-text">Grokking...</span>
+        </div>
+        <div id="response" class="response-container" style="display: none;">
+            <p id="answer" class="response-text"></p>
+            <div id="button-container" class="action-buttons">
+                <a id="continue-link" class="action-button secondary-button" title="Understand more on Grok" href="#" target="_blank">
+                    Understand more on Grok
+                </a>
+                <button id="share-button" class="action-button secondary-button" title="Copy LMGROKTFY domain">
+                    Share https://lmgroktfy.com
+                    <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <footer class="site-footer">
+        <p class="disclaimer-text">
+            Not affiliated with X™ or Grok™. X & Grok are trademarks of X Corp. & xAI.
+            © 2025 lmgroktfy.com - Stay Curious, Understand the Universe!
+        </p>
+    </footer>
+    <script src="/js/script.js"></script>
+</body>
+</html>
