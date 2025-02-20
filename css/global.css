@@ -63,7 +63,7 @@ button:hover {
 }
 
 #continue-link {
-    background-color: #1DA1F2; /* X/Twitter blue */
+    background-color: #000000; /* X/Twitter black */
     color: white;
 }
 
@@ -91,14 +91,11 @@ button:hover {
 footer {
     margin-top: 20px;
     text-align: center;
-    font-size: 0.8em;
+    font-size: 0.7em;
     color: #666;
-    padding: 10px;
-    background-color: #f8f8f8;
+    padding: 5px;
+    background-color: transparent;
     width: 100%;
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
-}
-
-footer span {
-    font-size: 1.1em;
+    box-shadow: none;
+    line-height: 1.2;
 }
