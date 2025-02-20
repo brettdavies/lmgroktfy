@@ -44,11 +44,14 @@ document.getElementById('question-form').addEventListener('submit', function(eve
             console.error('[Error Handler] API returned error:', data.error);
             document.getElementById('answer').innerText = 'Oops, something went wrong!';
             document.getElementById('continue-link').style.display = 'none';
+            document.getElementById('share-button').style.display = 'none';
         } else {
-            console.log('[Success] Displaying response and share link');
+            console.log('[Success] Displaying response and buttons');
             document.getElementById('answer').innerText = data.answer;
-            document.getElementById('continue-link').href = `https://x.com/i/grok?text=${question}`;   
+            // Update to link to X with the question (encoded for URL safety)
+            document.getElementById('continue-link').href = `https://x.com/i/grok?text=${encodeURIComponent(question)}`;
             document.getElementById('continue-link').style.display = 'inline-block';
+            document.getElementById('share-button').style.display = 'inline-block';
         }
         document.getElementById('response').style.display = 'block';
         document.getElementById('question-form').style.display = 'none';
@@ -58,6 +61,21 @@ document.getElementById('question-form').addEventListener('submit', function(eve
         document.getElementById('loading').style.display = 'none';
         document.getElementById('answer').innerText = 'Oops, something went wrong!';
         document.getElementById('continue-link').style.display = 'none';
+        document.getElementById('share-button').style.display = 'none';
         document.getElementById('response').style.display = 'block';
+    });
+
+    // Add click handler for the share button
+    document.getElementById('share-button').addEventListener('click', function() {
+        const textToCopy = 'lmgroktfy.com is great, check it out';
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => {
+                console.log('[Share] Text copied to clipboard:', textToCopy);
+                alert('Copied to clipboard: ' + textToCopy);
+            })
+            .catch(err => {
+                console.error('[Share] Failed to copy text:', err);
+                alert('Failed to copy text. Please try again.');
+            });
     });
 });
