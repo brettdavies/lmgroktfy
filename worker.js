@@ -2,6 +2,7 @@ addEventListener('fetch', event => {
     event.respondWith(handleRequest(event.request));
 });
 
+
 async function handleRequest(request) {
     if (request.method !== 'POST' || !request.url.endsWith('/api/grok')) {
         return new Response('Not Found', { status: 404 });
