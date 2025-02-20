@@ -61,16 +61,21 @@ function handleQuestionSubmission(question) {
             document.getElementById('answer').innerText = 'Oops, something went wrong!';
             document.getElementById('continue-link').style.display = 'none';
             document.getElementById('share-button').style.display = 'none';
+            document.getElementById('copy-answer-button').style.display = 'none';
         } else {
             console.log('[Success] Displaying response and buttons');
             document.getElementById('answer').innerText = data.answer;
-            // Update to link to X with the question (encoded for URL safety)
             document.getElementById('continue-link').href = `https://grok.com/?q=${encodeURIComponent(question)}`;
             document.getElementById('continue-link').style.display = 'inline-block';
             document.getElementById('share-button').style.display = 'inline-block';
+            document.getElementById('copy-answer-button').style.display = 'inline-block';
         }
         document.getElementById('response').style.display = 'block';
         document.getElementById('question-form').style.display = 'none';
+
+        // Update the URL with the encoded question
+        const encodedQuestion = encodeURIComponent(question);
+        window.history.replaceState({}, '', '/' + encodedQuestion);
     })
     .catch(error => {
         console.error('[Error Handler] Caught error:', error.message, error.stack);
@@ -78,6 +83,7 @@ function handleQuestionSubmission(question) {
         document.getElementById('answer').innerText = 'Oops, something went wrong!';
         document.getElementById('continue-link').style.display = 'none';
         document.getElementById('share-button').style.display = 'none';
+        document.getElementById('copy-answer-button').style.display = 'none';
         document.getElementById('response').style.display = 'block';
     });
 }
@@ -89,17 +95,44 @@ document.getElementById('question-form').addEventListener('submit', function(eve
     handleQuestionSubmission(question);
 });
 
-// Add click handler for the share button
-document.getElementById('share-button').addEventListener('click', function() {
-    const textToCopy = 'lmgroktfy.com';
+// Add click handler for the copy question and answer button
+document.getElementById('copy-question-answer-button').addEventListener('click', function() {
+    const questionText = document.getElementById('question-input').value;
+    const answerText = document.getElementById('answer').innerText;
+    const textToCopy = 'Question: ' + questionText + ' - Answer: ' + answerText + ' - Answer by Grok via lmgroktfy.com';
     navigator.clipboard.writeText(textToCopy)
         .then(() => {
-            console.log('[Share] Text copied to clipboard:', textToCopy);
-            // Removed alert; browser may show a native tooltip
+            console.log('[Copy Answer] Text copied to clipboard:', textToCopy);
         })
         .catch(err => {
-            console.error('[Share] Failed to copy text:', err);
-            alert('Failed to copy text. Please try again.');
-            // Keep alert for errors to inform users
+            console.error('[Copy Answer] Failed to copy text:', err);
+            alert('Failed to copy answer. Please try again.');
+        });
+});
+
+// Add click handler for the copy answer button
+document.getElementById('copy-answer-button').addEventListener('click', function() {
+    const answerText = document.getElementById('answer').innerText;
+    const textToCopy = answerText + ' - Answer by Grok via lmgroktfy.com';
+    navigator.clipboard.writeText(textToCopy)
+        .then(() => {
+            console.log('[Copy Answer] Text copied to clipboard:', textToCopy);
+        })
+        .catch(err => {
+            console.error('[Copy Answer] Failed to copy text:', err);
+            alert('Failed to copy answer. Please try again.');
+        });
+});
+
+// Add click handler for the share button
+document.getElementById('share-button').addEventListener('click', function() {
+    const textToCopy = window.location.href;
+    navigator.clipboard.writeText(textToCopy)
+        .then(() => {
+            console.log('[Share] URL copied to clipboard:', textToCopy);
+        })
+        .catch(err => {
+            console.error('[Share] Failed to copy URL:', err);
+            alert('Failed to copy URL. Please try again.');
         });
 });
