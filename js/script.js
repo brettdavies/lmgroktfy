@@ -1,43 +1,60 @@
 document.getElementById('question-form').addEventListener('submit', function(event) {
     event.preventDefault();
     const question = document.getElementById('question-input').value;
-    if (!question) return;
+    console.log('[Form Submit] Question received:', question);
+    
+    if (!question) {
+        console.log('[Validation] Empty question submitted, returning');
+        return;
+    }
 
-    // Show loading
+    // Show loading state
+    console.log('[UI] Showing loading state');
     document.getElementById('loading').style.display = 'block';
     document.getElementById('response').style.display = 'none';
 
-    // Make API call (replace with actual endpoint and headers)
-    fetch('https://api.xai.example/chat', {
+    // Call the Cloudflare Worker endpoint
+    console.log('[API] Sending request to /api/grok');
+    fetch('/api/grok', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            // Add your API key or authentication here, e.g.:
-            // 'Authorization': 'Bearer YOUR_API_KEY'
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ question: question })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('[API] Response received:', response);
+        console.log('[API] Response received, status:', response.status);
+        if (!response.ok) {
+            console.error('[API] Response not OK:', response.status, response.statusText);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
-        // Hide loading
+        console.log('[API] Data parsed successfully:', { 
+            hasError: !!data.error, 
+            hasShareId: !!data.shareId 
+        });
+        
+        // Hide loading state
         document.getElementById('loading').style.display = 'none';
 
         if (data.error) {
-            // Show error
+            console.error('[Error Handler] API returned error:', data.error);
             document.getElementById('answer').innerText = 'Oops, something went wrong!';
             document.getElementById('continue-link').style.display = 'none';
         } else {
-            // Show response
+            console.log('[Success] Displaying response and share link');
             document.getElementById('answer').innerText = data.answer;
             document.getElementById('continue-link').href = `https://grok.com/share/${data.shareId}`;
             document.getElementById('continue-link').style.display = 'inline-block';
         }
         document.getElementById('response').style.display = 'block';
-        // Hide the form
         document.getElementById('question-form').style.display = 'none';
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('[Error Handler] Caught error:', error.message, error.stack);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('answer').innerText = 'Oops, something went wrong!';
         document.getElementById('continue-link').style.display = 'none';
