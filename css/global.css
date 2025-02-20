@@ -1,12 +1,11 @@
 body {
     font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    min-height: 100vh; /* Ensure body takes full viewport height */
     margin: 0;
     background-color: #f0f0f0;
+    display: flex;
     flex-direction: column;
+    justify-content: center; /* Center main content vertically */
 }
 
 #main-container {
@@ -17,6 +16,7 @@ body {
     text-align: center;
     width: 90%;
     max-width: 500px;
+    flex: 1; /* Allow main container to grow and push footer down */
 }
 
 input[type="text"] {
@@ -63,7 +63,7 @@ button:hover {
 }
 
 #continue-link {
-    background-color: #000000; /* X/Twitter black */
+    background-color: #1DA1F2; /* X/Twitter blue */
     color: white;
 }
 
@@ -89,7 +89,6 @@ button:hover {
 }
 
 footer {
-    margin-top: 20px;
     text-align: center;
     font-size: 0.7em;
     color: #666;
@@ -98,4 +97,5 @@ footer {
     width: 100%;
     box-shadow: none;
     line-height: 1.2;
+    margin-top: auto;
 }

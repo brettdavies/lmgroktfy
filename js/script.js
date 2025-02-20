@@ -71,11 +71,12 @@ document.getElementById('question-form').addEventListener('submit', function(eve
         navigator.clipboard.writeText(textToCopy)
             .then(() => {
                 console.log('[Share] Text copied to clipboard:', textToCopy);
-                alert('Copied to clipboard: ' + textToCopy);
+                // Removed alert; browser may show a native tooltip
             })
             .catch(err => {
                 console.error('[Share] Failed to copy text:', err);
                 alert('Failed to copy text. Please try again.');
+                // Keep alert for errors to inform users
             });
     });
 });
