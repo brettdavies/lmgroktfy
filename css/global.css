@@ -255,3 +255,15 @@ input[type="text"]::placeholder {
         width: 100%;
     }
 }
+
+.continue-link-container {
+    width: 100%;
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .share-buttons-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+  }

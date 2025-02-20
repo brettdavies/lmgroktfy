@@ -1,0 +1,37 @@
+name: Minify HTML, CSS, and JS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  minify:
+    # Only run if the push commit message indicates a merge from the development branch.
+    if: contains(github.event.head_commit.message, 'Merge branch') && contains(github.event.head_commit.message, 'development')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Minify Action
+        uses: amireshoon/minifyAction@main
+        with:
+          repo: ${{ github.repository }}
+
+      - name: Run minification script
+        run: |
+          chmod +x minifier.sh
+          ./minifier.sh ${{ github.repository }}
+
+      - name: Commit and push minified files
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          directory: github/workspace
+          branch: main
+          message: "Automated minification commit for ${{ github.sha }}"
+          author_name: "MinifyAction[bot]"
+          author_email: "amireshoon-minifyAction@users.noreply.github.com"
+          force: true
