@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Let me Grok that for you</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="main-container">
+        <h1>Let me Grok that for you</h1>
+        <form id="question-form">
+            <input type="text" id="question-input" placeholder="Ask your question here..." required>
+            <button type="submit">Let me Grok that for you</button>
+        </form>
+        <div id="loading" style="display: none;">Grokking...</div>
+        <div id="response" style="display: none;">
+            <p id="answer"></p>
+            <a id="continue-link" href="#" target="_blank">Continue This Conversation</a>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
