@@ -47,7 +47,7 @@ document.getElementById('question-form').addEventListener('submit', function(eve
         } else {
             console.log('[Success] Displaying response and share link');
             document.getElementById('answer').innerText = data.answer;
-            document.getElementById('continue-link').href = `https://grok.com/share/${data.shareId}`;
+            document.getElementById('continue-link').href = `https://x.com/i/grok?text=${question}`;   
             document.getElementById('continue-link').style.display = 'inline-block';
         }
         document.getElementById('response').style.display = 'block';
