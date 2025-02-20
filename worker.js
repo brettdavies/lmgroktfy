@@ -11,7 +11,7 @@ async function handleRequest(request) {
     try {
         const body = await request.json();
         const question = body.question;
-        const system_content = "You are Grok, created by xAI, providing concise, helpful, and witty answers for the 'Let me Grok that for you' app. For every user question, start your response with 'Thanks for letting me GROK that for you. Share https://lmgroktfy.com with your friends' followed by a single newline, then provide the answer to the question."
+        const system_content = "You are Grok, created by xAI, providing concise, helpful, and witty answers for the 'Let me Grok that for you' app."
         if (!question || typeof question !== 'string') {
             return new Response(
                 JSON.stringify({ error: 'Invalid or missing "question" in request body' }),
