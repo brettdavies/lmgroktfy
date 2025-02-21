@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (question) {
             handleQuestionSubmission(question);
             document.getElementById('question-input').value = question;
+            question_encoded = encodeURIComponent(question);
         }
     }
 });
@@ -51,14 +52,18 @@ function handleQuestionSubmission(question) {
             document.getElementById('answer').innerText = 'Oops, something went wrong!';
             document.getElementById('continue-link').style.display = 'none';
             document.getElementById('share-button').style.display = 'none';
+            document.getElementById('copy-question-answer-button').style.display = 'none';
             document.getElementById('copy-answer-button').style.display = 'none';
+            document.getElementById('share-on-x-button').style.display = 'none';
         } else {
             console.log('[Success] Displaying response and buttons');
             document.getElementById('answer').innerText = data.answer;
-            document.getElementById('continue-link').href = `https://grok.com/?q=${encodeURIComponent(question)}`;
+            document.getElementById('continue-link').href = `https://grok.com/?q=${question}`;
             document.getElementById('continue-link').style.display = 'inline-block';
             document.getElementById('share-button').style.display = 'inline-block';
+            document.getElementById('copy-question-answer-button').style.display = 'inline-block';
             document.getElementById('copy-answer-button').style.display = 'inline-block';
+            document.getElementById('share-on-x-button').style.display = 'inline-block';
         }
         document.getElementById('response').style.display = 'block';
         document.getElementById('question-form').style.display = 'none';
@@ -73,6 +78,7 @@ function handleQuestionSubmission(question) {
         document.getElementById('continue-link').style.display = 'none';
         document.getElementById('share-button').style.display = 'none';
         document.getElementById('copy-answer-button').style.display = 'none';
+        document.getElementById('share-on-x-button').style.display = 'none';
         document.getElementById('response').style.display = 'block';
     });
 }
@@ -125,8 +131,8 @@ document.getElementById('share-button').addEventListener('click', function() {
 document.getElementById('share-on-x-button').addEventListener('click', function() {
     const question = document.getElementById('question-input').value;
     const shareUrl = window.location.href;
-    const tweetText = encodeURIComponent(`Check out this question: "${question}" - Answer by Grok via lmgroktfy.com`);
-    const tweetUrl = encodeURIComponent(shareUrl);
+    const tweetText = 'Question: ' + questionText + ' - Answer: ' + answerText + ' - Answer by Grok via lmgroktfy.com';
+    const tweetUrl = shareUrl;
     const xIntentUrl = `https://x.com/intent/tweet?text=${tweetText}&url=${tweetUrl}`;
     window.open(xIntentUrl, '_blank');
 });
