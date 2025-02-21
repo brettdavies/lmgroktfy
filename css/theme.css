@@ -1,6 +1,23 @@
-/* Theme variables */
+/*
+========================
+FILE: theme.css
+========================
+PURPOSE:
+- Holds all theme variables and theme toggles
+- Defines dark/light theme overrides
+- Contains purely color-related styles (no structural rules like margin or flex)
+- No layout or structural CSS should appear here
+
+NOTES:
+- The default (dark) theme variables are declared in :root
+- Light theme overrides are in :root[data-theme="light"]
+- Any color-based styling is placed here, rather than base.css
+*/
+
+/* theme.css - Color variables & theme-based overrides */
+
+/* Default (dark) theme variables */
 :root {
-    /* Default theme (dark) */
     --background: #1d1e20;
     --text-primary: rgba(255, 255, 255, 0.9);
     --text-secondary: rgba(255, 255, 255, 0.6);
@@ -16,7 +33,7 @@
     --modal-bg: rgba(0, 0, 0, 0.95);
     --backdrop: rgba(0, 0, 0, 0.7);
 
-    /* Light theme variables (for reference) */
+    /* Light theme variables */
     --light-background: #ffffff;
     --light-text-primary: rgba(0, 0, 0, 0.9);
     --light-text-secondary: rgba(0, 0, 0, 0.6);
@@ -32,7 +49,7 @@
     --light-modal-bg: rgba(255, 255, 255, 0.95);
     --light-backdrop: rgba(0, 0, 0, 0.3);
 
-    /* Dark theme variables (for reference) */
+    /* Dark theme variables (reference only) */
     --dark-background: #1d1e20;
     --dark-text-primary: rgba(255, 255, 255, 0.9);
     --dark-text-secondary: rgba(255, 255, 255, 0.6);
@@ -85,22 +102,25 @@
     --backdrop: var(--dark-backdrop);
 }
 
-/* Theme application */
+/* Theme application for overall background & text */
 body {
     background-color: var(--background);
     color: var(--text-primary);
 }
 
+/* The gradient overlay that uses theme variables */
 .theme-gradient {
     background: radial-gradient(circle at 50% 0%, var(--gradient-start), var(--gradient-end) 60%);
 }
 
+/* Container background & border for theming */
 #main-container {
     background: var(--container-bg);
     backdrop-filter: blur(12px);
     border: 1px solid var(--border-color);
 }
 
+/* Control Buttons Theming */
 .control-button {
     background: var(--container-bg);
     border: 1px solid var(--border-color);
@@ -111,6 +131,7 @@ body {
     background: var(--button-hover);
 }
 
+/* Modal Theming */
 .modal-content {
     background: var(--modal-bg);
     border: 1px solid var(--border-color);
@@ -121,9 +142,64 @@ body {
     background: var(--backdrop);
 }
 
+/* Toast Theming */
 .toast {
     background: var(--modal-bg);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
     box-shadow: 0 2px 8px var(--backdrop);
+}
+
+/* Additional Themed Elements */
+.status-message {
+    color: var(--text-secondary);
 } 
+
+.response-container {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.response-text {
+    color: var(--text-primary);
+}
+
+.site-footer {
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+/* Form / Input / Button Theming */
+input[type="text"] {
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
+}
+
+input[type="text"]:focus {
+    border-color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+input[type="text"]::placeholder {
+    color: var(--text-secondary);
+}
+
+.primary-button {
+    background: var(--accent-color);
+    color: #fff;
+}
+
+.primary-button:hover {
+    background: var(--accent-hover);
+}
+
+/* Secondary Button */
+.secondary-button {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.secondary-button:hover {
+    background: var(--button-hover);
+}

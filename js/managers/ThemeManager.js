@@ -33,6 +33,8 @@ export const ThemeManager = {
             document.documentElement.setAttribute('data-theme', savedTheme);
             this.updateIcon(savedTheme);
         } else {
+            // Ensure the dark theme (and icon) is applied by default
+            document.documentElement.setAttribute('data-theme', 'dark');
             this.updateIcon('dark');
         }
 
@@ -44,4 +46,4 @@ export const ThemeManager = {
             localStorage.setItem('theme', newTheme);
         });
     }
-}; 
+};

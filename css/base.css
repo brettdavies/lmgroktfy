@@ -1,4 +1,22 @@
-/* Core layout and structure */
+/*
+========================
+FILE: base.css
+========================
+PURPOSE:
+- Contains global/reset styles
+- CSS variables (layout & spacing only)
+- Basic typography (no color references)
+- Layout fundamentals (e.g., container widths, positioning)
+- Z-index management
+
+NOTE:
+No color-based or theme-related properties should reside here;
+those are defined in theme.css or used specifically in global.css.
+*/
+
+/* base.css - Layout, spacing, structure, resets, universal variables (non-theme) */
+
+/* Root layout variables */
 :root {
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -24,12 +42,14 @@
     --z-toast: 110;
 }
 
+/* Reset */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* Base body layout (no color references) */
 body {
     font-family: var(--font-main);
     min-height: 100vh;
@@ -42,7 +62,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Layout components */
+/* Main Container Layout */
 #main-container {
     position: relative;
     width: 90%;
@@ -52,7 +72,7 @@ body {
     z-index: 1;
 }
 
-/* Controls */
+/* Controls Layout */
 .controls-container {
     position: fixed;
     top: var(--spacing-sm);
@@ -74,7 +94,7 @@ body {
     transition: all var(--transition-base);
 }
 
-/* Modal */
+/* Modal Layout */
 .modal {
     position: fixed;
     top: 50%;
@@ -111,16 +131,7 @@ body {
     display: none;
 }
 
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-in {
-    animation: fadeIn var(--transition-base);
-}
-
+/* Share Buttons Layout */
 .share-buttons-container {
     display: flex;
     justify-content: space-around;
@@ -128,7 +139,7 @@ body {
     gap: 0.10rem;
 }
 
-/* Toast */
+/* Toast Layout */
 .toast-container {
     position: fixed;
     top: var(--spacing-lg);
@@ -146,10 +157,6 @@ body {
     border-radius: var(--radius-md);
     opacity: 0;
     transition: opacity var(--transition-base);
-}
-
-.toast.show {
-    opacity: 1;
 }
 
 .toast i {
