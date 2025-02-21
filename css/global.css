@@ -9,11 +9,9 @@ PURPOSE:
 - Should not define theme or layout variables (those live in base.css / theme.css)
 
 NOTES:
-- For example: .form-container, .input-wrapper, .action-buttons, etc.
-- Keyframes and custom utility classes belong here.
+- We keep the same class names for familiarity.
+- We adopt a mobile-first approach with minimal fixed widths.
 */
-
-/* global.css - Component-specific styles, utilities, animations, media queries */
 
 /* Animations */
 @keyframes fadeIn {
@@ -32,6 +30,8 @@ NOTES:
 }
 
 /* Layout / Components */
+
+/* FORM CONTAINER */
 .form-container {
     margin: var(--spacing-lg) 0;
 }
@@ -42,6 +42,7 @@ NOTES:
     gap: var(--spacing-sm);
 }
 
+/* PRIMARY BUTTON */
 .primary-button {
     padding: var(--spacing-sm) var(--spacing-md);
     border: none;
@@ -50,28 +51,36 @@ NOTES:
     font-size: var(--font-size-base);
     font-weight: 500;
     transition: all var(--transition-base);
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
+/* STATUS MESSAGES */
 .status-message {
     margin: var(--spacing-lg) 0;
     font-style: italic;
 }
 
+/* RESPONSE CONTAINER */
 .response-container {
     margin: var(--spacing-lg) 0;
     padding: var(--spacing-sm);
     border-radius: var(--radius-md);
 }
 
+/* BUTTON CONTAINER (Holds the action + share buttons) */
 #button-container {
     margin-top: var(--spacing-xl);
 }
 
+/* ACTION BUTTONS & SECONDARY BUTTONS */
 .action-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
     justify-content: center;
-    flex-wrap: wrap;
     margin-top: var(--spacing-lg);
 }
 
@@ -81,29 +90,35 @@ NOTES:
     border-radius: var(--radius-md);
     transition: all var(--transition-base);
     font-weight: 500;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     backdrop-filter: blur(8px);
 }
 
 .secondary-button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-xs);
 }
 
+/* Copy icon style */
 .fa-copy {
     font-size: var(--font-size-base);
     opacity: 0.8;
 }
 
-/* Footer */
+/* FOOTER */
 .site-footer {
     text-align: center;
     font-size: var(--font-size-sm);
     padding: var(--spacing-sm);
     margin-top: auto;
-    background: transparent;
     backdrop-filter: blur(8px);
     width: 100%;
+    background: transparent;
 }
 
 .disclaimer-text {
@@ -112,7 +127,7 @@ NOTES:
     line-height: 1.4;
 }
 
-/* Media Queries */
+/* MEDIA QUERIES (Mobile-first, so we add bigger breakpoints as needed) */
 @media (max-width: 768px) {
     #main-container {
         padding: var(--spacing-lg) var(--spacing-sm);
@@ -129,6 +144,21 @@ NOTES:
     }
 }
 
+/* Additional tweak for very narrow screens (~320-480px) */
+@media (max-width: 480px) {
+    /* For the share buttons, 2 columns wide if desired */
+    .share-buttons-container {
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+    .share-buttons-container .action-button {
+        flex: 1 1 45%;
+        max-width: 45%;
+        margin: 0 auto;
+    }
+}
+
+/* CONTINUE-LINK & SHARE-BUTTONS */
 .continue-link-container {
     width: 100%;
     text-align: center;
@@ -141,7 +171,7 @@ NOTES:
     width: 100%;
 }
 
-/* Modal */
+/* MODAL CONTENT */
 .modal-content {
     padding: var(--spacing-xl);
     border-radius: var(--radius-lg);
@@ -171,7 +201,6 @@ NOTES:
     margin-bottom: var(--spacing-sm);
     position: relative;
 }
-
 .modal-content li:before {
     content: "•";
     position: absolute;
@@ -185,12 +214,12 @@ NOTES:
     background: rgba(255, 255, 255, 0.1);
 }
 
+/* MODAL CLOSE ICON */
 .modal-close {
     padding: var(--spacing-sm);
     cursor: pointer;
     transition: transform var(--transition-base);
 }
-
 .modal-close:hover {
     transform: scale(1.1);
 }

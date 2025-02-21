@@ -9,12 +9,11 @@ PURPOSE:
 - Layout fundamentals (e.g., container widths, positioning)
 - Z-index management
 
-NOTE:
-No color-based or theme-related properties should reside here;
-those are defined in theme.css or used specifically in global.css.
+NOTES:
+- We maintain existing spacing & typography variables.
+- We add a robust reset including the iOS text scaling fix.
+- We keep minimal widths and rely on max-width for modals, containers, etc.
 */
-
-/* base.css - Layout, spacing, structure, resets, universal variables (non-theme) */
 
 /* Root layout variables */
 :root {
@@ -42,8 +41,12 @@ those are defined in theme.css or used specifically in global.css.
     --z-toast: 110;
 }
 
-/* Reset */
-* {
+/* Reset & Mobile Safari fix */
+html {
+    -webkit-text-size-adjust: 100%; /* Prevent iOS from auto-scaling fonts */
+}
+
+*, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -53,7 +56,6 @@ those are defined in theme.css or used specifically in global.css.
 body {
     font-family: var(--font-main);
     min-height: 100vh;
-    margin: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -72,7 +74,7 @@ body {
     z-index: 1;
 }
 
-/* Controls Layout */
+/* Controls Layout (top-right corner buttons) */
 .controls-container {
     position: fixed;
     top: var(--spacing-sm);
@@ -110,6 +112,9 @@ body {
     padding: var(--spacing-lg);
     border-radius: var(--radius-lg);
     position: relative;
+    /* If content is long, allow vertical scroll within the modal */
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-close {
@@ -135,8 +140,8 @@ body {
 .share-buttons-container {
     display: flex;
     justify-content: space-around;
-    width: 100%;
     gap: 0.10rem;
+    width: 100%;
 }
 
 /* Toast Layout */
