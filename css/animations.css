@@ -1,0 +1,50 @@
+/* Placeholder text animation */
+.placeholder-text {
+    clip-path: inset(0 100% 0 0);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.placeholder-text.animate {
+    animation: revealText 1s ease-out forwards;
+}
+
+@keyframes revealText {
+    0% {
+        clip-path: inset(0 100% 0 0);
+    }
+    100% {
+        clip-path: inset(0 0 0 0);
+    }
+}
+
+/* Placeholder visibility states */
+input.placeholder-hidden::placeholder {
+    color: transparent;
+}
+
+input:focus::placeholder {
+    color: #9CA3AF !important;
+}
+
+/* Dialog transitions */
+dialog {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease-out;
+}
+
+dialog[open] {
+    opacity: 1;
+    visibility: visible;
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+
+dialog[open]::backdrop {
+    opacity: 1;
+} 
