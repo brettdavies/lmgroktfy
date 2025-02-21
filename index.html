@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,13 +7,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        'grok-green': '#10a37f',
-                        'grok-button': '#7C3AED',
-                        'grok-bg': '#232325',
-                        'grok-input': '#37383A',
+                        'grok-bg': {
+                            light: '#ffffff',
+                            dark: '#232325'
+                        },
+                        'grok-input': {
+                            light: '#f3f3f3',
+                            dark: '#37383A'
+                        }
                     },
                     boxShadow: {
                         'input': '0 0 15px rgba(0, 0, 0, 0.1)',
@@ -22,9 +27,52 @@
             },
         }
     </script>
+    <style>
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .placeholder-text {
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9CA3AF;
+            pointer-events: none;
+            opacity: 0;
+            white-space: nowrap;
+        }
+
+        .placeholder-text.visible {
+            opacity: 1;
+        }
+
+        .placeholder-text.animate {
+            animation: revealText 1s ease-out forwards;
+        }
+
+        @keyframes revealText {
+            0% {
+                clip-path: inset(0 100% 0 0);
+            }
+            100% {
+                clip-path: inset(0 0 0 0);
+            }
+        }
+
+        /* Hide native placeholder when our custom one is visible */
+        input.placeholder-hidden::placeholder {
+            color: transparent;
+        }
+
+        /* Show native placeholder when input is focused */
+        input:focus::placeholder {
+            color: #9CA3AF !important;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
-<body class="min-h-screen bg-grok-bg text-gray-200 flex flex-col">
+<body class="min-h-screen bg-grok-bg-light dark:bg-grok-bg-dark text-gray-800 dark:text-gray-200 flex flex-col">
     <!-- Toast Container -->
     <div class="fixed top-4 right-4 z-50">
         <div id="toast" class="hidden bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
@@ -35,17 +83,17 @@
 
     <!-- Theme and Help Controls -->
     <div class="fixed top-4 right-4 flex gap-2">
-        <button id="theme-toggle" class="p-2 text-gray-400 hover:text-white transition-colors" title="Toggle light/dark theme">
+        <button id="theme-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="Toggle light/dark theme">
             <i class="fa-solid fa-moon"></i>
         </button>
-        <button id="help-button" class="p-2 text-gray-400 hover:text-white transition-colors" title="How to use">
+        <button id="help-button" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="How to use">
             <i class="fa-solid fa-circle-info"></i>
         </button>
     </div>
 
     <!-- Help Modal -->
     <dialog id="help-modal" class="bg-transparent">
-        <div class="bg-[#1E1F23] text-gray-200 p-6 rounded-xl shadow-xl max-w-md">
+        <div class="bg-white dark:bg-[#1E1F23] text-gray-800 dark:text-gray-200 p-6 rounded-xl shadow-xl max-w-md">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-semibold">How to Use LMGROKTFY</h2>
                 <button class="text-gray-400 hover:text-white">
@@ -65,20 +113,21 @@
     <main class="flex-1 flex flex-col items-center justify-center px-4 py-16">
         <h1 class="text-[2.5rem] font-light text-center mb-16 tracking-tight">
             <a href="/" class="hover:opacity-90 transition-opacity">
-                Let me <span class="text-white font-normal">Grok</span> that for you
+                Let me <span class="text-gray-900 dark:text-white font-normal">Grok</span> that for you
             </a>
         </h1>
 
         <form id="question-form" class="w-full max-w-3xl mb-8">
-            <div class="relative flex w-full">
+            <div class="relative flex w-full input-wrapper">
+                <div id="custom-placeholder" class="placeholder-text visible animate"></div>
                 <input type="text" 
                        id="question-input" 
-                       placeholder="Ask your question here..." 
-                       class="w-full bg-grok-input text-white placeholder-gray-400 px-6 py-5 rounded-2xl pr-16 border border-gray-700/50 focus:outline-none focus:border-gray-600 shadow-input text-lg"
+                       placeholder="grok the meaning of life for me..." 
+                       class="w-full bg-grok-input-light dark:bg-grok-input-dark text-gray-900 dark:text-white placeholder-gray-400 px-6 py-5 rounded-2xl pr-16 border border-gray-200 dark:border-gray-700/50 focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 shadow-input text-lg placeholder-hidden"
                        required>
                 <button type="submit" 
                         disabled
-                        class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 disabled:bg-[#2A2B2D] disabled:text-gray-500 enabled:bg-white enabled:text-gray-900 rounded-full flex items-center justify-center transition-colors duration-1000 group disabled:cursor-not-allowed"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 disabled:bg-gray-100 dark:disabled:bg-[#2A2B2D] disabled:text-gray-400 dark:disabled:text-gray-500 enabled:bg-white dark:enabled:bg-white enabled:text-gray-900 rounded-full flex items-center justify-center transition-colors duration-1000 group disabled:cursor-not-allowed"
                         id="submit-button">
                     <i class="fa-solid fa-arrow-up text-lg transform group-hover:enabled:translate-y-[-2px] transition-all duration-1000"></i>
                 </button>
@@ -87,42 +136,42 @@
 
         <div id="loading" class="hidden">
             <div class="flex items-center gap-2">
-                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
                 <span>Grokking...</span>
             </div>
         </div>
 
         <div id="response" class="hidden w-full max-w-2xl">
-            <div class="bg-grok-input rounded-xl shadow-lg p-6">
-                <p id="answer" class="text-lg text-gray-200"></p>
+            <div class="bg-grok-input-light dark:bg-grok-input-dark rounded-xl shadow-lg p-6">
+                <p id="answer" class="text-lg"></p>
                 
                 <div class="mt-6 space-y-4">
                     <!-- Primary Actions -->
                     <div class="flex flex-wrap gap-2 justify-center">
-                        <a id="continue-link" class="px-4 py-2 border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" title="Understand more on Grok" href="#" target="_blank">
+                        <a id="continue-link" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" title="Understand more on Grok" href="#" target="_blank">
                             Understand more on Grok 
                             <i class="fa-solid fa-robot"></i>
                         </a>
-                        <a id="use-grok-button" class="px-4 py-2 border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" title="Use Grok on X" href="#" target="_blank">
+                        <a id="use-grok-button" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" title="Use Grok on X" href="#" target="_blank">
                             Use Grok on <i class="fa-brands fa-x-twitter"></i>
                         </a>
                     </div>
                     
                     <!-- Share Actions -->
                     <div class="flex flex-wrap gap-2 justify-center">
-                        <button id="copy-question-answer-button" class="px-3 py-1.5 text-sm border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
+                        <button id="copy-question-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
                             Copy Q &amp; A
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="copy-answer-button" class="px-3 py-1.5 text-sm border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
+                        <button id="copy-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
                             Copy Answer
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="share-button" class="px-3 py-1.5 text-sm border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
+                        <button id="share-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
                             Copy Share Link
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="share-on-x-button" class="px-3 py-1.5 text-sm border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
+                        <button id="share-on-x-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
                             Share on <i class="fa-brands fa-x-twitter"></i>
                             <i class="fa-solid fa-share"></i>
                         </button>
@@ -146,9 +195,60 @@
         // Handle input state changes
         const input = document.getElementById('question-input');
         const submitButton = document.getElementById('submit-button');
+        const customPlaceholder = document.getElementById('custom-placeholder');
         
         input.addEventListener('input', (e) => {
             submitButton.disabled = !e.target.value.trim();
+            // Hide custom placeholder when there's text
+            customPlaceholder.style.opacity = e.target.value ? '0' : '1';
+        });
+
+        input.addEventListener('focus', () => {
+            customPlaceholder.style.opacity = '0';
+        });
+
+        input.addEventListener('blur', (e) => {
+            if (!e.target.value) {
+                customPlaceholder.style.opacity = '1';
+            }
+        });
+
+        // Placeholder text rotation
+        const placeholders = [
+            "grok the meaning of life for me...",
+            "grok quantum physics for me...",
+            "grok how to make pasta for me...",
+            "grok artificial intelligence for me..."
+        ];
+
+        let currentIndex = 0;
+
+        function updatePlaceholder() {
+            if (document.activeElement === input || input.value) return;
+            
+            currentIndex = (currentIndex + 1) % placeholders.length;
+            customPlaceholder.classList.remove('animate');
+            // Trigger reflow to restart animation
+            void customPlaceholder.offsetWidth;
+            customPlaceholder.classList.add('animate');
+            customPlaceholder.textContent = placeholders[currentIndex];
+            input.placeholder = placeholders[currentIndex]; // Keep native placeholder in sync
+        }
+
+        // Initial setup
+        customPlaceholder.textContent = placeholders[0];
+
+        // Change placeholder every 3 seconds
+        setInterval(updatePlaceholder, 3000);
+
+        // Add theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            themeToggle.innerHTML = `<i class="fa-solid fa-${isDark ? 'moon' : 'sun'}"></i>`;
         });
     </script>
 </body>
