@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Let me Grok that for you</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -25,6 +26,9 @@
                     }
                 },
             },
+            daisyui: {
+                themes: ["light", "dark"]
+            }
         }
     </script>
     <style>
@@ -69,6 +73,28 @@
         input:focus::placeholder {
             color: #9CA3AF !important;
         }
+
+        /* Dialog styles */
+        dialog {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease-out;
+        }
+        
+        dialog[open] {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+
+        dialog[open]::backdrop {
+            opacity: 1;
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
@@ -86,33 +112,41 @@
         <button id="theme-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="Toggle light/dark theme">
             <i class="fa-solid fa-moon"></i>
         </button>
-        <button id="help-button" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="How to use">
+        <button onclick="help_modal.showModal()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="How to use">
             <i class="fa-solid fa-circle-info"></i>
         </button>
     </div>
 
     <!-- Help Modal -->
-    <dialog id="help-modal" class="bg-transparent">
-        <div class="bg-white dark:bg-[#1E1F23] text-gray-800 dark:text-gray-200 p-6 rounded-xl shadow-xl max-w-md">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-semibold">How to Use LMGROKTFY</h2>
-                <button class="text-gray-400 hover:text-white">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+    <dialog id="help_modal" class="modal">
+        <div class="modal-box bg-white dark:bg-[#1E1F23] text-gray-800 dark:text-gray-200">
+            <div class="flex justify-between items-start mb-6">
+                <h2 class="text-3xl font-semibold">How to Use LMGROKTFY</h2>
+                <form method="dialog">
+                    <button class="btn btn-circle btn-ghost btn-sm">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </form>
             </div>
-            <p class="mb-4">Type your question and let Grok answer it for you!</p>
-            <h3 class="text-xl font-semibold mb-2">Pro Tips</h3>
-            <ul class="space-y-2">
-                <li>Add your question directly to the URL: <code class="bg-black/30 px-1 rounded">lmgroktfy.com/Your Question Here</code></li>
+            <p class="text-lg mb-8">Type your question and let Grok answer it for you!</p>
+            <h3 class="text-2xl font-semibold mb-4">Pro Tips</h3>
+            <ul class="space-y-4 text-lg">
+                <li class="flex items-start gap-2">
+                    <span>Add your question directly to the URL:</span>
+                    <code class="bg-gray-100 dark:bg-black/30 px-3 py-0.5 rounded font-mono text-base">lmgroktfy.com/Your Question Here</code>
+                </li>
                 <li>Share the link to let others see the same answer</li>
                 <li>Use the copy buttons to easily share the Q&A</li>
             </ul>
         </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
     </dialog>
 
     <main class="flex-1 flex flex-col items-center justify-center px-4 py-16">
         <h1 class="text-[2.5rem] font-light text-center mb-16 tracking-tight">
-            <a href="/" class="hover:opacity-90 transition-opacity">
+            <a href="/" class="home-link hover:opacity-90 transition-opacity">
                 Let me <span class="text-gray-900 dark:text-white font-normal">Grok</span> that for you
             </a>
         </h1>

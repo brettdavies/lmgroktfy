@@ -41,15 +41,15 @@ export const UIState = {
      * Shows the loading state and hides the response container
      */
     showLoading() {
-        this.elements.loading().style.display = 'block';
-        this.elements.response().style.display = 'none';
+        this.elements.loading().classList.remove('hidden');
+        this.elements.response().classList.add('hidden');
     },
 
     /**
      * Hides the loading state
      */
     hideLoading() {
-        this.elements.loading().style.display = 'none';
+        this.elements.loading().classList.add('hidden');
     },
 
     /**
@@ -58,7 +58,7 @@ export const UIState = {
     showError() {
         this.elements.answer().innerText = 'Oops, something went wrong!';
         this.hideAllButtons();
-        this.elements.response().style.display = 'block';
+        this.elements.response().classList.remove('hidden');
     },
 
     /**
@@ -70,22 +70,21 @@ export const UIState = {
         this.elements.answer().innerText = answer;
         this.updateGrokButtons(question);
         this.showAllButtons();
-        this.elements.response().style.display = 'block';
-        this.elements.questionForm().style.display = 'none';
+        this.elements.response().classList.remove('hidden');
     },
 
     /**
      * Hides all action buttons
      */
     hideAllButtons() {
-        Object.values(this.elements.buttons).forEach(btn => btn().style.display = 'none');
+        Object.values(this.elements.buttons).forEach(btn => btn().classList.add('hidden'));
     },
 
     /**
      * Shows all action buttons
      */
     showAllButtons() {
-        Object.values(this.elements.buttons).forEach(btn => btn().style.display = 'inline-block');
+        Object.values(this.elements.buttons).forEach(btn => btn().classList.remove('hidden'));
     },
 
     /**
@@ -105,7 +104,7 @@ export const UIState = {
         const toast = this.elements.toast();
         const toastMessage = this.elements.toastMessage();
         toastMessage.textContent = message;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 1000);
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
     }
 }; 
