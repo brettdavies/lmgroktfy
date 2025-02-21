@@ -101,7 +101,7 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     max-width: 90%;
-    width: 500px;
+    width: 600px;
     z-index: var(--z-modal);
     display: none;
 }

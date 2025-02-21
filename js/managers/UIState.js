@@ -93,9 +93,8 @@ export const UIState = {
      * @param {string} question - The question to encode in the URLs
      */
     updateGrokButtons(question) {
-        const encodedQuestion = encodeURIComponent(question);
-        this.elements.buttons.continueLink().href = `https://grok.com/?q=${encodedQuestion}`;
-        this.elements.buttons.useGrok().href = `https://x.com/i/grok?text=${encodedQuestion}`;
+        this.elements.buttons.continueLink().href = `https://grok.com/?q=${question}`;
+        this.elements.buttons.useGrok().href = `https://x.com/i/grok?text=${question}`;
     },
 
     /**

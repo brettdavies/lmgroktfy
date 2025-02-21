@@ -36,15 +36,15 @@ export const ClipboardManager = {
         const suffix2 = ' via lmgroktfy.com';
         switch (type) {
             case 'qa':
-                return `Question: ${question} - Answer: ${answer}${suffix}${suffix2}`;
+                return `Question: ${question} Answer: ${answer}${suffix}${suffix2}`;
             case 'answer':
                 return `${answer}${suffix}${suffix2}`;
             case 'url':
                 return url;
             case 'tweet':
-                return `Question: ${question} - Answer: ${answer}${suffix}`;
+                return `Question: ${question} Answer: ${answer}${suffix}`;
             default:
                 return '';
         }
     }
-}; 
+};
