@@ -19,6 +19,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const path = window.location.pathname;
     if (path && path !== '/' && path !== '/index.html') {
         let question = path.replace(/^\//, '').replace(/\?.*$/, '').trim();
+        // Handle double-encoded URLs (where spaces are %2520 instead of %20)
+        question = decodeURIComponent(question);
+        if (question.includes('%20')) {
+            question = decodeURIComponent(question);
+        }
         if (question) {
             handleQuestionSubmission(question);
             UIState.elements.question().value = question;
@@ -43,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     UIState.elements.buttons.shareOnX().addEventListener('click', () => {
         const tweetText = ClipboardManager.getShareableText('tweet');
-        const shareUrl = window.location.href;
+        const shareUrl = ClipboardManager.getShareableText('shareUrl');
         window.open(`https://x.com/intent/tweet?text=${tweetText}&url=${shareUrl}`, '_blank');
     });
 });

@@ -63,6 +63,10 @@ NOTES:
     border-radius: var(--radius-md);
 }
 
+#button-container {
+    margin-top: var(--spacing-xl);
+}
+
 .action-buttons {
     display: flex;
     gap: var(--spacing-sm);

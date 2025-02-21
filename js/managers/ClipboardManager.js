@@ -25,11 +25,11 @@ export const ClipboardManager = {
 
     /**
      * Generates shareable text based on the specified type
-     * @param {'qa'|'answer'|'url'|'tweet'} type - The type of shareable text to generate
+     * @param {'qa'|'answer'|'url'|'tweet'|'shareUrl'} type - The type of shareable text to generate
      * @returns {string} Formatted text for sharing
      */
     getShareableText(type) {
-        const url = decodeURIComponent(window.location.href);
+        const url = window.location.href;
         const question = decodeURIComponent(UIState.elements.question().value);
         const answer = decodeURIComponent(UIState.elements.answer().innerText);
         const suffix = ' - Answer by Grok';
@@ -41,6 +41,8 @@ export const ClipboardManager = {
                 return `${answer}${suffix}${suffix2}`;
             case 'url':
                 return url;
+            case 'shareUrl':
+                return encodeURIComponent(url);
             case 'tweet':
                 return `Question: ${question} Answer: ${answer}${suffix}`;
             default:
