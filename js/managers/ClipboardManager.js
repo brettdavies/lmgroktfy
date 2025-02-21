@@ -36,7 +36,7 @@ export const ClipboardManager = {
         const suffix2 = ' via lmgroktfy.com';
         switch (type) {
             case 'qa':
-                return `Question: ${question}\nAnswer: ${answer}${suffix}${suffix2}`;
+                return `${question}\nAnswer: ${answer}${suffix}${suffix2}`;
             case 'answer':
                 return `${answer}${suffix}${suffix2}`;
             case 'url':
@@ -44,7 +44,7 @@ export const ClipboardManager = {
             case 'shareUrl':
                 return encodeURIComponent(url);
             case 'tweet':
-                return `Question: ${question} Answer: ${answer}${suffix}`;
+                return `${question} Answer: ${answer}${suffix}`;
             default:
                 return '';
         }
