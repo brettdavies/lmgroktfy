@@ -125,6 +125,9 @@ body {
     background: var(--container-bg);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 }
 
 .control-button:hover {
@@ -199,6 +202,9 @@ input[type="text"]::placeholder {
 .primary-button {
     background: var(--accent-color);
     color: #fff;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 }
 
 .primary-button:hover {
@@ -210,6 +216,9 @@ input[type="text"]::placeholder {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 }
 
 .secondary-button:hover {
