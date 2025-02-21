@@ -1,49 +1,25 @@
 /**
- * Manages theme switching functionality and persistence
+ * Manages theme toggling functionality
  * @namespace ThemeManager
  */
 export const ThemeManager = {
-    /** @type {HTMLElement|null} Theme toggle button element */
-    toggle: null,
-    
-    /** @type {HTMLElement|null} Theme icon element */
-    icon: null,
-
-    /**
-     * Updates the theme icon based on current theme
-     * @param {'dark'|'light'} theme - The current theme
-     */
-    updateIcon(theme) {
-        this.icon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    elements: {
+        html: null,
+        themeToggle: null
     },
 
-    /**
-     * Initializes theme management functionality
-     * - Sets up DOM references
-     * - Restores saved theme preference
-     * - Adds theme toggle event listener
-     */
     initialize() {
-        this.toggle = document.getElementById('theme-toggle');
-        this.icon = this.toggle.querySelector('i');
+        this.elements.html = document.documentElement;
+        this.elements.themeToggle = document.getElementById('theme-toggle');
+        
+        this.setupEventListeners();
+    },
 
-        // Only override the default if there's a saved preference
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            this.updateIcon(savedTheme);
-        } else {
-            // Ensure the dark theme (and icon) is applied by default
-            document.documentElement.setAttribute('data-theme', 'dark');
-            this.updateIcon('dark');
-        }
-
-        this.toggle.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            this.updateIcon(newTheme);
-            localStorage.setItem('theme', newTheme);
+    setupEventListeners() {
+        this.elements.themeToggle.addEventListener('click', () => {
+            this.elements.html.classList.toggle('dark');
+            const isDark = this.elements.html.classList.contains('dark');
+            this.elements.themeToggle.innerHTML = `<i class="fa-solid fa-${isDark ? 'moon' : 'sun'}"></i>`;
         });
     }
-};
+}; 

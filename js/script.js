@@ -1,19 +1,19 @@
 import { UIState } from './managers/UIState.js';
 import { ClipboardManager } from './managers/ClipboardManager.js';
-// import { ThemeManager } from './managers/ThemeManager.js';
-import { ModalManager } from './managers/ModalManager.js';
+import { PlaceholderManager } from './managers/PlaceholderManager.js';
+import { ThemeManager } from './managers/ThemeManager.js';
 import { handleQuestionSubmission } from './api/grokApi.js';
 
 /**
  * Main application initialization
- * - Initializes theme and modal managers
  * - Sets up event listeners for form submission and sharing
  * - Handles URL-based question loading
+ * - Initializes all managers
  */
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Managers
-    // ThemeManager.initialize();
-    ModalManager.initialize();
+    // Initialize managers
+    PlaceholderManager.initialize();
+    ThemeManager.initialize();
 
     // Handle home link clicks
     document.querySelector('.home-link').addEventListener('click', function(e) {
