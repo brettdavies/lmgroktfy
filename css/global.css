@@ -1,107 +1,37 @@
-/* Theme System */
-:root {
-    /* Core theme tokens */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 24px;
-    
-    --spacing-xs: 0.5rem;
-    --spacing-sm: 1rem;
-    --spacing-md: 1.5rem;
-    --spacing-lg: 2rem;
-    --spacing-xl: 3rem;
+/*
+========================
+FILE: global.css
+========================
+PURPOSE:
+- Component-specific styles (forms, action buttons, etc.)
+- Custom animations & utility classes
+- Media queries for responsiveness
+- Should not define theme or layout variables (those live in base.css / theme.css)
 
-    --font-main: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    --font-size-sm: 0.8rem;
-    --font-size-base: 1rem;
-    --font-size-lg: 1.1rem;
-    --font-size-xl: 1.25rem;
-    --font-size-2xl: 1.5rem;
-    --font-size-3xl: 2.5rem;
+NOTES:
+- We keep the same class names for familiarity.
+- We adopt a mobile-first approach with minimal fixed widths.
+*/
 
-    --transition-fast: 0.1s ease;
-    --transition-base: 0.2s ease;
-    --transition-slow: 0.3s ease;
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* Dark theme (default) */
-[data-theme="dark"] {
-    --background: #1d1e20;
-    --text-primary: rgba(255, 255, 255, 0.9);
-    --text-secondary: rgba(255, 255, 255, 0.6);
-    --accent-color: #007AFF;
-    --accent-color-hover: rgba(0, 122, 255, 0.8);
-    --input-bg: rgba(255, 255, 255, 0.1);
-    --input-border: rgba(255, 255, 255, 0.2);
-    --button-hover: rgba(255, 255, 255, 0.15);
-    --container-bg: rgba(255, 255, 255, 0.08);
-    --gradient-start: rgba(0, 122, 255, 0.15);
-    --gradient-end: transparent;
-    --border-color: rgba(255, 255, 255, 0.1);
+.fade-in {
+    animation: fadeIn var(--transition-base);
 }
 
-/* Reset and base styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* Layout / Components */
 
-body {
-    font-family: var(--font-main);
-    min-height: 100vh;
-    margin: 0;
-    background-color: var(--background);
-    color: var(--text-primary);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    line-height: 1.5;
-    position: relative;
-    overflow-x: hidden;
-}
-
-/* Theme gradient background */
-.theme-gradient {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 50% 0%, var(--gradient-start), var(--gradient-end) 60%);
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* Main container */
-#main-container {
-    position: relative;
-    background: var(--container-bg);
-    padding: var(--spacing-xl) var(--spacing-lg);
-    border-radius: var(--radius-lg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--border-color);
-    width: 90%;
-    max-width: 600px;
-    margin: var(--spacing-lg) auto;
-    text-align: center;
-    z-index: 1;
-}
-
-/* Typography */
-h1 {
-    font-size: var(--font-size-3xl);
-    font-weight: 600;
-    margin-bottom: var(--spacing-lg);
-}
-
-.gradient-text {
-    background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.7));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-/* Form elements */
+/* FORM CONTAINER */
 .form-container {
     margin: var(--spacing-lg) 0;
 }
@@ -112,70 +42,45 @@ h1 {
     gap: var(--spacing-sm);
 }
 
-input[type="text"] {
-    width: 100%;
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--input-bg);
-    border: 1px solid var(--input-border);
-    border-radius: var(--radius-md);
-    color: var(--text-primary);
-    font-size: var(--font-size-lg);
-    transition: all var(--transition-base);
-}
-
-input[type="text"]:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    background: rgba(255, 255, 255, 0.15);
-}
-
-input[type="text"]::placeholder {
-    color: var(--text-secondary);
-}
-
-/* Buttons */
+/* PRIMARY BUTTON */
 .primary-button {
     padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--accent-color);
-    color: white;
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--font-size-base);
     font-weight: 500;
     transition: all var(--transition-base);
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.primary-button:hover {
-    background: var(--accent-color-hover);
-    transform: translateY(-1px);
-}
-
-/* Status messages */
+/* STATUS MESSAGES */
 .status-message {
     margin: var(--spacing-lg) 0;
     font-style: italic;
-    color: var(--text-secondary);
 }
 
-/* Response container */
+/* RESPONSE CONTAINER */
 .response-container {
     margin: var(--spacing-lg) 0;
     padding: var(--spacing-sm);
     border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.05);
 }
 
-.response-text {
-    color: var(--text-primary);
+/* BUTTON CONTAINER (Holds the action + share buttons) */
+#button-container {
+    margin-top: var(--spacing-xl);
 }
 
-/* Action buttons */
+/* ACTION BUTTONS & SECONDARY BUTTONS */
 .action-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
     justify-content: center;
-    flex-wrap: wrap;
     margin-top: var(--spacing-lg);
 }
 
@@ -185,38 +90,35 @@ input[type="text"]::placeholder {
     border-radius: var(--radius-md);
     transition: all var(--transition-base);
     font-weight: 500;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     backdrop-filter: blur(8px);
 }
 
 .secondary-button {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-xs);
 }
 
-.secondary-button:hover {
-    background: var(--button-hover);
-}
-
+/* Copy icon style */
 .fa-copy {
     font-size: var(--font-size-base);
     opacity: 0.8;
 }
 
-/* Footer */
+/* FOOTER */
 .site-footer {
     text-align: center;
     font-size: var(--font-size-sm);
-    color: var(--text-secondary);
     padding: var(--spacing-sm);
     margin-top: auto;
-    background: transparent;
     backdrop-filter: blur(8px);
-    border-top: 1px solid var(--border-color);
     width: 100%;
+    background: transparent;
 }
 
 .disclaimer-text {
@@ -225,32 +127,99 @@ input[type="text"]::placeholder {
     line-height: 1.4;
 }
 
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.response-container, .status-message {
-    animation: fadeIn var(--transition-base);
-}
-
-/* Responsive adjustments */
+/* MEDIA QUERIES (Mobile-first, so we add bigger breakpoints as needed) */
 @media (max-width: 768px) {
     #main-container {
         padding: var(--spacing-lg) var(--spacing-sm);
         margin: var(--spacing-sm) auto;
     }
-
     h1 {
         font-size: var(--font-size-2xl);
     }
-
     .action-buttons {
         flex-direction: column;
     }
-
     .action-button {
         width: 100%;
     }
+}
+
+/* Additional tweak for very narrow screens (~320-480px) */
+@media (max-width: 480px) {
+    /* For the share buttons, 2 columns wide if desired */
+    .share-buttons-container {
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+    .share-buttons-container .action-button {
+        flex: 1 1 45%;
+        max-width: 45%;
+        margin: 0 auto;
+    }
+}
+
+/* CONTINUE-LINK & SHARE-BUTTONS */
+.continue-link-container {
+    width: 100%;
+    text-align: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.share-buttons-container {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+}
+
+/* MODAL CONTENT */
+.modal-content {
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+}
+
+.modal-content h2 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.modal-content h3 {
+    font-size: var(--font-size-lg);
+    margin: var(--spacing-md) 0 var(--spacing-sm);
+}
+
+.modal-content p {
+    margin-bottom: var(--spacing-md);
+    line-height: 1.6;
+}
+
+.modal-content ul {
+    list-style-type: none;
+    padding-left: var(--spacing-md);
+}
+
+.modal-content li {
+    margin-bottom: var(--spacing-sm);
+    position: relative;
+}
+.modal-content li:before {
+    content: "•";
+    position: absolute;
+    left: -1rem;
+}
+
+.modal-content code {
+    font-family: monospace;
+    padding: 0.2em 0.4em;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* MODAL CLOSE ICON */
+.modal-close {
+    padding: var(--spacing-sm);
+    cursor: pointer;
+    transition: transform var(--transition-base);
+}
+.modal-close:hover {
+    transform: scale(1.1);
 }
