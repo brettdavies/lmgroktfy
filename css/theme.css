@@ -1,0 +1,113 @@
+/* Theme variables */
+:root {
+    /* Light theme (default) */
+    --light-background: #ffffff;
+    --light-text-primary: rgba(0, 0, 0, 0.9);
+    --light-text-secondary: rgba(0, 0, 0, 0.6);
+    --light-accent-color: #007AFF;
+    --light-accent-hover: rgba(0, 122, 255, 0.8);
+    --light-input-bg: rgba(0, 0, 0, 0.05);
+    --light-input-border: rgba(0, 0, 0, 0.1);
+    --light-button-hover: rgba(0, 0, 0, 0.05);
+    --light-container-bg: rgba(255, 255, 255, 0.8);
+    --light-gradient-start: rgba(0, 122, 255, 0.1);
+    --light-gradient-end: transparent;
+    --light-border-color: rgba(0, 0, 0, 0.1);
+    --light-modal-bg: rgba(255, 255, 255, 0.95);
+    --light-backdrop: rgba(0, 0, 0, 0.3);
+
+    /* Dark theme */
+    --dark-background: #1d1e20;
+    --dark-text-primary: rgba(255, 255, 255, 0.9);
+    --dark-text-secondary: rgba(255, 255, 255, 0.6);
+    --dark-accent-color: #007AFF;
+    --dark-accent-hover: rgba(0, 122, 255, 0.8);
+    --dark-input-bg: rgba(255, 255, 255, 0.1);
+    --dark-input-border: rgba(255, 255, 255, 0.2);
+    --dark-button-hover: rgba(255, 255, 255, 0.15);
+    --dark-container-bg: rgba(255, 255, 255, 0.08);
+    --dark-gradient-start: rgba(0, 122, 255, 0.15);
+    --dark-gradient-end: transparent;
+    --dark-border-color: rgba(255, 255, 255, 0.1);
+    --dark-modal-bg: rgba(0, 0, 0, 0.95);
+    --dark-backdrop: rgba(0, 0, 0, 0.7);
+}
+
+/* Light theme (default) */
+:root[data-theme="light"] {
+    --background: var(--light-background);
+    --text-primary: var(--light-text-primary);
+    --text-secondary: var(--light-text-secondary);
+    --accent-color: var(--light-accent-color);
+    --accent-hover: var(--light-accent-hover);
+    --input-bg: var(--light-input-bg);
+    --input-border: var(--light-input-border);
+    --button-hover: var(--light-button-hover);
+    --container-bg: var(--light-container-bg);
+    --gradient-start: var(--light-gradient-start);
+    --gradient-end: var(--light-gradient-end);
+    --border-color: var(--light-border-color);
+    --modal-bg: var(--light-modal-bg);
+    --backdrop: var(--light-backdrop);
+}
+
+/* Dark theme */
+:root[data-theme="dark"] {
+    --background: var(--dark-background);
+    --text-primary: var(--dark-text-primary);
+    --text-secondary: var(--dark-text-secondary);
+    --accent-color: var(--dark-accent-color);
+    --accent-hover: var(--dark-accent-hover);
+    --input-bg: var(--dark-input-bg);
+    --input-border: var(--dark-input-border);
+    --button-hover: var(--dark-button-hover);
+    --container-bg: var(--dark-container-bg);
+    --gradient-start: var(--dark-gradient-start);
+    --gradient-end: var(--dark-gradient-end);
+    --border-color: var(--dark-border-color);
+    --modal-bg: var(--dark-modal-bg);
+    --backdrop: var(--dark-backdrop);
+}
+
+/* Theme application */
+body {
+    background-color: var(--background);
+    color: var(--text-primary);
+}
+
+.theme-gradient {
+    background: radial-gradient(circle at 50% 0%, var(--gradient-start), var(--gradient-end) 60%);
+}
+
+#main-container {
+    background: var(--container-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+}
+
+.control-button {
+    background: var(--container-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.control-button:hover {
+    background: var(--button-hover);
+}
+
+.modal-content {
+    background: var(--modal-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.modal-backdrop {
+    background: var(--backdrop);
+}
+
+.toast {
+    background: var(--modal-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px var(--backdrop);
+} 

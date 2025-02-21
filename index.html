@@ -4,11 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Let me Grok that for you</title>
-    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/theme.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
     <div class="theme-gradient"></div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container">
+        <div id="toast" class="toast">
+            <i class="fa-solid fa-circle-check"></i>
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <!-- Theme and Help Controls -->
+    <div class="controls-container">
+        <button id="theme-toggle" class="control-button" title="Toggle light/dark theme">
+            <i class="fa-solid fa-moon"></i>
+        </button>
+        <button id="help-button" class="control-button" title="How to use">
+            <i class="fa-solid fa-circle-info"></i>
+        </button>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2>How to Use LMGROKTFY</h2>
+            <p>Simply type your question and let Grok answer it for you!</p>
+            <h3>Pro Tips</h3>
+            <ul>
+                <li>Add your question directly to the URL: <code>lmgroktfy.com/your-question-here</code></li>
+                <li>Share the link to let others see the same answer</li>
+                <li>Use the copy buttons to easily share the Q&A</li>
+            </ul>
+        </div>
+    </div>
+    <div id="modal-backdrop" class="modal-backdrop"></div>
+
     <div id="main-container">
         <h1>Let me <span class="gradient-text">Grok</span> that for you</h1>
         <form id="question-form" class="form-container">
@@ -24,46 +62,47 @@
             <p id="answer" class="response-text"></p>
           
             <div id="button-container">
-              <!-- Single button on its own line -->
+              <!-- Action buttons on their own line -->
               <div class="continue-link-container">
-                <a
-                  id="continue-link"
-                  class="action-button secondary-button"
-                  title="Understand more on Grok"
-                  href="#"
-                  target="_blank"
-                >
-                  Understand more on Grok
+                <a id="continue-link" class="action-button secondary-button" title="Understand more on Grok" href="#" target="_blank">
+                  Understand more on Grok 
+                  <i class="fa-solid fa-robot"></i>
+                </a>
+                <a id="use-grok-button" class="action-button secondary-button" title="Use Grok on X" href="#" target="_blank">
+                  Use Grok on X 
+                  <i class="fa-brands fa-x-twitter"></i>
                 </a>
               </div>
           
               <!-- Share buttons on their own line -->
               <div class="share-buttons-container">
                 <button id="copy-question-answer-button" class="action-button secondary-button" title="Copy the question and answer">
-                  Copy Q &amp; A
-                  <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                    Copy Q &amp; A
+                    <i class="fa-regular fa-copy" aria-hidden="true"></i>
                 </button>
                 <button id="copy-answer-button" class="action-button secondary-button" title="Copy the answer">
-                  Copy Answer
-                  <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                    Copy Answer
+                    <i class="fa-regular fa-copy" aria-hidden="true"></i>
                 </button>
                 <button id="share-button" class="action-button secondary-button" title="Copy shareable link">
-                  Copy Share Link
-                  <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                    Copy Share Link
+                    <i class="fa-regular fa-copy" aria-hidden="true"></i>
                 </button>
                 <button id="share-on-x-button" class="action-button secondary-button" title="Share on X">
-                  Share on X
-                  <i class="fa-solid fa-share" aria-hidden="true"></i>
+                    Share on <i class="fa-brands fa-x-twitter"></i>
+                    <i class="fa-solid fa-share" aria-hidden="true"></i>
                 </button>
               </div>
             </div>
-          </div>
+        </div>
     </div>
     <footer class="site-footer">
         <p class="disclaimer-text">
             Not affiliated with X™ or Grok™. X & Grok are trademarks of X Corp. & xAI.
-            © 2025 lmgroktfy.com - Stay Curious, Understand the Universe!
         </p>
+        <p class="disclaimer-text">
+          © 2025 Brett Davies - Stay Curious, Understand the Universe!
+      </p>
     </footer>
     <script src="/js/script.js"></script>
 </body>

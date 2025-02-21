@@ -12,6 +12,69 @@ document.addEventListener('DOMContentLoaded', function() {
             question_encoded = encodeURIComponent(question);
         }
     }
+
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = themeToggle.querySelector('i');
+    
+    function updateThemeIcon(theme) {
+        themeIcon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+    }
+
+    themeToggle.addEventListener('click', function() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        updateThemeIcon(newTheme);
+        localStorage.setItem('theme', newTheme);
+    });
+
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    // Modal functionality
+    const modal = document.getElementById('help-modal');
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const helpButton = document.getElementById('help-button');
+    const closeButton = modal.querySelector('.modal-close');
+
+    function showModal() {
+        modal.style.display = 'block';
+        modalBackdrop.style.display = 'block';
+        modal.classList.add('fade-in');
+        modalBackdrop.classList.add('fade-in');
+    }
+
+    function hideModal() {
+        modal.style.display = 'none';
+        modalBackdrop.style.display = 'none';
+        modal.classList.remove('fade-in');
+        modalBackdrop.classList.remove('fade-in');
+    }
+
+    helpButton.addEventListener('click', showModal);
+    closeButton.addEventListener('click', hideModal);
+    modalBackdrop.addEventListener('click', hideModal);
+
+    // Toast functionality
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toast-message');
+        toastMessage.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 1000);
+    }
+
+    // Update Grok buttons when showing response
+    function updateGrokButtons(question) {
+        const encodedQuestion = encodeURIComponent(question);
+        document.getElementById('continue-link').href = `https://grok.com/?q=${encodedQuestion}`;
+        document.getElementById('use-grok-button').href = `https://x.com/i/grok?text=${encodedQuestion}`;
+    }
 });
 
 function handleQuestionSubmission(question) {
@@ -51,6 +114,7 @@ function handleQuestionSubmission(question) {
             console.error('[Error Handler] API returned error:', data.error);
             document.getElementById('answer').innerText = 'Oops, something went wrong!';
             document.getElementById('continue-link').style.display = 'none';
+            document.getElementById('use-grok-button').style.display = 'none';
             document.getElementById('share-button').style.display = 'none';
             document.getElementById('copy-question-answer-button').style.display = 'none';
             document.getElementById('copy-answer-button').style.display = 'none';
@@ -58,8 +122,9 @@ function handleQuestionSubmission(question) {
         } else {
             console.log('[Success] Displaying response and buttons');
             document.getElementById('answer').innerText = data.answer;
-            document.getElementById('continue-link').href = `https://grok.com/?q=${question}`;
+            updateGrokButtons(question);
             document.getElementById('continue-link').style.display = 'inline-block';
+            document.getElementById('use-grok-button').style.display = 'inline-block';
             document.getElementById('share-button').style.display = 'inline-block';
             document.getElementById('copy-question-answer-button').style.display = 'inline-block';
             document.getElementById('copy-answer-button').style.display = 'inline-block';
@@ -76,6 +141,7 @@ function handleQuestionSubmission(question) {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('answer').innerText = 'Oops, something went wrong!';
         document.getElementById('continue-link').style.display = 'none';
+        document.getElementById('use-grok-button').style.display = 'none';
         document.getElementById('share-button').style.display = 'none';
         document.getElementById('copy-answer-button').style.display = 'none';
         document.getElementById('share-on-x-button').style.display = 'none';
@@ -96,6 +162,7 @@ document.getElementById('copy-question-answer-button').addEventListener('click',
     navigator.clipboard.writeText(textToCopy)
         .then(() => {
             console.log('[Copy Q&A] Copied:', textToCopy);
+            showToast('Question and answer copied!');
         })
         .catch(err => {
             console.error('[Copy Q&A] Copy failed:', err);
@@ -109,6 +176,7 @@ document.getElementById('copy-answer-button').addEventListener('click', function
     navigator.clipboard.writeText(textToCopy)
         .then(() => {
             console.log('[Copy Answer] Copied:', textToCopy);
+            showToast('Answer copied!');
         })
         .catch(err => {
             console.error('[Copy Answer] Copy failed:', err);
@@ -121,6 +189,7 @@ document.getElementById('share-button').addEventListener('click', function() {
     navigator.clipboard.writeText(textToCopy)
         .then(() => {
             console.log('[Share] URL copied:', textToCopy);
+            showToast('Share link copied!');
         })
         .catch(err => {
             console.error('[Share] Copy failed:', err);
