@@ -15,6 +15,19 @@ document.addEventListener('DOMContentLoaded', function() {
     ThemeManager.initialize();
     ModalManager.initialize();
 
+    // Handle home link clicks
+    document.querySelector('.home-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        // Reset form and UI state
+        UIState.elements.question().value = '';
+        UIState.elements.answer().innerText = '';
+        UIState.elements.response().style.display = 'none';
+        UIState.elements.questionForm().style.display = 'block';
+        UIState.hideAllButtons();
+        // Update URL without triggering a reload
+        window.history.pushState({}, '', '/');
+    });
+
     // Check for URL-based question
     const path = window.location.pathname;
     if (path && path !== '/' && path !== '/index.html') {
