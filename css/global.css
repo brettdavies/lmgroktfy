@@ -201,6 +201,7 @@ NOTES:
     margin-bottom: var(--spacing-sm);
     position: relative;
 }
+
 .modal-content li:before {
     content: "•";
     position: absolute;
@@ -222,4 +223,15 @@ NOTES:
 }
 .modal-close:hover {
     transform: scale(1.1);
+}
+
+.home-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: opacity var(--transition-base);
+}
+
+.home-link:hover {
+    opacity: 0.8;
 }
