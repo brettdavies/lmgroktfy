@@ -153,7 +153,7 @@
 
         <form id="question-form" class="w-full max-w-3xl mb-8">
             <div class="relative flex w-full input-wrapper">
-                <div id="custom-placeholder" class="placeholder-text visible animate"></div>
+                <div id="custom-placeholder" class="placeholder-text visible animate text-lg"></div>
                 <input type="text" 
                        id="question-input" 
                        placeholder="grok the meaning of life for me..." 
@@ -231,20 +231,30 @@
         const submitButton = document.getElementById('submit-button');
         const customPlaceholder = document.getElementById('custom-placeholder');
         
+        function updatePlaceholderVisibility(value) {
+            const isEmpty = !value.trim();
+            const isFocused = document.activeElement === input;
+            
+            // Only show custom placeholder when empty and not focused
+            customPlaceholder.style.opacity = isEmpty && !isFocused ? '1' : '0';
+            
+            // Toggle native placeholder visibility
+            input.classList.toggle('placeholder-hidden', isEmpty && !isFocused);
+            
+            // Update submit button state
+            submitButton.disabled = isEmpty;
+        }
+        
         input.addEventListener('input', (e) => {
-            submitButton.disabled = !e.target.value.trim();
-            // Hide custom placeholder when there's text
-            customPlaceholder.style.opacity = e.target.value ? '0' : '1';
+            updatePlaceholderVisibility(e.target.value);
         });
 
         input.addEventListener('focus', () => {
-            customPlaceholder.style.opacity = '0';
+            updatePlaceholderVisibility(input.value);
         });
 
-        input.addEventListener('blur', (e) => {
-            if (!e.target.value) {
-                customPlaceholder.style.opacity = '1';
-            }
+        input.addEventListener('blur', () => {
+            updatePlaceholderVisibility(input.value);
         });
 
         // Placeholder text rotation
@@ -252,7 +262,9 @@
             "grok the meaning of life for me...",
             "grok quantum physics for me...",
             "grok how to make pasta for me...",
-            "grok artificial intelligence for me..."
+            "grok artificial intelligence for me...",
+            "grok what does the fox say?",
+            "grok when is the next eclipse?"
         ];
 
         let currentIndex = 0;
