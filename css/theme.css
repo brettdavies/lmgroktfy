@@ -30,60 +30,12 @@ NOTES:
     --modal-bg: rgba(0, 0, 0, 0.95);
     --backdrop: rgba(0, 0, 0, 0.7);
 
-    /* Light theme variables */
-    --light-background: #ffffff;
-    --light-text-primary: rgba(0, 0, 0, 0.9);
-    --light-text-secondary: rgba(0, 0, 0, 0.6);
-    --light-accent-color: #007AFF;
-    --light-accent-hover: rgba(0, 122, 255, 0.8);
-    --light-input-bg: rgba(0, 0, 0, 0.05);
-    --light-input-border: rgba(0, 0, 0, 0.1);
-    --light-button-hover: rgba(0, 0, 0, 0.05);
-    --light-container-bg: rgba(255, 255, 255, 0.8);
-    --light-gradient-start: rgba(0, 122, 255, 0.1);
-    --light-gradient-end: transparent;
-    --light-border-color: rgba(0, 0, 0, 0.1);
-    --light-modal-bg: rgba(255, 255, 255, 0.95);
-    --light-backdrop: rgba(0, 0, 0, 0.3);
 
-    /* (dark-background & dark-text are repeated for reference) */
 }
 
-/* Light theme override */
-:root[data-theme="light"] {
-    --background: var(--light-background);
-    --text-primary: var(--light-text-primary);
-    --text-secondary: var(--light-text-secondary);
-    --accent-color: var(--light-accent-color);
-    --accent-hover: var(--light-accent-hover);
-    --input-bg: var(--light-input-bg);
-    --input-border: var(--light-input-border);
-    --button-hover: var(--light-button-hover);
-    --container-bg: var(--light-container-bg);
-    --gradient-start: var(--light-gradient-start);
-    --gradient-end: var(--light-gradient-end);
-    --border-color: var(--light-border-color);
-    --modal-bg: var(--light-modal-bg);
-    --backdrop: var(--light-backdrop);
-}
 
-/* Dark theme override (explicit for clarity) */
-:root[data-theme="dark"] {
-    --background: var(--background);
-    --text-primary: var(--text-primary);
-    --text-secondary: var(--text-secondary);
-    --accent-color: var(--accent-color);
-    --accent-hover: var(--accent-hover);
-    --input-bg: var(--input-bg);
-    --input-border: var(--input-border);
-    --button-hover: var(--button-hover);
-    --container-bg: var(--container-bg);
-    --gradient-start: var(--gradient-start);
-    --gradient-end: var(--gradient-end);
-    --border-color: var(--border-color);
-    --modal-bg: var(--modal-bg);
-    --backdrop: var(--backdrop);
-}
+
+
 
 /* Background & text for overall body */
 body,

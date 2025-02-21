@@ -1,6 +1,6 @@
 import { UIState } from './managers/UIState.js';
 import { ClipboardManager } from './managers/ClipboardManager.js';
-import { ThemeManager } from './managers/ThemeManager.js';
+// import { ThemeManager } from './managers/ThemeManager.js';
 import { ModalManager } from './managers/ModalManager.js';
 import { handleQuestionSubmission } from './api/grokApi.js';
 
@@ -12,7 +12,7 @@ import { handleQuestionSubmission } from './api/grokApi.js';
  */
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Managers
-    ThemeManager.initialize();
+    // ThemeManager.initialize();
     ModalManager.initialize();
 
     // Handle home link clicks
