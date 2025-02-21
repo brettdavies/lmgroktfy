@@ -27,12 +27,17 @@ export const ThemeManager = {
         this.toggle = document.getElementById('theme-toggle');
         this.icon = this.toggle.querySelector('i');
 
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        this.updateIcon(savedTheme);
+        // Only override the default if there's a saved preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            this.updateIcon(savedTheme);
+        } else {
+            this.updateIcon('dark');
+        }
 
         this.toggle.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', newTheme);
             this.updateIcon(newTheme);

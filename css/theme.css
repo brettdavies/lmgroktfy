@@ -1,6 +1,22 @@
 /* Theme variables */
 :root {
-    /* Light theme (default) */
+    /* Default theme (dark) */
+    --background: #1d1e20;
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: rgba(255, 255, 255, 0.6);
+    --accent-color: #007AFF;
+    --accent-hover: rgba(0, 122, 255, 0.8);
+    --input-bg: rgba(255, 255, 255, 0.1);
+    --input-border: rgba(255, 255, 255, 0.2);
+    --button-hover: rgba(255, 255, 255, 0.15);
+    --container-bg: rgba(255, 255, 255, 0.08);
+    --gradient-start: rgba(0, 122, 255, 0.15);
+    --gradient-end: transparent;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --modal-bg: rgba(0, 0, 0, 0.95);
+    --backdrop: rgba(0, 0, 0, 0.7);
+
+    /* Light theme variables (for reference) */
     --light-background: #ffffff;
     --light-text-primary: rgba(0, 0, 0, 0.9);
     --light-text-secondary: rgba(0, 0, 0, 0.6);
@@ -16,7 +32,7 @@
     --light-modal-bg: rgba(255, 255, 255, 0.95);
     --light-backdrop: rgba(0, 0, 0, 0.3);
 
-    /* Dark theme */
+    /* Dark theme variables (for reference) */
     --dark-background: #1d1e20;
     --dark-text-primary: rgba(255, 255, 255, 0.9);
     --dark-text-secondary: rgba(255, 255, 255, 0.6);
@@ -33,7 +49,7 @@
     --dark-backdrop: rgba(0, 0, 0, 0.7);
 }
 
-/* Light theme (default) */
+/* Light theme override */
 :root[data-theme="light"] {
     --background: var(--light-background);
     --text-primary: var(--light-text-primary);
@@ -51,7 +67,7 @@
     --backdrop: var(--light-backdrop);
 }
 
-/* Dark theme */
+/* Dark theme override (explicit for clarity) */
 :root[data-theme="dark"] {
     --background: var(--dark-background);
     --text-primary: var(--dark-text-primary);
