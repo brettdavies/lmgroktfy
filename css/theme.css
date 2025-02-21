@@ -136,10 +136,22 @@ body {
     background: var(--modal-bg);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
 }
 
 .modal-backdrop {
     background: var(--backdrop);
+    backdrop-filter: blur(4px);
 }
 
 /* Toast Theming */

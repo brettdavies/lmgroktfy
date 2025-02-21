@@ -29,19 +29,20 @@ export const ClipboardManager = {
      * @returns {string} Formatted text for sharing
      */
     getShareableText(type) {
-        const question = UIState.elements.question().value;
-        const answer = UIState.elements.answer().innerText;
-        const suffix = ' - Answer by Grok via lmgroktfy.com';
-        
+        const url = decodeURIComponent(window.location.href);
+        const question = decodeURIComponent(UIState.elements.question().value);
+        const answer = decodeURIComponent(UIState.elements.answer().innerText);
+        const suffix = ' - Answer by Grok';
+        const suffix2 = ' via lmgroktfy.com';
         switch (type) {
             case 'qa':
-                return `Question: ${question} - Answer: ${answer}${suffix}`;
+                return `Question: ${question} - Answer: ${answer}${suffix}${suffix2}`;
             case 'answer':
-                return `${answer}${suffix}`;
+                return `${answer}${suffix}${suffix2}`;
             case 'url':
-                return window.location.href;
+                return url;
             case 'tweet':
-                return encodeURIComponent(`Question: ${question} - Answer: ${answer}${suffix}`);
+                return `Question: ${question} - Answer: ${answer}${suffix}`;
             default:
                 return '';
         }

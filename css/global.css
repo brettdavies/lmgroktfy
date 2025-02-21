@@ -136,3 +136,57 @@ NOTES:
     justify-content: space-around;
     width: 100%;
 }
+
+/* Modal */
+.modal-content {
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+}
+
+.modal-content h2 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.modal-content h3 {
+    font-size: var(--font-size-lg);
+    margin: var(--spacing-md) 0 var(--spacing-sm);
+}
+
+.modal-content p {
+    margin-bottom: var(--spacing-md);
+    line-height: 1.6;
+}
+
+.modal-content ul {
+    list-style-type: none;
+    padding-left: var(--spacing-md);
+}
+
+.modal-content li {
+    margin-bottom: var(--spacing-sm);
+    position: relative;
+}
+
+.modal-content li:before {
+    content: "•";
+    position: absolute;
+    left: -1rem;
+}
+
+.modal-content code {
+    font-family: monospace;
+    padding: 0.2em 0.4em;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-close {
+    padding: var(--spacing-sm);
+    cursor: pointer;
+    transition: transform var(--transition-base);
+}
+
+.modal-close:hover {
+    transform: scale(1.1);
+}
