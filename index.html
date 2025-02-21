@@ -32,23 +32,11 @@
         }
     </script>
     <style>
-        .input-wrapper {
-            position: relative;
-        }
-        
+        /* Only keeping styles that can't be achieved with Tailwind */
         .placeholder-text {
-            position: absolute;
-            left: 1.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9CA3AF;
+            clip-path: inset(0 100% 0 0);
             pointer-events: none;
-            opacity: 0;
             white-space: nowrap;
-        }
-
-        .placeholder-text.visible {
-            opacity: 1;
         }
 
         .placeholder-text.animate {
@@ -74,7 +62,7 @@
             color: #9CA3AF !important;
         }
 
-        /* Dialog styles */
+        /* Dialog transition styles */
         dialog {
             opacity: 0;
             visibility: hidden;
@@ -118,7 +106,7 @@
     </div>
 
     <!-- Help Modal -->
-    <dialog id="help_modal" class="modal">
+    <dialog id="help_modal" class="modal opacity-0 invisible transition-opacity duration-200">
         <div class="modal-box bg-white dark:bg-[#1E1F23] text-gray-800 dark:text-gray-200">
             <div class="flex justify-between items-start mb-6">
                 <h2 class="text-3xl font-semibold">How to Use LMGROKTFY</h2>
@@ -152,8 +140,8 @@
         </h1>
 
         <form id="question-form" class="w-full max-w-3xl mb-8">
-            <div class="relative flex w-full input-wrapper">
-                <div id="custom-placeholder" class="placeholder-text visible animate text-lg"></div>
+            <div class="relative flex w-full">
+                <div id="custom-placeholder" class="placeholder-text absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 opacity-100 text-lg visible animate"></div>
                 <input type="text" 
                        id="question-input" 
                        placeholder="grok the meaning of life for me..." 
