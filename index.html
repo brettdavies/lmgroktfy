@@ -31,59 +31,7 @@
             }
         }
     </script>
-    <style>
-        /* Only keeping styles that can't be achieved with Tailwind */
-        .placeholder-text {
-            clip-path: inset(0 100% 0 0);
-            pointer-events: none;
-            white-space: nowrap;
-        }
-
-        .placeholder-text.animate {
-            animation: revealText 1s ease-out forwards;
-        }
-
-        @keyframes revealText {
-            0% {
-                clip-path: inset(0 100% 0 0);
-            }
-            100% {
-                clip-path: inset(0 0 0 0);
-            }
-        }
-
-        /* Hide native placeholder when our custom one is visible */
-        input.placeholder-hidden::placeholder {
-            color: transparent;
-        }
-
-        /* Show native placeholder when input is focused */
-        input:focus::placeholder {
-            color: #9CA3AF !important;
-        }
-
-        /* Dialog transition styles */
-        dialog {
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s ease-out;
-        }
-        
-        dialog[open] {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        dialog::backdrop {
-            background: rgba(0, 0, 0, 0.5);
-            opacity: 0;
-            transition: opacity 0.2s ease-out;
-        }
-
-        dialog[open]::backdrop {
-            opacity: 1;
-        }
-    </style>
+    <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body class="min-h-screen bg-grok-bg-light dark:bg-grok-bg-dark text-gray-800 dark:text-gray-200 flex flex-col">
@@ -213,77 +161,5 @@
     </footer>
 
     <script type="module" src="js/script.js"></script>
-    <script>
-        // Handle input state changes
-        const input = document.getElementById('question-input');
-        const submitButton = document.getElementById('submit-button');
-        const customPlaceholder = document.getElementById('custom-placeholder');
-        
-        function updatePlaceholderVisibility(value) {
-            const isEmpty = !value.trim();
-            const isFocused = document.activeElement === input;
-            
-            // Only show custom placeholder when empty and not focused
-            customPlaceholder.style.opacity = isEmpty && !isFocused ? '1' : '0';
-            
-            // Toggle native placeholder visibility
-            input.classList.toggle('placeholder-hidden', isEmpty && !isFocused);
-            
-            // Update submit button state
-            submitButton.disabled = isEmpty;
-        }
-        
-        input.addEventListener('input', (e) => {
-            updatePlaceholderVisibility(e.target.value);
-        });
-
-        input.addEventListener('focus', () => {
-            updatePlaceholderVisibility(input.value);
-        });
-
-        input.addEventListener('blur', () => {
-            updatePlaceholderVisibility(input.value);
-        });
-
-        // Placeholder text rotation
-        const placeholders = [
-            "grok the meaning of life for me...",
-            "grok quantum physics for me...",
-            "grok how to make pasta for me...",
-            "grok artificial intelligence for me...",
-            "grok what does the fox say?",
-            "grok when is the next eclipse?"
-        ];
-
-        let currentIndex = 0;
-
-        function updatePlaceholder() {
-            if (document.activeElement === input || input.value) return;
-            
-            currentIndex = (currentIndex + 1) % placeholders.length;
-            customPlaceholder.classList.remove('animate');
-            // Trigger reflow to restart animation
-            void customPlaceholder.offsetWidth;
-            customPlaceholder.classList.add('animate');
-            customPlaceholder.textContent = placeholders[currentIndex];
-            input.placeholder = placeholders[currentIndex]; // Keep native placeholder in sync
-        }
-
-        // Initial setup
-        customPlaceholder.textContent = placeholders[0];
-
-        // Change placeholder every 3 seconds
-        setInterval(updatePlaceholder, 3000);
-
-        // Add theme toggle functionality
-        const themeToggle = document.getElementById('theme-toggle');
-        const html = document.documentElement;
-        
-        themeToggle.addEventListener('click', () => {
-            html.classList.toggle('dark');
-            const isDark = html.classList.contains('dark');
-            themeToggle.innerHTML = `<i class="fa-solid fa-${isDark ? 'moon' : 'sun'}"></i>`;
-        });
-    </script>
 </body>
 </html>
