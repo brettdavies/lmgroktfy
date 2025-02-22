@@ -20,18 +20,40 @@ export const PlaceholderManager = {
 
     currentIndex: 0,
     rotationInterval: null,
+    hasUrlQuestion: false,
 
     initialize() {
         this.elements.input = document.getElementById('question-input');
         this.elements.submitButton = document.getElementById('submit-button');
         this.elements.customPlaceholder = document.getElementById('custom-placeholder');
 
+        // Check if there's a URL-based question
+        const path = window.location.pathname;
+        this.hasUrlQuestion = path && path !== '/' && path !== '/index.html';
+
+        // If there's a URL question, hide placeholder immediately
+        if (this.hasUrlQuestion) {
+            this.elements.customPlaceholder.style.opacity = '0';
+            this.elements.input.classList.remove('placeholder-hidden');
+        }
+
         this.setupEventListeners();
         this.initialSetup();
-        this.startRotation();
+        
+        // Only start rotation if there's no URL question
+        if (!this.hasUrlQuestion) {
+            this.startRotation();
+        }
     },
 
     updatePlaceholderVisibility(value) {
+        // If we have a URL question, always keep placeholder hidden
+        if (this.hasUrlQuestion) {
+            this.elements.customPlaceholder.style.opacity = '0';
+            this.elements.input.classList.remove('placeholder-hidden');
+            return;
+        }
+
         const isEmpty = !value.trim();
         const isFocused = document.activeElement === this.elements.input;
         
@@ -60,7 +82,7 @@ export const PlaceholderManager = {
     },
 
     updatePlaceholder() {
-        if (document.activeElement === this.elements.input || this.elements.input.value) return;
+        if (this.hasUrlQuestion || document.activeElement === this.elements.input || this.elements.input.value) return;
         
         this.currentIndex = (this.currentIndex + 1) % this.placeholders.length;
         this.elements.customPlaceholder.classList.remove('animate');
@@ -72,7 +94,9 @@ export const PlaceholderManager = {
     },
 
     initialSetup() {
-        this.elements.customPlaceholder.textContent = this.placeholders[0];
+        if (!this.hasUrlQuestion) {
+            this.elements.customPlaceholder.textContent = this.placeholders[0];
+        }
     },
 
     startRotation() {
