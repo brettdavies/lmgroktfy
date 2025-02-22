@@ -7,6 +7,7 @@
  * @property {function(): HTMLElement} questionForm - Question form element
  * @property {function(): HTMLElement} toast - Toast notification element
  * @property {function(): HTMLElement} toastMessage - Toast message element
+ * @property {function(): HTMLElement} questionDisplay - Question display element
  * @property {Object} buttons - Collection of button elements
  */
 
@@ -27,6 +28,7 @@ export const UIState = {
         questionForm: () => document.getElementById('question-form'),
         toast: () => document.getElementById('toast'),
         toastMessage: () => document.getElementById('toast-message'),
+        questionDisplay: () => document.getElementById('question-display'),
         buttons: {
             continueLink: () => document.getElementById('continue-link'),
             useGrok: () => document.getElementById('use-grok-button'),
@@ -56,6 +58,7 @@ export const UIState = {
      * Shows error state and hides all action buttons
      */
     showError() {
+        this.elements.questionForm().classList.add('hidden');
         this.elements.answer().innerText = 'Oops, something went wrong!';
         this.hideAllButtons();
         this.elements.response().classList.remove('hidden');
@@ -67,6 +70,8 @@ export const UIState = {
      * @param {string} question - The question for updating Grok buttons
      */
     showSuccess(answer, question) {
+        this.elements.questionForm().classList.add('hidden');
+        this.elements.questionDisplay().innerText = question;
         this.elements.answer().innerText = answer;
         this.updateGrokButtons(question);
         this.showAllButtons();
