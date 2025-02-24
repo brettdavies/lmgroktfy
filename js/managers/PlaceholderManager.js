@@ -107,5 +107,16 @@ export const PlaceholderManager = {
         if (this.rotationInterval) {
             clearInterval(this.rotationInterval);
         }
+    },
+
+    reset() {
+        this.hasUrlQuestion = false;
+        this.currentIndex = 0;
+        if (this.rotationInterval) {
+            clearInterval(this.rotationInterval);
+        }
+        this.elements.customPlaceholder.textContent = this.placeholders[0];
+        this.elements.input.placeholder = this.placeholders[0];
+        this.startRotation();
     }
 }; 

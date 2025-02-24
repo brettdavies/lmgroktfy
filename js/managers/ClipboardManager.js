@@ -30,7 +30,7 @@ export const ClipboardManager = {
      */
     getShareableText(type) {
         const url = window.location.href;
-        const question = decodeURIComponent(UIState.elements.question().value);
+        const question = decodeURIComponent(UIState.elements.questionDisplay().innerText);
         const answer = decodeURIComponent(UIState.elements.answer().innerText);
         const suffix = ' - Answer by Grok';
         const suffix2 = ' via lmgroktfy.com';

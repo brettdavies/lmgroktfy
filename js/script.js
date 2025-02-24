@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', function() {
         UIState.elements.response().style.display = 'none';
         UIState.elements.questionForm().style.display = 'block';
         UIState.hideAllButtons();
+        // Reset placeholder and submit button state
+        PlaceholderManager.reset();
         // Update URL without triggering a reload
         window.history.pushState({}, '', '/');
     });
@@ -32,21 +34,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const path = window.location.pathname;
     if (path && path !== '/' && path !== '/index.html') {
         let question = path.replace(/^\//, '').replace(/\?.*$/, '').trim();
-        // Handle double-encoded URLs (where spaces are %2520 instead of %20)
         question = decodeURIComponent(question);
+        // Handle double-encoded URLs (where spaces are %2520 instead of %20)
         if (question.includes('%20')) {
             question = decodeURIComponent(question);
         }
         if (question) {
-            handleQuestionSubmission(question);
             UIState.elements.question().value = question;
+            PlaceholderManager.updatePlaceholderVisibility(question);
+            handleQuestionSubmission(question);
         }
     }
 
     // Set up form submission
     UIState.elements.questionForm().addEventListener('submit', function(event) {
         event.preventDefault();
-        handleQuestionSubmission(UIState.elements.question().value);
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        handleQuestionSubmission(UIState.elements.question().value)
+            .finally(() => {
+                submitButton.disabled = false;
+            });
     });
 
     // Set up copy/share buttons

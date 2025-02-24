@@ -56,9 +56,13 @@ export const UIState = {
 
     /**
      * Shows error state and hides all action buttons
+     * @param {string} [question] - The question that failed
      */
-    showError() {
+    showError(question) {
         this.elements.questionForm().classList.add('hidden');
+        if (question) {
+            this.elements.questionDisplay().innerText = question;
+        }
         this.elements.answer().innerText = 'Oops, something went wrong!';
         this.hideAllButtons();
         this.elements.response().classList.remove('hidden');
