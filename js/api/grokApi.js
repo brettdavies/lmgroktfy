@@ -1,4 +1,5 @@
 import { UIState } from '../managers/UIState.js';
+import { FocusManager } from '../managers/FocusManager.js';
 
 /**
  * Handles the submission of a question to the Grok API
@@ -39,6 +40,11 @@ export async function handleQuestionSubmission(question) {
             UIState.showSuccess(data.answer, question);
             const encodedQuestion = encodeURIComponent(question);
             window.history.replaceState({}, '', '/' + encodedQuestion);
+            
+            // Focus the first interactive element in the response area
+            setTimeout(() => {
+                FocusManager.focusResponseArea();
+            }, 100);
         }
     } catch (error) {
         console.error('[Error Handler] Caught error:', error.message, error.stack);

@@ -2,6 +2,7 @@ import { UIState } from './managers/UIState.js';
 import { ClipboardManager } from './managers/ClipboardManager.js';
 import { PlaceholderManager } from './managers/PlaceholderManager.js';
 import { ThemeManager } from './managers/ThemeManager.js';
+import { FocusManager } from './managers/FocusManager.js';
 import { handleQuestionSubmission } from './api/grokApi.js';
 
 /**
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize managers
     PlaceholderManager.initialize();
     ThemeManager.initialize();
+    FocusManager.initialize();
 
     // Handle home link clicks
     document.querySelector('.home-link').addEventListener('click', function(e) {
@@ -71,5 +73,60 @@ document.addEventListener('DOMContentLoaded', function() {
         const tweetText = ClipboardManager.getShareableText('tweet');
         const shareUrl = ClipboardManager.getShareableText('shareUrl');
         window.open(`https://x.com/intent/tweet?text=${tweetText}&url=${shareUrl}`, '_blank');
+    });
+    
+    // Set up keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Only process shortcuts if no modals are open and not in an input field
+        const isInInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+        const isModalOpen = document.querySelector('dialog[open]') !== null;
+        
+        if (isInInput || isModalOpen) return;
+        
+        // ? or / - Focus the question input
+        if (e.key === '?' || e.key === '/') {
+            e.preventDefault();
+            UIState.elements.question().focus();
+        }
+        
+        // h - Open help modal
+        else if (e.key === 'h') {
+            e.preventDefault();
+            document.querySelector('button[aria-label="How to use"]').click();
+        }
+        
+        // t - Toggle theme
+        else if (e.key === 't') {
+            e.preventDefault();
+            document.getElementById('theme-toggle').click();
+        }
+        
+        // Shortcuts that only work when a response is visible
+        const responseVisible = !UIState.elements.response().classList.contains('hidden');
+        if (responseVisible) {
+            // c - Copy answer
+            if (e.key === 'c') {
+                e.preventDefault();
+                UIState.elements.buttons.copyAnswer().click();
+            }
+            
+            // q - Copy question and answer
+            else if (e.key === 'q') {
+                e.preventDefault();
+                UIState.elements.buttons.copyQA().click();
+            }
+            
+            // s - Copy share link
+            else if (e.key === 's') {
+                e.preventDefault();
+                UIState.elements.buttons.share().click();
+            }
+            
+            // g - Continue on Grok
+            else if (e.key === 'g') {
+                e.preventDefault();
+                window.open(UIState.elements.buttons.continueLink().href, '_blank');
+            }
+        }
     });
 });

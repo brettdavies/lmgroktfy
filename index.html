@@ -37,7 +37,7 @@
 <body class="min-h-screen bg-grok-bg-light dark:bg-grok-bg-dark text-gray-800 dark:text-gray-200 flex flex-col">
     <!-- Toast Container -->
     <div class="fixed top-4 right-4 z-50">
-        <div id="toast" class="hidden bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div id="toast" class="hidden bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg" aria-live="assertive" aria-atomic="true">
             <i class="fa-solid fa-circle-check mr-2"></i>
             <span id="toast-message"></span>
         </div>
@@ -45,10 +45,10 @@
 
     <!-- Theme and Help Controls -->
     <div class="fixed top-4 right-4 flex gap-2">
-        <button id="theme-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="Toggle light/dark theme">
+        <button id="theme-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="Toggle light/dark theme" aria-label="Toggle light/dark theme">
             <i class="fa-solid fa-moon"></i>
         </button>
-        <button onclick="help_modal.showModal()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="How to use">
+        <button onclick="help_modal.showModal()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="How to use" aria-label="How to use">
             <i class="fa-solid fa-circle-info"></i>
         </button>
     </div>
@@ -59,7 +59,7 @@
             <div class="flex justify-between items-start mb-6">
                 <h2 class="text-3xl font-semibold">How to Use LMGROKTFY</h2>
                 <form method="dialog">
-                    <button class="btn btn-circle btn-ghost btn-sm">
+                    <button class="btn btn-circle btn-ghost btn-sm" aria-label="Close help modal">
                         <i class="fa-solid fa-xmark text-xl"></i>
                     </button>
                 </form>
@@ -74,9 +74,56 @@
                 <li>Share the link to let others see the same answer</li>
                 <li>Use the copy buttons to easily share the Q&A</li>
             </ul>
+            
+            <h3 class="text-2xl font-semibold mb-4 mt-8">Keyboard Shortcuts</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h4 class="font-semibold mb-2">General</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-center gap-2">
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">/</kbd> or 
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">?</kbd>
+                            <span>Focus search input</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">h</kbd>
+                            <span>Open help modal</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">t</kbd>
+                            <span>Toggle theme</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">Esc</kbd>
+                            <span>Close modal</span>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-2">When Answer is Displayed</h4>
+                    <ul class="space-y-2">
+                        <li class="flex items-center gap-2">
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">c</kbd>
+                            <span>Copy answer</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">q</kbd>
+                            <span>Copy Q&A</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">s</kbd>
+                            <span>Copy share link</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">g</kbd>
+                            <span>Continue on Grok</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
         <form method="dialog" class="modal-backdrop">
-            <button>close</button>
+            <button aria-label="Close modal backdrop">close</button>
         </form>
     </dialog>
 
@@ -98,20 +145,21 @@
                 <button type="submit" 
                         disabled
                         class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 disabled:bg-gray-100 dark:disabled:bg-[#2A2B2D] disabled:text-gray-400 dark:disabled:text-gray-500 enabled:bg-white dark:enabled:bg-white enabled:text-gray-900 rounded-full flex items-center justify-center transition-colors duration-1000 group disabled:cursor-not-allowed"
-                        id="submit-button">
+                        id="submit-button"
+                        aria-label="Submit question">
                     <i class="fa-solid fa-arrow-up text-lg transform group-hover:enabled:translate-y-[-2px] transition-all duration-1000"></i>
                 </button>
             </div>
         </form>
 
-        <div id="loading" class="hidden">
+        <div id="loading" class="hidden" aria-live="polite">
             <div class="flex items-center gap-2">
                 <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
                 <span>Grokking...</span>
             </div>
         </div>
 
-        <div id="response" class="hidden w-full max-w-2xl">
+        <div id="response" class="hidden w-full max-w-2xl" aria-live="polite" aria-atomic="true">
             <div class="bg-grok-input-light dark:bg-grok-input-dark rounded-xl shadow-lg p-6">
                 <p id="question-display" class="text-lg font-medium mb-4 text-gray-700 dark:text-gray-300"></p>
                 <p id="answer" class="text-lg"></p>
@@ -129,19 +177,19 @@
                     
                     <!-- Share Actions -->
                     <div class="flex flex-wrap gap-2 justify-center">
-                        <button id="copy-question-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
+                        <button id="copy-question-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy question and answer">
                             Copy Q &amp; A
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="copy-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
+                        <button id="copy-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy answer">
                             Copy Answer
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="share-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
+                        <button id="share-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy share link">
                             Copy Link
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="share-on-x-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center">
+                        <button id="share-on-x-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Share on X">
                             Share on <i class="fa-brands fa-x-twitter"></i>
                             <i class="fa-solid fa-share"></i>
                         </button>
@@ -151,7 +199,7 @@
         </div>
     </main>
 
-    <footer class="text-center py-6 text-gray-500 text-sm">
+    <footer class="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
         <p class="mb-1">
             Not affiliated with X™ or Grok™. X & Grok are trademarks of X Corp. & xAI.
         </p>
