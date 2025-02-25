@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('[App] Saved language in localStorage:', savedLanguage);
         
         await i18n.init({
-            supportedLanguages: ['en', 'es', 'fr', 'de', 'ja', 'ar'],
+            supportedLanguages: ['ar', 'de', 'en', 'es', 'fr', 'ja'],
             defaultLanguage: 'en',
             languageSwitcherSelector: '#language-switcher'
         });
