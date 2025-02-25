@@ -11,14 +11,14 @@
     "title": "Lass <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> das für dich erklären",
     "placeholder": "grok, erkläre mir den Sinn des Lebens...",
     "loading": "Verarbeitung...",
-    "placeholders": [
-      "grok, erkläre mir den Sinn des Lebens...",
-      "grok, erkläre mir die Quantenphysik...",
-      "grok, erkläre mir wie man Pasta macht...",
-      "grok, erkläre mir künstliche Intelligenz...",
-      "grok, was sagt der Fuchs?",
-      "grok, wann ist die nächste Sonnenfinsternis?"
-    ]
+    "placeholders": {
+      "0": "grok, erkläre mir den Sinn des Lebens...",
+      "1": "grok, erkläre mir die Quantenphysik...",
+      "2": "grok, erkläre mir wie man Pasta macht...",
+      "3": "grok, erkläre mir künstliche Intelligenz...",
+      "4": "grok, was sagt der Fuchs?",
+      "5": "grok, wann ist die nächste Sonnenfinsternis?"
+    }
   },
   "help": {
     "title": "Wie man LMGROKTFY benutzt",
@@ -51,24 +51,30 @@
     "copy_link": "Link kopieren <i class=\"fa-regular fa-copy\"></i>",
     "share_x": "Auf <i class=\"fa-brands fa-x-twitter\"></i> teilen <i class=\"fa-solid fa-share\"></i>"
   },
+  "toast": {
+    "copy_qa": "Frage und Antwort kopiert!",
+    "copy_answer": "Antwort kopiert!",
+    "copy_link": "Link zum Teilen kopiert!",
+    "error": "Kopieren fehlgeschlagen. Bitte versuchen Sie es erneut."
+  },
   "footer": {
     "disclaimer": "Nicht mit X™ oder Grok™ verbunden. X und Grok sind Marken von X Corp. und xAI.",
     "copyright": "© 2025 Brett Davies - Bleiben Sie neugierig, verstehen Sie das Universum!"
   },
   "test": {
-    "title": "",
-    "language": "",
-    "basic": "",
-    "simple": "",
-    "paragraph": "",
-    "html": "",
-    "rich": "",
-    "link": "",
-    "dynamic": "",
-    "add": "",
-    "debug": "",
-    "current": "",
-    "detected": "",
-    "show": ""
+    "title": "Titel",
+    "language": "Sprache",
+    "basic": "Grundlegend",
+    "simple": "Einfach",
+    "paragraph": "Absatz",
+    "html": "HTML",
+    "rich": "Reich",
+    "link": "Link",
+    "dynamic": "Dynamisch",
+    "add": "Hinzufügen",
+    "debug": "Fehlersuche",
+    "current": "Aktuell",
+    "detected": "Erkannt",
+    "show": "Anzeigen"
   }
 }

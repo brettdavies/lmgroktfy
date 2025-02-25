@@ -11,14 +11,14 @@
     "title": "Test Title",
     "placeholder": "Test placeholder",
     "loading": "Loading...",
-    "placeholders": [
-      "test placeholder 1",
-      "test placeholder 2",
-      "test placeholder 3",
-      "test placeholder 4",
-      "test placeholder 5",
-      "test placeholder 6"
-    ]
+    "placeholders": {
+      "0": "test placeholder 1",
+      "1": "test placeholder 2",
+      "2": "test placeholder 3",
+      "3": "test placeholder 4",
+      "4": "test placeholder 5",
+      "5": "test placeholder 6"
+    }
   },
   "help": {
     "title": "",
@@ -50,6 +50,12 @@
     "copy_answer": "",
     "copy_link": "",
     "share_x": ""
+  },
+  "toast": {
+    "copy_qa": "",
+    "copy_answer": "",
+    "copy_link": "",
+    "error": ""
   },
   "footer": {
     "disclaimer": "",

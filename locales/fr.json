@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "Laissez Grok vous expliquer"
+    "title": "Laissez Grok vous expliquer ça"
   },
   "nav": {
     "home": "Accueil",
@@ -8,7 +8,7 @@
     "contact": "Contact"
   },
   "main": {
-    "title": "Laissez <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> vous expliquer",
+    "title": "Laissez <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> vous expliquer ça",
     "placeholder": "grok, explique-moi le sens de la vie...",
     "loading": "Traitement en cours...",
     "placeholders": [
@@ -44,31 +44,37 @@
     }
   },
   "actions": {
-    "understand": "En savoir plus sur Grok <i class=\"fa-solid fa-robot\"></i>",
+    "understand": "Comprendre plus sur Grok <i class=\"fa-solid fa-robot\"></i>",
     "use": "Utiliser Grok sur <i class=\"fa-brands fa-x-twitter\"></i>",
     "copy_qa": "Copier Q&R <i class=\"fa-regular fa-copy\"></i>",
     "copy_answer": "Copier la réponse <i class=\"fa-regular fa-copy\"></i>",
     "copy_link": "Copier le lien <i class=\"fa-regular fa-copy\"></i>",
     "share_x": "Partager sur <i class=\"fa-brands fa-x-twitter\"></i> <i class=\"fa-solid fa-share\"></i>"
   },
+  "toast": {
+    "copy_qa": "Question et réponse copiées !",
+    "copy_answer": "Réponse copiée !",
+    "copy_link": "Lien de partage copié !",
+    "error": "Échec de la copie. Veuillez réessayer."
+  },
   "footer": {
     "disclaimer": "Non affilié à X™ ou Grok™. X et Grok sont des marques déposées de X Corp. et xAI.",
     "copyright": "© 2025 Brett Davies - Restez curieux, comprenez l'univers !"
   },
   "test": {
-    "title": "",
-    "language": "",
-    "basic": "",
-    "simple": "",
-    "paragraph": "",
-    "html": "",
-    "rich": "",
-    "link": "",
-    "dynamic": "",
-    "add": "",
-    "debug": "",
-    "current": "",
-    "detected": "",
-    "show": ""
+    "title": "Titre",
+    "language": "Langue",
+    "basic": "Basique",
+    "simple": "Simple",
+    "paragraph": "Paragraphe",
+    "html": "HTML",
+    "rich": "Riche",
+    "link": "Lien",
+    "dynamic": "Dynamique",
+    "add": "Ajouter",
+    "debug": "Déboguer",
+    "current": "Actuel",
+    "detected": "Détecté",
+    "show": "Afficher"
   }
 }
