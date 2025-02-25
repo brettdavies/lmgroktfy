@@ -39,7 +39,7 @@ export async function handleQuestionSubmission(question) {
         
         if (data.error) {
             console.error('[Error Handler] API returned error:', data.error);
-            UIState.showError();
+            UIState.showError(question);
         } else {
             console.log('[Success] Displaying response and buttons');
             UIState.showSuccess(data.answer, question);
@@ -54,6 +54,6 @@ export async function handleQuestionSubmission(question) {
     } catch (error) {
         console.error('[Error Handler] Caught error:', error.message, error.stack);
         UIState.hideLoading();
-        UIState.showError();
+        UIState.showError(question);
     }
 } 

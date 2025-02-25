@@ -2,6 +2,8 @@
  * Manages the animated placeholder text functionality
  * @namespace PlaceholderManager
  */
+import { UIState } from './UIState.js';
+
 export const PlaceholderManager = {
     elements: {
         input: null,
@@ -33,8 +35,8 @@ export const PlaceholderManager = {
 
         // If there's a URL question, hide placeholder immediately
         if (this.hasUrlQuestion) {
-            this.elements.customPlaceholder.style.opacity = '0';
-            this.elements.input.classList.remove('placeholder-hidden');
+            UIState.setOpacity(this.elements.customPlaceholder, 0);
+            UIState.removeClass(this.elements.input, 'placeholder-hidden');
         }
 
         this.setupEventListeners();
@@ -44,27 +46,14 @@ export const PlaceholderManager = {
         if (!this.hasUrlQuestion) {
             this.startRotation();
         }
+        
+        // Initialize mobile-specific adjustments
+        this.initMobileSupport();
     },
 
     updatePlaceholderVisibility(value) {
-        // If we have a URL question, always keep placeholder hidden
-        if (this.hasUrlQuestion) {
-            this.elements.customPlaceholder.style.opacity = '0';
-            this.elements.input.classList.remove('placeholder-hidden');
-            return;
-        }
-
-        const isEmpty = !value.trim();
         const isFocused = document.activeElement === this.elements.input;
-        
-        // Only show custom placeholder when empty and not focused
-        this.elements.customPlaceholder.style.opacity = isEmpty && !isFocused ? '1' : '0';
-        
-        // Toggle native placeholder visibility
-        this.elements.input.classList.toggle('placeholder-hidden', isEmpty && !isFocused);
-        
-        // Update submit button state
-        this.elements.submitButton.disabled = isEmpty;
+        UIState.updatePlaceholderVisibility(value, isFocused, this.hasUrlQuestion);
     },
 
     setupEventListeners() {
@@ -85,17 +74,17 @@ export const PlaceholderManager = {
         if (this.hasUrlQuestion || document.activeElement === this.elements.input || this.elements.input.value) return;
         
         this.currentIndex = (this.currentIndex + 1) % this.placeholders.length;
-        this.elements.customPlaceholder.classList.remove('animate');
+        UIState.removeClass(this.elements.customPlaceholder, 'animate');
         // Trigger reflow to restart animation
         void this.elements.customPlaceholder.offsetWidth;
-        this.elements.customPlaceholder.classList.add('animate');
-        this.elements.customPlaceholder.textContent = this.placeholders[this.currentIndex];
-        this.elements.input.placeholder = this.placeholders[this.currentIndex];
+        UIState.addClass(this.elements.customPlaceholder, 'animate');
+        UIState.setText(this.elements.customPlaceholder, this.placeholders[this.currentIndex]);
+        UIState.setAttribute(this.elements.input, 'placeholder', this.placeholders[this.currentIndex]);
     },
 
     initialSetup() {
         if (!this.hasUrlQuestion) {
-            this.elements.customPlaceholder.textContent = this.placeholders[0];
+            UIState.setText(this.elements.customPlaceholder, this.placeholders[0]);
         }
     },
 
@@ -115,16 +104,46 @@ export const PlaceholderManager = {
         if (this.rotationInterval) {
             clearInterval(this.rotationInterval);
         }
-        this.elements.customPlaceholder.textContent = this.placeholders[0];
-        this.elements.input.placeholder = this.placeholders[0];
+        UIState.setText(this.elements.customPlaceholder, this.placeholders[0]);
+        UIState.setAttribute(this.elements.input, 'placeholder', this.placeholders[0]);
         
-        // Reset placeholder visibility
-        this.elements.customPlaceholder.style.opacity = '1';
-        this.elements.input.classList.add('placeholder-hidden');
+        // Reset placeholder visibility using UIState
+        UIState.setOpacity(this.elements.customPlaceholder, 1);
+        UIState.addClass(this.elements.input, 'placeholder-hidden');
         
-        // Reset submit button state
-        this.elements.submitButton.disabled = true;
+        // Reset submit button state using UIState
+        UIState.setSubmitButtonState(false);
         
         this.startRotation();
+    },
+    
+    /**
+     * Initialize mobile-specific support for placeholders
+     */
+    initMobileSupport() {
+        // Check if we're on a mobile device
+        const isMobile = window.innerWidth < 768;
+        
+        if (isMobile) {
+            // Enhance input for mobile
+            UIState.enhanceForTouch(this.elements.input);
+            UIState.enhanceForTouch(this.elements.submitButton);
+            
+            // Adjust placeholder for mobile
+            UIState.addClass(this.elements.customPlaceholder, 'mobile-placeholder');
+        }
+        
+        // Listen for orientation changes
+        window.addEventListener('resize', () => {
+            const newIsMobile = window.innerWidth < 768;
+            
+            if (newIsMobile !== isMobile) {
+                if (newIsMobile) {
+                    UIState.addClass(this.elements.customPlaceholder, 'mobile-placeholder');
+                } else {
+                    UIState.removeClass(this.elements.customPlaceholder, 'mobile-placeholder');
+                }
+            }
+        });
     }
 }; 

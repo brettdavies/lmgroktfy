@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+import { test, expect } from './helpers/fixtures.js';
 
 test.describe('Mobile-specific functionality', () => {
   // Only run these tests on mobile projects

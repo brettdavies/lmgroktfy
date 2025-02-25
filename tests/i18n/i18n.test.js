@@ -25,6 +25,8 @@ const localStorageMock = (() => {
 // Mock fetch
 global.fetch = jest.fn(() =>
   Promise.resolve({
+    ok: true,
+    status: 200,
     json: () => Promise.resolve({
       "page": { "title": "Test Title" },
       "main": { "title": "Test Main Title" }
@@ -71,7 +73,7 @@ describe('I18n Module', () => {
     
     await i18n.loadTranslations('en');
     
-    expect(global.fetch).toHaveBeenCalledWith('/locales/en.json');
+    expect(global.fetch).toHaveBeenCalledWith('http://localhost/locales/en.json');
     expect(i18n.translations.en).toEqual({
       "page": { "title": "Test Title" },
       "main": { "title": "Test Main Title" }

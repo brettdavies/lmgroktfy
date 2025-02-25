@@ -1,5 +1,5 @@
-const { test, expect } = require('@playwright/test');
-const { runA11yTests } = require('./helpers/accessibility');
+import { test, expect } from './helpers/fixtures.js';
+import { runA11yTests } from './helpers/accessibility.js';
 
 test.describe('Accessibility', () => {
   test.beforeEach(async ({ page }) => {

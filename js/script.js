@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Step 2: Initialize UI managers
         console.log('[App] Initializing UI managers');
+        
+        // Initialize viewport handling for responsive design
+        UIState.initViewportHandling();
+        
+        // Initialize other managers
         PlaceholderManager.initialize();
         ThemeManager.initialize();
         FocusManager.initialize();
@@ -70,34 +75,22 @@ function setupEventListeners() {
     // Handle home link clicks
     document.querySelector('.home-link').addEventListener('click', function(e) {
         e.preventDefault();
-        // Reset form and UI state
-        UIState.elements.question().value = '';
-        UIState.elements.answer().innerText = '';
-        UIState.elements.response().classList.add('hidden');
-        UIState.elements.questionForm().classList.remove('hidden');
-        UIState.hideAllButtons();
         
-        // Reset placeholder and submit button state
+        // Reset UI state using centralized method
+        UIState.resetUI();
+        
+        // Reset placeholder
         PlaceholderManager.reset();
-        
-        // Explicitly disable submit button until input is entered
-        const submitButton = UIState.elements.questionForm().querySelector('button[type="submit"]');
-        if (submitButton) {
-            submitButton.disabled = true;
-        }
-        
-        // Update URL without triggering a reload
-        window.history.pushState({}, '', '/');
     });
 
     // Set up form submission
     UIState.elements.questionForm().addEventListener('submit', function(event) {
         event.preventDefault();
         const submitButton = this.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
+        UIState.disableButton(submitButton);
         handleQuestionSubmission(UIState.elements.question().value)
             .finally(() => {
-                submitButton.disabled = false;
+                UIState.enableButton(submitButton);
             });
     });
 
@@ -144,7 +137,8 @@ function setupEventListeners() {
         }
         
         // Shortcuts that only work when a response is visible
-        const responseVisible = !UIState.elements.response().classList.contains('hidden');
+        const responseElement = UIState.elements.response();
+        const responseVisible = responseElement && !responseElement.classList.contains('hidden');
         if (responseVisible) {
             // c - Copy answer
             if (e.key === 'c') {
@@ -167,9 +161,18 @@ function setupEventListeners() {
             // g - Continue on Grok
             else if (e.key === 'g') {
                 e.preventDefault();
-                window.open(UIState.elements.buttons.continueLink().href, '_blank');
+                const continueLink = UIState.elements.buttons.continueLink();
+                if (continueLink) {
+                    window.open(continueLink.href, '_blank');
+                }
             }
         }
+    });
+    
+    // Handle orientation change for mobile devices
+    window.addEventListener('orientationchange', () => {
+        // Recheck viewport after orientation change
+        setTimeout(() => UIState.checkViewport(), 100);
     });
 }
 
@@ -202,15 +205,16 @@ function processUrlParameters() {
         
         if (question) {
             console.log('[URL Handler] Setting question from URL and submitting');
-            UIState.elements.question().value = question;
+            const questionInput = UIState.elements.question();
+            if (questionInput) {
+                UIState.setText(questionInput, question);
+                questionInput.value = question; // Ensure value is set for form submission
+            }
+            
             PlaceholderManager.updatePlaceholderVisibility(question);
             
             // Ensure the submit button is enabled
-            const submitButton = UIState.elements.questionForm().querySelector('button[type="submit"]');
-            if (submitButton) {
-                submitButton.disabled = false;
-                console.log('[URL Handler] Enabled submit button');
-            }
+            UIState.setSubmitButtonState(true);
             
             // Submit the question
             handleQuestionSubmission(question);

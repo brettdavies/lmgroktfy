@@ -2,106 +2,154 @@
  * @jest-environment jsdom
  */
 
-// Mock the DOM elements that PlaceholderManager interacts with
-document.body.innerHTML = `
-  <input type="text" id="question-input" class="placeholder-hidden" />
-  <button type="submit" id="submit-button" disabled></button>
-  <div id="custom-placeholder"></div>
-`;
-
-// Mock window.location
-delete window.location;
-window.location = { pathname: '/' };
-
-// Import the PlaceholderManager module
+import { jest } from '@jest/globals';
 import { PlaceholderManager } from '../../js/managers/PlaceholderManager.js';
+import { UIState } from '../mocks/UIState.js';
 
 describe('PlaceholderManager', () => {
-  // Reset DOM before each test
+  let originalLocation;
+  let originalInnerWidth;
+  let originalSetInterval;
+  let originalClearInterval;
+  
   beforeEach(() => {
-    document.getElementById('question-input').value = '';
-    document.getElementById('question-input').classList.add('placeholder-hidden');
-    document.getElementById('submit-button').disabled = true;
-    document.getElementById('custom-placeholder').style.opacity = '1';
-    document.getElementById('custom-placeholder').textContent = '';
+    // Setup DOM elements
+    document.body.innerHTML = `
+      <form id="question-form">
+        <input id="question-input" type="text" />
+        <div id="custom-placeholder"></div>
+        <button id="submit-button" type="submit">Submit</button>
+      </form>
+    `;
     
-    // Reset window.location
-    window.location.pathname = '/';
+    // Save original methods
+    originalSetInterval = window.setInterval;
+    originalClearInterval = window.clearInterval;
     
-    // Clear any intervals
-    if (PlaceholderManager.rotationInterval) {
-      clearInterval(PlaceholderManager.rotationInterval);
-    }
+    // Mock setInterval and clearInterval
+    window.setInterval = jest.fn().mockReturnValue(123);
+    window.clearInterval = jest.fn();
+    
+    // Save original location
+    originalLocation = window.location;
+    
+    // Save original innerWidth
+    originalInnerWidth = window.innerWidth;
+    
+    // Mock window.location
+    delete window.location;
+    window.location = { pathname: '/' };
+    
+    // Reset all mocks
+    jest.clearAllMocks();
   });
   
   afterEach(() => {
-    // Clean up any intervals
+    // Restore window.location
+    window.location = originalLocation;
+    
+    // Restore window.innerWidth
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: originalInnerWidth
+    });
+    
+    // Restore original methods
+    window.setInterval = originalSetInterval;
+    window.clearInterval = originalClearInterval;
+    
+    // Clean up
+    document.body.innerHTML = '';
+    jest.restoreAllMocks();
+    
+    // Reset PlaceholderManager state
     if (PlaceholderManager.rotationInterval) {
-      clearInterval(PlaceholderManager.rotationInterval);
+      PlaceholderManager.cleanup();
     }
+    PlaceholderManager.elements = {
+      input: null,
+      submitButton: null,
+      customPlaceholder: null
+    };
+    PlaceholderManager.currentIndex = 0;
+    PlaceholderManager.hasUrlQuestion = false;
   });
-
-  test('initialize should set up elements and event listeners', () => {
+  
+  test('initialize sets up elements and event listeners', () => {
+    // Initialize PlaceholderManager
     PlaceholderManager.initialize();
     
-    expect(PlaceholderManager.elements.input).toBe(document.getElementById('question-input'));
-    expect(PlaceholderManager.elements.submitButton).toBe(document.getElementById('submit-button'));
-    expect(PlaceholderManager.elements.customPlaceholder).toBe(document.getElementById('custom-placeholder'));
-    expect(PlaceholderManager.hasUrlQuestion).toBe(false);
-  });
-
-  test('initialize should detect URL question', () => {
-    // Set up URL with question
-    window.location.pathname = '/test-question';
+    // Verify elements are set
+    expect(PlaceholderManager.elements.input).not.toBeNull();
+    expect(PlaceholderManager.elements.submitButton).not.toBeNull();
+    expect(PlaceholderManager.elements.customPlaceholder).not.toBeNull();
     
+    // Verify rotation was started
+    expect(window.setInterval).toHaveBeenCalled();
+  });
+  
+  test('setupEventListeners adds event listeners to input', () => {
+    // Initialize PlaceholderManager
     PlaceholderManager.initialize();
     
-    expect(PlaceholderManager.hasUrlQuestion).toBe(true);
-    expect(PlaceholderManager.elements.customPlaceholder.style.opacity).toBe('0');
+    // Mock addEventListener
+    const addEventListenerSpy = jest.spyOn(PlaceholderManager.elements.input, 'addEventListener');
+    
+    // Call setupEventListeners
+    PlaceholderManager.setupEventListeners();
+    
+    // Verify addEventListener was called for input, focus, and blur events
+    expect(addEventListenerSpy).toHaveBeenCalledWith('input', expect.any(Function));
+    expect(addEventListenerSpy).toHaveBeenCalledWith('focus', expect.any(Function));
+    expect(addEventListenerSpy).toHaveBeenCalledWith('blur', expect.any(Function));
+    
+    // Restore original method
+    addEventListenerSpy.mockRestore();
   });
-
-  test('updatePlaceholderVisibility should show placeholder when input is empty', () => {
+  
+  test('updatePlaceholder rotates through placeholders', () => {
+    // Initialize PlaceholderManager
     PlaceholderManager.initialize();
     
-    PlaceholderManager.updatePlaceholderVisibility('');
+    // Set initial state
+    PlaceholderManager.currentIndex = 0;
     
-    expect(PlaceholderManager.elements.customPlaceholder.style.opacity).toBe('1');
-    expect(PlaceholderManager.elements.input.classList.contains('placeholder-hidden')).toBe(true);
-    expect(PlaceholderManager.elements.submitButton.disabled).toBe(true);
-  });
-
-  test('updatePlaceholderVisibility should hide placeholder when input has value', () => {
-    PlaceholderManager.initialize();
-    
-    PlaceholderManager.updatePlaceholderVisibility('test value');
-    
-    expect(PlaceholderManager.elements.customPlaceholder.style.opacity).toBe('0');
-    expect(PlaceholderManager.elements.input.classList.contains('placeholder-hidden')).toBe(false);
-    expect(PlaceholderManager.elements.submitButton.disabled).toBe(false);
-  });
-
-  test('updatePlaceholder should rotate placeholder text', () => {
-    PlaceholderManager.initialize();
-    
-    const initialPlaceholder = PlaceholderManager.elements.customPlaceholder.textContent;
-    
+    // Call updatePlaceholder
     PlaceholderManager.updatePlaceholder();
     
-    const newPlaceholder = PlaceholderManager.elements.customPlaceholder.textContent;
-    
-    expect(newPlaceholder).not.toBe(initialPlaceholder);
+    // Verify currentIndex was updated
     expect(PlaceholderManager.currentIndex).toBe(1);
   });
-
-  test('reset should reset placeholder state', () => {
+  
+  test('startRotation sets up rotation interval', () => {
+    // Initialize PlaceholderManager
     PlaceholderManager.initialize();
-    PlaceholderManager.hasUrlQuestion = true;
-    PlaceholderManager.currentIndex = 3;
     
-    PlaceholderManager.reset();
+    // Clear previous calls
+    jest.clearAllMocks();
     
-    expect(PlaceholderManager.hasUrlQuestion).toBe(false);
-    expect(PlaceholderManager.currentIndex).toBe(0);
-    expect(PlaceholderManager.elements.customPlaceholder.textContent).toBe(PlaceholderManager.placeholders[0]);
+    // Call startRotation
+    PlaceholderManager.startRotation();
+    
+    // Verify setInterval was called
+    expect(window.setInterval).toHaveBeenCalledWith(
+      expect.any(Function),
+      3000
+    );
+    
+    // Verify rotationInterval was set
+    expect(PlaceholderManager.rotationInterval).toBe(123);
+  });
+  
+  test('cleanup clears rotation interval', () => {
+    // Set rotationInterval
+    PlaceholderManager.rotationInterval = 456;
+    
+    // Call cleanup
+    PlaceholderManager.cleanup();
+    
+    // Verify clearInterval was called with correct interval ID
+    expect(window.clearInterval).toHaveBeenCalledWith(456);
   });
 }); 

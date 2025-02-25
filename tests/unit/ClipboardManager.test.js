@@ -2,57 +2,60 @@
  * @jest-environment jsdom
  */
 
-// Mock UIState before importing ClipboardManager
-jest.mock('../../js/managers/UIState.js', () => ({
-  UIState: {
-    elements: {
-      questionDisplay: jest.fn(),
-      answer: jest.fn()
-    },
-    showToast: jest.fn()
-  }
-}));
-
-// Import the ClipboardManager module
+import { jest } from '@jest/globals';
 import { ClipboardManager } from '../../js/managers/ClipboardManager.js';
+
+// Import the actual UIState module and then mock its methods
 import { UIState } from '../../js/managers/UIState.js';
 
 describe('ClipboardManager', () => {
+  const text = 'Test message';
+  const message = 'Test text';
+  
   // Create mock elements with innerText properties
   const mockQuestionElement = { innerText: 'Test question' };
   const mockAnswerElement = { innerText: 'Test answer' };
   
   beforeEach(() => {
-    // Reset mocks
+    // Reset all mocks
     jest.clearAllMocks();
     
-    // Setup DOM for visual verification, but we'll use our mocks for the actual tests
+    // Set up DOM for visual verification
     document.body.innerHTML = `
-      <div id="question-display">Test question</div>
+      <div id="question">Test question</div>
       <div id="answer">Test answer</div>
     `;
     
-    // Setup mock implementations to return our mock elements
-    UIState.elements.questionDisplay.mockReturnValue(mockQuestionElement);
-    UIState.elements.answer.mockReturnValue(mockAnswerElement);
+    // Mock UIState methods
+    UIState.showToast = jest.fn();
+    UIState.elements = {
+      questionDisplay: jest.fn().mockReturnValue(mockQuestionElement),
+      answer: jest.fn().mockReturnValue(mockAnswerElement)
+    };
     
-    // Mock window.location
-    delete window.location;
-    window.location = { href: 'https://lmgroktfy.com/Test%20question' };
-
-    // Mock navigator.clipboard
+    // Mock clipboard API
     Object.defineProperty(navigator, 'clipboard', {
       value: {
-        writeText: jest.fn().mockImplementation(() => Promise.resolve())
+        writeText: jest.fn().mockResolvedValue(undefined)
+      },
+      configurable: true
+    });
+    
+    // Mock window.location
+    Object.defineProperty(window, 'location', {
+      value: {
+        href: 'https://lmgroktfy.com/test'
       },
       configurable: true
     });
   });
+  
+  afterEach(() => {
+    // Clean up
+    document.body.innerHTML = '';
+  });
 
   test('copyText should copy text to clipboard and show toast', async () => {
-    const text = 'Test text';
-    const message = 'Test message';
-    
     await ClipboardManager.copyText(text, message);
     
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(text);
@@ -78,13 +81,13 @@ describe('ClipboardManager', () => {
   test('getShareableText should return URL for url type', () => {
     const result = ClipboardManager.getShareableText('url');
     
-    expect(result).toBe('https://lmgroktfy.com/Test%20question');
+    expect(result).toBe('https://lmgroktfy.com/test');
   });
 
   test('getShareableText should return encoded URL for shareUrl type', () => {
     const result = ClipboardManager.getShareableText('shareUrl');
     
-    expect(result).toBe(encodeURIComponent('https://lmgroktfy.com/Test%20question'));
+    expect(result).toBe(encodeURIComponent('https://lmgroktfy.com/test'));
   });
 
   test('getShareableText should format text for tweet type', () => {

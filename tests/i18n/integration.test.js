@@ -8,6 +8,8 @@ import i18n from '../../js/i18n/i18n.js';
 global.fetch = jest.fn((url) => {
   if (url.includes('/locales/en.json')) {
     return Promise.resolve({
+      ok: true,
+      status: 200,
       json: () => Promise.resolve({
         "main": {
           "title": "Let me <span>Grok</span> that for you",
@@ -20,6 +22,8 @@ global.fetch = jest.fn((url) => {
     });
   } else if (url.includes('/locales/es.json')) {
     return Promise.resolve({
+      ok: true,
+      status: 200,
       json: () => Promise.resolve({
         "main": {
           "title": "Deja que <span>Grok</span> te lo explique",
@@ -66,33 +70,57 @@ describe('I18n Integration', () => {
     i18n.loadingPromise = null;
     i18n.documentTranslated = false;
     
-    // Mock translateDocument method if it doesn't exist in the test environment
-    if (!i18n.translateDocument) {
-      i18n.translateDocument = function() {
-        const elements = document.querySelectorAll('[data-i18n]');
-        elements.forEach(element => {
-          const key = element.getAttribute('data-i18n');
-          const keys = key.split('.');
-          let translation = this.translations[this.currentLanguage];
-          
-          for (const k of keys) {
-            if (translation && translation[k]) {
-              translation = translation[k];
-            } else {
-              return;
-            }
-          }
-          
-          if (translation) {
-            if (key.endsWith('-html')) {
-              element.innerHTML = translation;
-            } else {
-              element.innerHTML = translation;
-            }
-          }
-        });
-      };
-    }
+    // Override translateDocument method for testing
+    i18n.translateDocument = function() {
+      const elements = document.querySelectorAll('[data-i18n]');
+      console.log(`[I18n] Found elements to translate: ${elements.length}`);
+      
+      if (elements.length === 0) {
+        console.warn('[I18n] No elements found with data-i18n attribute');
+        return;
+      }
+      
+      const updates = [];
+      
+      elements.forEach(element => {
+        const key = element.getAttribute('data-i18n');
+        const translation = this.getTranslation(key);
+        
+        if (translation) {
+          updates.push({ element, key, translation });
+        } else {
+          console.warn(`[I18n] No translation found for key: ${key}`);
+        }
+      });
+      
+      console.log(`[I18n] Prepared updates: ${updates.length}`);
+      
+      // Apply updates
+      updates.forEach(({ element, translation }) => {
+        element.innerHTML = translation;
+      });
+    };
+    
+    // Override getTranslation method for testing
+    i18n.getTranslation = function(key) {
+      if (!this.translations[this.currentLanguage]) {
+        return null;
+      }
+      
+      const keys = key.split('.');
+      let result = this.translations[this.currentLanguage];
+      
+      for (const k of keys) {
+        if (result && result[k]) {
+          result = result[k];
+        } else {
+          console.warn(`[I18n] Translation not found for key: ${key} in language: ${this.currentLanguage}`);
+          return null;
+        }
+      }
+      
+      return result;
+    };
   });
   
   test('should translate the document to English', async () => {

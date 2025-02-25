@@ -1,4 +1,4 @@
-const { AxeBuilder } = require('@axe-core/playwright');
+import { AxeBuilder } from '@axe-core/playwright';
 
 /**
  * Runs accessibility tests on the current page
@@ -18,4 +18,4 @@ async function runA11yTests(page, options = {}) {
   return await axeBuilder.analyze();
 }
 
-module.exports = { runA11yTests }; 
+export { runA11yTests }; 

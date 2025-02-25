@@ -9,11 +9,15 @@
  * Usage: node devProxy.js
  */
 
-const http = require('http');
-const https = require('https');
-const url = require('url');
-const fs = require('fs');
-const path = require('path');
+import http from 'http';
+import https from 'https';
+import { fileURLToPath, parse as parseUrl } from 'url';
+import fs from 'fs';
+import path from 'path';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Default configuration
 const DEFAULT_CONFIG = {
@@ -73,7 +77,7 @@ function getMockResponse(endpoint, method) {
  * @param {string} targetUrl - The target URL to forward to
  */
 function forwardRequest(req, res, targetUrl) {
-  const parsedUrl = url.parse(targetUrl);
+  const parsedUrl = parseUrl(targetUrl);
   const options = {
     hostname: parsedUrl.hostname,
     port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
@@ -167,7 +171,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Parse the request URL
-  const parsedUrl = url.parse(req.url);
+  const parsedUrl = parseUrl(req.url);
   const endpoint = parsedUrl.pathname;
   
   // Check if we should use a mock response

@@ -1,16 +1,25 @@
 /**
  * @jest-environment jsdom
+ * @jest-environment-options {"url": "http://localhost/"}
  */
 
-// Mock fetch
-global.fetch = jest.fn();
+// Import Jest globals
+import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 
-// Mock window.history
+// Import modules first
+import { handleQuestionSubmission } from '../../js/api/grokApi.js';
+import { UIState } from '../../js/managers/UIState.js';
+import config from '../../js/config.js';
+
+// Set up global mocks
 window.history = {
   replaceState: jest.fn()
 };
 
-// Mock UIState
+// Mock fetch
+global.fetch = jest.fn();
+
+// Mock modules
 jest.mock('../../js/managers/UIState.js', () => ({
   UIState: {
     showLoading: jest.fn(),
@@ -28,11 +37,6 @@ jest.mock('../../js/config.js', () => ({
     init: jest.fn().mockResolvedValue({})
   }
 }));
-
-// Import the grokApi module
-import { handleQuestionSubmission } from '../../js/api/grokApi.js';
-import { UIState } from '../../js/managers/UIState.js';
-import config from '../../js/config.js';
 
 describe('grokApi', () => {
   beforeEach(() => {

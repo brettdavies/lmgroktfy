@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+import { test, expect } from './helpers/fixtures.js';
 
 test.describe('Basic functionality', () => {
   test.beforeEach(async ({ page }) => {
