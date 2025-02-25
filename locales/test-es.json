@@ -8,9 +8,17 @@
     "contact": ""
   },
   "main": {
-    "title": "",
-    "placeholder": "",
-    "loading": ""
+    "title": "Título de Prueba",
+    "placeholder": "Marcador de posición de prueba",
+    "loading": "Cargando...",
+    "placeholders": [
+      "marcador de prueba 1",
+      "marcador de prueba 2",
+      "marcador de prueba 3",
+      "marcador de prueba 4",
+      "marcador de prueba 5",
+      "marcador de prueba 6"
+    ]
   },
   "help": {
     "title": "",

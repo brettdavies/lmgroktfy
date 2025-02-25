@@ -8,9 +8,17 @@
     "contact": ""
   },
   "main": {
-    "title": "",
-    "placeholder": "",
-    "loading": ""
+    "title": "Test Title",
+    "placeholder": "Test placeholder",
+    "loading": "Loading...",
+    "placeholders": [
+      "test placeholder 1",
+      "test placeholder 2",
+      "test placeholder 3",
+      "test placeholder 4",
+      "test placeholder 5",
+      "test placeholder 6"
+    ]
   },
   "help": {
     "title": "",

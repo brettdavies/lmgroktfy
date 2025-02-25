@@ -1,0 +1,74 @@
+{
+  "page": {
+    "title": "دع Grok يشرح لك"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "about": "حول",
+    "contact": "اتصل بنا"
+  },
+  "main": {
+    "title": "دع <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> يشرح لك",
+    "placeholder": "grok، اشرح لي معنى الحياة...",
+    "loading": "جاري المعالجة...",
+    "placeholders": [
+      "grok، اشرح لي معنى الحياة...",
+      "grok، اشرح لي الفيزياء الكمية...",
+      "grok، اشرح لي كيفية صنع المعكرونة...",
+      "grok، اشرح لي الذكاء الاصطناعي...",
+      "grok، ماذا يقول الثعلب؟",
+      "grok، متى الكسوف القادم؟"
+    ]
+  },
+  "help": {
+    "title": "كيفية استخدام LMGROKTFY",
+    "description": "اكتب سؤالك ودع Grok يجيب عليه!",
+    "protips": {
+      "title": "نصائح احترافية",
+      "url": "أضف سؤالك مباشرة إلى عنوان URL:",
+      "share": "شارك الرابط ليرى الآخرون نفس الإجابة",
+      "copy": "استخدم أزرار النسخ لمشاركة السؤال والإجابة بسهولة"
+    },
+    "shortcuts": {
+      "title": "اختصارات لوحة المفاتيح",
+      "general": "عام",
+      "focus": "التركيز على البحث",
+      "help": "فتح المساعدة",
+      "theme": "تبديل السمة",
+      "close": "إغلاق النافذة",
+      "answer": "عند عرض الإجابة",
+      "copy_answer": "نسخ الإجابة",
+      "copy_qa": "نسخ السؤال والإجابة",
+      "copy_link": "نسخ الرابط",
+      "continue": "المتابعة على Grok"
+    }
+  },
+  "actions": {
+    "understand": "فهم المزيد على Grok <i class=\"fa-solid fa-robot\"></i>",
+    "use": "استخدم Grok على <i class=\"fa-brands fa-x-twitter\"></i>",
+    "copy_qa": "نسخ السؤال والإجابة <i class=\"fa-regular fa-copy\"></i>",
+    "copy_answer": "نسخ الإجابة <i class=\"fa-regular fa-copy\"></i>",
+    "copy_link": "نسخ الرابط <i class=\"fa-regular fa-copy\"></i>",
+    "share_x": "مشاركة على <i class=\"fa-brands fa-x-twitter\"></i> <i class=\"fa-solid fa-share\"></i>"
+  },
+  "footer": {
+    "disclaimer": "غير مرتبط بـ X™ أو Grok™. X و Grok هي علامات تجارية لـ X Corp. و xAI.",
+    "copyright": "© 2025 بريت ديفيز - ابق فضولياً، افهم الكون!"
+  },
+  "test": {
+    "title": "عنوان",
+    "language": "اللغة",
+    "basic": "أساسي",
+    "simple": "بسيط",
+    "paragraph": "فقرة",
+    "html": "HTML",
+    "rich": "غني",
+    "link": "رابط",
+    "dynamic": "ديناميكي",
+    "add": "إضافة",
+    "debug": "تصحيح",
+    "current": "الحالي",
+    "detected": "المكتشف",
+    "show": "عرض"
+  }
+} 

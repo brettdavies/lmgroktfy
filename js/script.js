@@ -22,7 +22,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('[Config] Initialized with environment:', 
                     config.get('isDevelopment') ? 'development' : 'production');
         
-        // Step 2: Initialize UI managers
+        // Step 2: Initialize i18n system first
+        console.log('[App] Initializing internationalization');
+        const savedLanguage = localStorage.getItem('userLanguage');
+        console.log('[App] Saved language in localStorage:', savedLanguage);
+        
+        await i18n.init({
+            supportedLanguages: ['en', 'es', 'fr', 'de', 'ja', 'ar'],
+            defaultLanguage: 'en',
+            languageSwitcherSelector: '#language-switcher'
+        });
+        
+        console.log('[App] Language after i18n init:', i18n.currentLanguage);
+        console.log('[App] Available translations:', Object.keys(i18n.translations));
+        
+        // Step 3: Initialize UI managers after i18n is ready
         console.log('[App] Initializing UI managers');
         
         // Initialize viewport handling for responsive design
@@ -33,22 +47,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         ThemeManager.initialize();
         FocusManager.initialize();
         
-        // Step 3: Set up event listeners
+        // Step 4: Set up event listeners
         setupEventListeners();
-        
-        // Step 4: Initialize i18n system
-        console.log('[App] Initializing internationalization');
-        const savedLanguage = localStorage.getItem('userLanguage');
-        console.log('[App] Saved language in localStorage:', savedLanguage);
-        
-        await i18n.init({
-            supportedLanguages: ['en', 'es', 'fr', 'de', 'ja'],
-            defaultLanguage: 'en',
-            languageSwitcherSelector: '#language-switcher'
-        });
-        
-        console.log('[App] Language after i18n init:', i18n.currentLanguage);
-        console.log('[App] Available translations:', Object.keys(i18n.translations));
         
         // Step 5: Process URL parameters after a short delay to ensure everything is ready
         setTimeout(() => {
@@ -92,6 +92,12 @@ function setupEventListeners() {
             .finally(() => {
                 UIState.enableButton(submitButton);
             });
+    });
+
+    // Enable/disable submit button based on input value
+    UIState.elements.question().addEventListener('input', function(event) {
+        const hasValue = this.value.trim().length > 0;
+        UIState.setSubmitButtonState(hasValue);
     });
 
     // Set up copy/share buttons

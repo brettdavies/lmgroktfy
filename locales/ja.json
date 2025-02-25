@@ -8,9 +8,17 @@
     "contact": "お問い合わせ"
   },
   "main": {
-    "title": "<span class=\"text-gray-900 dark:text-white font-normal\">Grok</span>にお任せください",
+    "title": "<span class=\"text-gray-900 dark:text-white font-normal\">Grok</span>に説明してもらおう",
     "placeholder": "grok、人生の意味を教えて...",
-    "loading": "処理中..."
+    "loading": "処理中...",
+    "placeholders": [
+      "grok、人生の意味を教えて...",
+      "grok、量子物理学を説明して...",
+      "grok、パスタの作り方を教えて...",
+      "grok、人工知能について説明して...",
+      "grok、キツネは何と言う？",
+      "grok、次の日食はいつ？"
+    ]
   },
   "help": {
     "title": "LMGROKTFYの使い方",

@@ -8,9 +8,17 @@
     "contact": "Kontakt"
   },
   "main": {
-    "title": "Lassen Sie <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> das für Sie erklären",
+    "title": "Lass <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> das für dich erklären",
     "placeholder": "grok, erkläre mir den Sinn des Lebens...",
-    "loading": "Verarbeitung..."
+    "loading": "Verarbeitung...",
+    "placeholders": [
+      "grok, erkläre mir den Sinn des Lebens...",
+      "grok, erkläre mir die Quantenphysik...",
+      "grok, erkläre mir wie man Pasta macht...",
+      "grok, erkläre mir künstliche Intelligenz...",
+      "grok, was sagt der Fuchs?",
+      "grok, wann ist die nächste Sonnenfinsternis?"
+    ]
   },
   "help": {
     "title": "Wie man LMGROKTFY benutzt",

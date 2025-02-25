@@ -90,6 +90,16 @@ class I18n {
       // Update HTML lang attribute
       document.documentElement.setAttribute('lang', language);
       
+      // Set RTL direction for Arabic and other RTL languages
+      const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
+      if (rtlLanguages.includes(language)) {
+        console.log('[I18n] Setting RTL direction for language:', language);
+        document.documentElement.setAttribute('dir', 'rtl');
+      } else {
+        console.log('[I18n] Setting LTR direction for language:', language);
+        document.documentElement.setAttribute('dir', 'ltr');
+      }
+      
       // Translate the document
       this.translateDocument();
       this.documentTranslated = true;
@@ -238,23 +248,38 @@ class I18n {
     
     if (!translations) {
       console.warn(`[I18n] No translations loaded for language: ${this.currentLanguage}`);
-      return null;
+      return key;
     }
     
     // Handle nested keys (e.g., 'main.title')
-    const keys = key.split('.');
+    const parts = key.split('.');
     let result = translations;
     
-    for (const k of keys) {
-      if (result && result[k] !== undefined) {
-        result = result[k];
+    for (const part of parts) {
+      if (result && typeof result === 'object' && part in result) {
+        result = result[part];
       } else {
-        console.warn(`[I18n] Translation not found for key: ${key} in language: ${this.currentLanguage}`);
-        return null;
+        console.warn(`[I18n] Missing translation for key: ${key} in language: ${this.currentLanguage}`);
+        return key;
       }
     }
     
+    // If the result is an object, return the key (it's a parent node)
+    if (result && typeof result === 'object' && !Array.isArray(result)) {
+      console.warn(`[I18n] Key is a parent node, not a translation: ${key}`);
+      return key;
+    }
+    
     return result;
+  }
+  
+  /**
+   * Alias for getTranslation - commonly used in i18n libraries
+   * @param {string} key - Translation key
+   * @returns {string|null} Translation or null if not found
+   */
+  t(key) {
+    return this.getTranslation(key);
   }
   
   /**

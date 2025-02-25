@@ -48,8 +48,90 @@ html[dir="rtl"] .modal-box {
   text-align: right;
 }
 
-html[dir="rtl"] .flex {
+/* Only reverse specific flex containers, not all of them */
+html[dir="rtl"] header .flex,
+html[dir="rtl"] nav .flex,
+html[dir="rtl"] footer .flex,
+html[dir="rtl"] .modal-box .flex:not(.items-center),
+html[dir="rtl"] .space-x-2,
+html[dir="rtl"] .space-x-4 {
   flex-direction: row-reverse;
+}
+
+/* Keep the question form flex direction as row */
+html[dir="rtl"] #question-form .flex {
+  flex-direction: row;
+}
+
+/* Additional RTL adjustments for Tailwind components */
+html[dir="rtl"] .space-x-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+html[dir="rtl"] .space-x-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+html[dir="rtl"] .ml-2 {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+html[dir="rtl"] .mr-2 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+/* Fix placeholder positioning for RTL */
+html[dir="rtl"] #custom-placeholder {
+  left: auto;
+  right: 1.5rem;
+  text-align: right;
+}
+
+html[dir="rtl"] .right-2 {
+  right: auto;
+  left: 0.5rem;
+}
+
+html[dir="rtl"] .right-4 {
+  right: auto;
+  left: 1rem;
+}
+
+/* Additional Tailwind RTL adjustments */
+html[dir="rtl"] .pr-16 {
+  padding-right: 1.5rem;
+  padding-left: 4rem;
+}
+
+html[dir="rtl"] .pl-4 {
+  padding-left: 0;
+  padding-right: 1rem;
+}
+
+html[dir="rtl"] .items-start {
+  align-items: flex-start;
+}
+
+html[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+html[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+/* Fix for input placeholder in RTL */
+html[dir="rtl"] input,
+html[dir="rtl"] input::placeholder {
+  text-align: right;
+}
+
+/* Fix for submit button in RTL */
+html[dir="rtl"] #submit-button {
+  right: auto;
+  left: 0.5rem;
 }
 
 /* Responsive language switcher */

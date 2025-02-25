@@ -10,7 +10,15 @@
   "main": {
     "title": "Deja que <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> te lo explique",
     "placeholder": "grok, explícame el sentido de la vida...",
-    "loading": "Procesando..."
+    "loading": "Procesando...",
+    "placeholders": [
+      "grok, explícame el sentido de la vida...",
+      "grok, explícame la física cuántica...",
+      "grok, explícame cómo hacer pasta...",
+      "grok, explícame la inteligencia artificial...",
+      "grok, ¿qué dice el zorro?",
+      "grok, ¿cuándo es el próximo eclipse?"
+    ]
   },
   "help": {
     "title": "Cómo usar LMGROKTFY",

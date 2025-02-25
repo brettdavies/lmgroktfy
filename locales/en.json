@@ -10,7 +10,15 @@
   "main": {
     "title": "Let me <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> that for you",
     "placeholder": "grok the meaning of life for me...",
-    "loading": "Grokking..."
+    "loading": "Grokking...",
+    "placeholders": [
+      "grok the meaning of life for me...",
+      "grok quantum physics for me...",
+      "grok how to make pasta for me...",
+      "grok artificial intelligence for me...",
+      "grok what does the fox say?",
+      "grok when is the next eclipse?"
+    ]
   },
   "help": {
     "title": "How to Use LMGROKTFY",

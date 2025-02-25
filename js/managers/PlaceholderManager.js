@@ -3,6 +3,7 @@
  * @namespace PlaceholderManager
  */
 import { UIState } from './UIState.js';
+import i18n from '../i18n/i18n.js';
 
 export const PlaceholderManager = {
     elements: {
@@ -11,14 +12,8 @@ export const PlaceholderManager = {
         customPlaceholder: null
     },
 
-    placeholders: [
-        "grok the meaning of life for me...",
-        "grok quantum physics for me...",
-        "grok how to make pasta for me...",
-        "grok artificial intelligence for me...",
-        "grok what does the fox say?",
-        "grok when is the next eclipse?"
-    ],
+    // Placeholders will be loaded from i18n
+    placeholders: [],
 
     currentIndex: 0,
     rotationInterval: null,
@@ -28,6 +23,15 @@ export const PlaceholderManager = {
         this.elements.input = document.getElementById('question-input');
         this.elements.submitButton = document.getElementById('submit-button');
         this.elements.customPlaceholder = document.getElementById('custom-placeholder');
+
+        // Load placeholders from current language
+        this.loadPlaceholders();
+
+        // Listen for language changes to update placeholders
+        window.addEventListener('languageChanged', () => {
+            this.loadPlaceholders();
+            this.updatePlaceholder();
+        });
 
         // Check if there's a URL-based question
         const path = window.location.pathname;
@@ -51,9 +55,67 @@ export const PlaceholderManager = {
         this.initMobileSupport();
     },
 
-    updatePlaceholderVisibility(value) {
-        const isFocused = document.activeElement === this.elements.input;
-        UIState.updatePlaceholderVisibility(value, isFocused, this.hasUrlQuestion);
+    /**
+     * Load placeholders from the current language
+     */
+    loadPlaceholders() {
+        // Get placeholders from i18n
+        const localizedPlaceholders = i18n.t('main.placeholders');
+        
+        // If we have localized placeholders, use them
+        if (localizedPlaceholders && Array.isArray(localizedPlaceholders)) {
+            this.placeholders = localizedPlaceholders;
+        } else {
+            // Fallback to a default placeholder if translation is missing
+            this.placeholders = [i18n.t('main.placeholder')];
+        }
+        
+        // Reset index if it's out of bounds with the new array
+        if (this.currentIndex >= this.placeholders.length) {
+            this.currentIndex = 0;
+        }
+    },
+
+    updatePlaceholderVisibility(inputValue) {
+        const placeholder = this.elements.customPlaceholder;
+        
+        if (!placeholder) {
+            console.warn('[PlaceholderManager] Placeholder element not found');
+            return;
+        }
+        
+        // Check if input has value
+        if (inputValue && inputValue.trim().length > 0) {
+            // Hide placeholder when input has value
+            UIState.addClass(placeholder, 'opacity-0');
+            UIState.addClass(placeholder, 'invisible');
+        } else {
+            // Show placeholder when input is empty
+            UIState.removeClass(placeholder, 'opacity-0');
+            UIState.removeClass(placeholder, 'invisible');
+            
+            // Check for RTL direction and adjust placeholder position if needed
+            const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+            
+            // Remove both positioning classes first
+            UIState.removeClass(placeholder, 'left-6');
+            UIState.removeClass(placeholder, 'right-6');
+            
+            // Then add the appropriate one based on direction
+            if (isRTL) {
+                UIState.addClass(placeholder, 'right-6');
+                // Ensure text alignment is correct for RTL
+                UIState.addClass(placeholder, 'text-right');
+                // Ensure the native placeholder is hidden
+                UIState.addClass(this.elements.input, 'placeholder-hidden');
+            } else {
+                UIState.addClass(placeholder, 'left-6');
+                // Ensure text alignment is correct for LTR
+                UIState.removeClass(placeholder, 'text-right');
+                // Ensure the native placeholder is hidden
+                UIState.addClass(this.elements.input, 'placeholder-hidden');
+            }
+        }
     },
 
     setupEventListeners() {
@@ -85,6 +147,26 @@ export const PlaceholderManager = {
     initialSetup() {
         if (!this.hasUrlQuestion) {
             UIState.setText(this.elements.customPlaceholder, this.placeholders[0]);
+            
+            // Ensure placeholder is visible
+            UIState.setOpacity(this.elements.customPlaceholder, 1);
+            UIState.removeClass(this.elements.customPlaceholder, 'opacity-0');
+            UIState.removeClass(this.elements.customPlaceholder, 'invisible');
+            
+            // Check for RTL direction and adjust placeholder position if needed
+            const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+            if (isRTL) {
+                UIState.removeClass(this.elements.customPlaceholder, 'left-6');
+                UIState.addClass(this.elements.customPlaceholder, 'right-6');
+                UIState.addClass(this.elements.customPlaceholder, 'text-right');
+            } else {
+                UIState.removeClass(this.elements.customPlaceholder, 'right-6');
+                UIState.addClass(this.elements.customPlaceholder, 'left-6');
+                UIState.removeClass(this.elements.customPlaceholder, 'text-right');
+            }
+            
+            // Ensure the native placeholder is hidden
+            UIState.addClass(this.elements.input, 'placeholder-hidden');
         }
     },
 
@@ -109,7 +191,25 @@ export const PlaceholderManager = {
         
         // Reset placeholder visibility using UIState
         UIState.setOpacity(this.elements.customPlaceholder, 1);
+        UIState.removeClass(this.elements.customPlaceholder, 'opacity-0');
+        UIState.removeClass(this.elements.customPlaceholder, 'invisible');
         UIState.addClass(this.elements.input, 'placeholder-hidden');
+        
+        // Ensure proper positioning based on text direction
+        const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+        
+        // Remove both positioning classes first
+        UIState.removeClass(this.elements.customPlaceholder, 'left-6');
+        UIState.removeClass(this.elements.customPlaceholder, 'right-6');
+        
+        // Then add the appropriate one based on direction
+        if (isRTL) {
+            UIState.addClass(this.elements.customPlaceholder, 'right-6');
+            UIState.addClass(this.elements.customPlaceholder, 'text-right');
+        } else {
+            UIState.addClass(this.elements.customPlaceholder, 'left-6');
+            UIState.removeClass(this.elements.customPlaceholder, 'text-right');
+        }
         
         // Reset submit button state using UIState
         UIState.setSubmitButtonState(false);
