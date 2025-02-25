@@ -11,3 +11,28 @@
 
 # MacOS
 .DS_Store
+
+# Testing
+node_modules/
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+.nyc_output/
+/test-report.xml
+/junit.xml
+/test-results.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+
+# Local configuration
+config.local.json
