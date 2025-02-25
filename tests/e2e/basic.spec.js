@@ -99,4 +99,48 @@ test.describe('Basic functionality', () => {
     // Check that help modal is not visible
     await expect(page.locator('#help_modal')).not.toBeVisible();
   });
+
+  test('clicking home link and submitting a new question works correctly', async ({ page, mockApi }) => {
+    // Set up API mock
+    await mockApi.addRoute('/api/grok', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ answer: 'This is a test answer' })
+      });
+    });
+
+    // Navigate to the page
+    await page.goto('/');
+
+    // Submit first question
+    await page.fill('#question-input', 'First test question');
+    await page.click('button[type="submit"]');
+
+    // Wait for the response to be displayed
+    await page.waitForSelector('#response:not(.hidden)');
+    
+    // Verify first answer is displayed
+    await expect(page.locator('#question-display')).toHaveText('First test question');
+    await expect(page.locator('#answer')).toHaveText('This is a test answer');
+
+    // Click the home link to reset
+    await page.click('.home-link');
+
+    // Verify the UI is reset
+    await expect(page.locator('#response')).toHaveClass(/hidden/);
+    await expect(page.locator('#question-form')).not.toHaveClass(/hidden/);
+    await expect(page.locator('#question-input')).toHaveValue('');
+
+    // Submit second question
+    await page.fill('#question-input', 'Second test question');
+    await page.click('button[type="submit"]');
+
+    // Wait for the response to be displayed
+    await page.waitForSelector('#response:not(.hidden)');
+    
+    // Verify second answer is displayed
+    await expect(page.locator('#question-display')).toHaveText('Second test question');
+    await expect(page.locator('#answer')).toHaveText('This is a test answer');
+  });
 }); 

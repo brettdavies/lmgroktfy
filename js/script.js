@@ -73,11 +73,19 @@ function setupEventListeners() {
         // Reset form and UI state
         UIState.elements.question().value = '';
         UIState.elements.answer().innerText = '';
-        UIState.elements.response().style.display = 'none';
-        UIState.elements.questionForm().style.display = 'block';
+        UIState.elements.response().classList.add('hidden');
+        UIState.elements.questionForm().classList.remove('hidden');
         UIState.hideAllButtons();
+        
         // Reset placeholder and submit button state
         PlaceholderManager.reset();
+        
+        // Explicitly disable submit button until input is entered
+        const submitButton = UIState.elements.questionForm().querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+        
         // Update URL without triggering a reload
         window.history.pushState({}, '', '/');
     });

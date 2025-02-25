@@ -127,8 +127,12 @@ describe('script.js', () => {
         // Check that the form was reset
         expect(document.getElementById('question-input').value).toBe('');
         expect(document.getElementById('answer').innerText).toBe('');
-        expect(document.getElementById('response').style.display).toBe('none');
-        expect(document.getElementById('question-form').style.display).toBe('block');
+        expect(document.getElementById('response').classList.contains('hidden')).toBe(true);
+        expect(document.getElementById('question-form').classList.contains('hidden')).toBe(false);
+        
+        // Check that the submit button is disabled
+        const submitButton = document.querySelector('button[type="submit"]');
+        expect(submitButton.disabled).toBe(true);
         
         // Check that other functions were called
         expect(UIState.hideAllButtons).toHaveBeenCalled();
@@ -432,5 +436,80 @@ describe('script.js', () => {
         
         // Check that preventDefault was NOT called
         expect(preventDefaultMock).not.toHaveBeenCalled();
+    });
+    
+    test('clicking home link and submitting a new question works correctly', async () => {
+        // Set up the DOM
+        document.body.innerHTML = `
+            <a class="home-link" href="/">Home</a>
+            <form id="question-form">
+                <input id="question-input" type="text">
+                <button type="submit">Submit</button>
+            </form>
+            <div id="loading" class="hidden"></div>
+            <div id="response" class="hidden">
+                <p id="question-display"></p>
+                <p id="answer"></p>
+            </div>
+            <div id="custom-placeholder"></div>
+        `;
+        
+        // Mock the API response
+        global.fetch = jest.fn().mockImplementation(() => 
+            Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve({ answer: 'Test answer' })
+            })
+        );
+        
+        // Mock window.history
+        window.history.pushState = jest.fn();
+        window.history.replaceState = jest.fn();
+        
+        // Import the script
+        jest.resetModules();
+        require('../../js/script.js');
+        
+        // Trigger DOMContentLoaded
+        document.dispatchEvent(new Event('DOMContentLoaded'));
+        
+        // Simulate a successful API response
+        const questionInput = document.getElementById('question-input');
+        questionInput.value = 'First question';
+        
+        // Submit the form
+        const form = document.getElementById('question-form');
+        form.dispatchEvent(new Event('submit'));
+        
+        // Wait for the API call to resolve
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        // Verify the first answer is displayed
+        expect(document.getElementById('response').classList.contains('hidden')).toBe(false);
+        expect(document.getElementById('question-display').innerText).toBe('First question');
+        expect(document.getElementById('answer').innerText).toBe('Test answer');
+        
+        // Click the home link to reset
+        const homeLink = document.querySelector('.home-link');
+        const clickEvent = new MouseEvent('click');
+        clickEvent.preventDefault = jest.fn();
+        homeLink.dispatchEvent(clickEvent);
+        
+        // Verify the UI is reset
+        expect(document.getElementById('response').classList.contains('hidden')).toBe(true);
+        expect(document.getElementById('question-form').classList.contains('hidden')).toBe(false);
+        expect(questionInput.value).toBe('');
+        
+        // Submit a second question
+        questionInput.value = 'Second question';
+        form.dispatchEvent(new Event('submit'));
+        
+        // Wait for the API call to resolve
+        await new Promise(resolve => setTimeout(resolve, 0));
+        
+        // Verify the second answer is displayed
+        expect(document.getElementById('response').classList.contains('hidden')).toBe(false);
+        expect(document.getElementById('question-display').innerText).toBe('Second question');
+        expect(document.getElementById('answer').innerText).toBe('Test answer');
     });
 }); 

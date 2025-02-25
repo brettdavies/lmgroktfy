@@ -117,6 +117,14 @@ export const PlaceholderManager = {
         }
         this.elements.customPlaceholder.textContent = this.placeholders[0];
         this.elements.input.placeholder = this.placeholders[0];
+        
+        // Reset placeholder visibility
+        this.elements.customPlaceholder.style.opacity = '1';
+        this.elements.input.classList.add('placeholder-hidden');
+        
+        // Reset submit button state
+        this.elements.submitButton.disabled = true;
+        
         this.startRotation();
     }
 }; 
