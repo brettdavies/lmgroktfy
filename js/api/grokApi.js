@@ -23,6 +23,7 @@ export async function handleQuestionSubmission(question) {
         // Get the API URL from the config (which now handles proxy selection)
         const apiUrl = config.getApiUrl('/api/grok');
         console.log(`[API] Sending request to ${apiUrl}`);
+        console.log(`[API] isDevelopment: ${config.config.isDevelopment}, port: ${config.config.port}`);
         
         const response = await fetch(apiUrl, {
             method: 'POST',

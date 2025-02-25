@@ -59,19 +59,20 @@ class Config {
   async init() {
     if (this.initialized) return this;
     
-    // Determine environment
-    const hostname = window.location.hostname;
-    console.log('[Config] Current hostname:', hostname);
-    
+    // Set environment flags
     this.config.isDevelopment = isLocalDevelopment();
-    console.log('[Config] Is development environment:', this.config.isDevelopment);
+    this.config.debugMode = new URLSearchParams(window.location.search).has('debug') || 
+                           localStorage.getItem('debugMode') === 'true';
     
-    // Set debug mode based on URL parameter or local storage
-    this.config.debugMode = 
-      new URLSearchParams(window.location.search).has('debug') || 
-      localStorage.getItem('debugMode') === 'true';
+    // Load configuration with clear precedence:
+    // 1. Default values (from constructor)
+    // 2. Window.ENV_CONFIG (if available)
+    // 3. Local config file (in development mode)
+    if (window.ENV_CONFIG) {
+      console.log('[Config] Found window.ENV_CONFIG, applying...');
+      this.config = { ...this.config, ...window.ENV_CONFIG };
+    }
     
-    // Load local config if in development mode
     if (this.config.isDevelopment) {
       console.log('[Config] Loading local configuration...');
       try {
@@ -143,4 +144,4 @@ class Config {
 
 // Create singleton instance
 const config = new Config();
-export default config; 
+export default config;

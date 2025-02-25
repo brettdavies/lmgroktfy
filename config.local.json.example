@@ -6,5 +6,8 @@
    * 3. If you encounter CORS errors, ensure your API endpoint supports requests from http://localhost:8080
    */
   "apiBaseUrl": "https://development-api-domain.com",
+  "port": 3000,
+  "mockResponses": false,
+  "logRequests": true,
   "debugMode": true
 } 

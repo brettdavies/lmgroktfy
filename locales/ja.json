@@ -1,0 +1,66 @@
+{
+  "page": {
+    "title": "Grokにお任せください"
+  },
+  "nav": {
+    "home": "ホーム",
+    "about": "概要",
+    "contact": "お問い合わせ"
+  },
+  "main": {
+    "title": "<span class=\"text-gray-900 dark:text-white font-normal\">Grok</span>にお任せください",
+    "placeholder": "grok、人生の意味を教えて...",
+    "loading": "処理中..."
+  },
+  "help": {
+    "title": "LMGROKTFYの使い方",
+    "description": "質問を入力してGrokに答えてもらいましょう！",
+    "protips": {
+      "title": "プロのヒント",
+      "url": "URLに直接質問を追加する：",
+      "share": "リンクを共有して他の人に同じ回答を見せる",
+      "copy": "コピーボタンを使って簡単に共有する"
+    },
+    "shortcuts": {
+      "title": "キーボードショートカット",
+      "general": "一般",
+      "focus": "検索入力にフォーカス",
+      "help": "ヘルプを開く",
+      "theme": "テーマを切り替える",
+      "close": "モーダルを閉じる",
+      "answer": "回答が表示されたとき",
+      "copy_answer": "回答をコピー",
+      "copy_qa": "Q&Aをコピー",
+      "copy_link": "リンクをコピー",
+      "continue": "Grokで続ける"
+    }
+  },
+  "actions": {
+    "understand": "Grokでもっと理解する <i class=\"fa-solid fa-robot\"></i>",
+    "use": "<i class=\"fa-brands fa-x-twitter\"></i>でGrokを使う",
+    "copy_qa": "Q&Aをコピー <i class=\"fa-regular fa-copy\"></i>",
+    "copy_answer": "回答をコピー <i class=\"fa-regular fa-copy\"></i>",
+    "copy_link": "リンクをコピー <i class=\"fa-regular fa-copy\"></i>",
+    "share_x": "<i class=\"fa-brands fa-x-twitter\"></i>で共有 <i class=\"fa-solid fa-share\"></i>"
+  },
+  "footer": {
+    "disclaimer": "X™またはGrok™とは提携していません。XおよびGrokはX Corp.およびxAIの商標です。",
+    "copyright": "© 2025 Brett Davies - 好奇心を持ち、宇宙を理解しよう！"
+  },
+  "test": {
+    "title": "",
+    "language": "",
+    "basic": "",
+    "simple": "",
+    "paragraph": "",
+    "html": "",
+    "rich": "",
+    "link": "",
+    "dynamic": "",
+    "add": "",
+    "debug": "",
+    "current": "",
+    "detected": "",
+    "show": ""
+  }
+}

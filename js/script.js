@@ -5,24 +5,68 @@ import { ThemeManager } from './managers/ThemeManager.js';
 import { FocusManager } from './managers/FocusManager.js';
 import { handleQuestionSubmission } from './api/grokApi.js';
 import config from './config.js';
+import i18n from './i18n/i18n.js';
 
 /**
  * Main application initialization
  * - Sets up event listeners for form submission and sharing
+ * - Initializes all managers and i18n
  * - Handles URL-based question loading
- * - Initializes all managers
  */
 document.addEventListener('DOMContentLoaded', async function() {
-    // Initialize configuration first
-    await config.init();
-    console.log('[Config] Initialized with environment:', 
-                config.get('isDevelopment') ? 'development' : 'production');
+    console.log('[App] DOM content loaded, initializing application');
     
-    // Initialize managers
-    PlaceholderManager.initialize();
-    ThemeManager.initialize();
-    FocusManager.initialize();
+    try {
+        // Step 1: Initialize configuration
+        await config.init();
+        console.log('[Config] Initialized with environment:', 
+                    config.get('isDevelopment') ? 'development' : 'production');
+        
+        // Step 2: Initialize UI managers
+        console.log('[App] Initializing UI managers');
+        PlaceholderManager.initialize();
+        ThemeManager.initialize();
+        FocusManager.initialize();
+        
+        // Step 3: Set up event listeners
+        setupEventListeners();
+        
+        // Step 4: Initialize i18n system
+        console.log('[App] Initializing internationalization');
+        const savedLanguage = localStorage.getItem('userLanguage');
+        console.log('[App] Saved language in localStorage:', savedLanguage);
+        
+        await i18n.init({
+            supportedLanguages: ['en', 'es', 'fr', 'de', 'ja'],
+            defaultLanguage: 'en',
+            languageSwitcherSelector: '#language-switcher'
+        });
+        
+        console.log('[App] Language after i18n init:', i18n.currentLanguage);
+        console.log('[App] Available translations:', Object.keys(i18n.translations));
+        
+        // Step 5: Process URL parameters after a short delay to ensure everything is ready
+        setTimeout(() => {
+            // Force retranslation to ensure all elements are properly translated
+            console.log('[App] Forcing retranslation after delay');
+            i18n.translateDocument();
+            
+            // Process URL parameters after translations are applied
+            processUrlParameters();
+        }, 500);
+        
+        console.log('[App] Initialization complete');
+    } catch (error) {
+        console.error('[App] Error during initialization:', error);
+    }
+});
 
+/**
+ * Set up all event listeners for the application
+ */
+function setupEventListeners() {
+    console.log('[App] Setting up event listeners');
+    
     // Handle home link clicks
     document.querySelector('.home-link').addEventListener('click', function(e) {
         e.preventDefault();
@@ -37,22 +81,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Update URL without triggering a reload
         window.history.pushState({}, '', '/');
     });
-
-    // Check for URL-based question
-    const path = window.location.pathname;
-    if (path && path !== '/' && path !== '/index.html') {
-        let question = path.replace(/^\//, '').replace(/\?.*$/, '').trim();
-        question = decodeURIComponent(question);
-        // Handle double-encoded URLs (where spaces are %2520 instead of %20)
-        if (question.includes('%20')) {
-            question = decodeURIComponent(question);
-        }
-        if (question) {
-            UIState.elements.question().value = question;
-            PlaceholderManager.updatePlaceholderVisibility(question);
-            handleQuestionSubmission(question);
-        }
-    }
 
     // Set up form submission
     UIState.elements.questionForm().addEventListener('submit', function(event) {
@@ -135,4 +163,51 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
     });
-});
+}
+
+/**
+ * Process URL parameters to handle direct question links
+ */
+function processUrlParameters() {
+    console.log('[URL Handler] Checking URL path:', window.location.pathname);
+    const path = window.location.pathname;
+    
+    // Skip processing for root path or index.html
+    if (!path || path === '/' || path === '/index.html') {
+        console.log('[URL Handler] No path to process');
+        return;
+    }
+    
+    try {
+        // Remove leading slash and any query parameters
+        let question = path.replace(/^\//, '').replace(/\?.*$/, '').trim();
+        
+        // Handle SPA routing - decode the URL component
+        question = decodeURIComponent(question);
+        console.log('[URL Handler] Decoded question from URL:', question);
+        
+        // Handle double-encoded URLs (where spaces are %2520 instead of %20)
+        if (question.includes('%20')) {
+            question = decodeURIComponent(question);
+            console.log('[URL Handler] Double-decoded question:', question);
+        }
+        
+        if (question) {
+            console.log('[URL Handler] Setting question from URL and submitting');
+            UIState.elements.question().value = question;
+            PlaceholderManager.updatePlaceholderVisibility(question);
+            
+            // Ensure the submit button is enabled
+            const submitButton = UIState.elements.questionForm().querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = false;
+                console.log('[URL Handler] Enabled submit button');
+            }
+            
+            // Submit the question
+            handleQuestionSubmission(question);
+        }
+    } catch (error) {
+        console.error('[URL Handler] Error processing URL parameters:', error);
+    }
+}

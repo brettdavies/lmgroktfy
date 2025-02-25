@@ -1,0 +1,66 @@
+{
+  "page": {
+    "title": "Laissez Grok vous expliquer"
+  },
+  "nav": {
+    "home": "Accueil",
+    "about": "À propos",
+    "contact": "Contact"
+  },
+  "main": {
+    "title": "Laissez <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> vous expliquer",
+    "placeholder": "grok, explique-moi le sens de la vie...",
+    "loading": "Traitement en cours..."
+  },
+  "help": {
+    "title": "Comment utiliser LMGROKTFY",
+    "description": "Tapez votre question et laissez Grok y répondre !",
+    "protips": {
+      "title": "Astuces",
+      "url": "Ajoutez votre question directement dans l'URL :",
+      "share": "Partagez le lien pour que d'autres voient la même réponse",
+      "copy": "Utilisez les boutons de copie pour partager facilement"
+    },
+    "shortcuts": {
+      "title": "Raccourcis clavier",
+      "general": "Général",
+      "focus": "Focaliser la recherche",
+      "help": "Ouvrir l'aide",
+      "theme": "Changer de thème",
+      "close": "Fermer la fenêtre",
+      "answer": "Quand la réponse est affichée",
+      "copy_answer": "Copier la réponse",
+      "copy_qa": "Copier Q&R",
+      "copy_link": "Copier le lien",
+      "continue": "Continuer sur Grok"
+    }
+  },
+  "actions": {
+    "understand": "En savoir plus sur Grok <i class=\"fa-solid fa-robot\"></i>",
+    "use": "Utiliser Grok sur <i class=\"fa-brands fa-x-twitter\"></i>",
+    "copy_qa": "Copier Q&R <i class=\"fa-regular fa-copy\"></i>",
+    "copy_answer": "Copier la réponse <i class=\"fa-regular fa-copy\"></i>",
+    "copy_link": "Copier le lien <i class=\"fa-regular fa-copy\"></i>",
+    "share_x": "Partager sur <i class=\"fa-brands fa-x-twitter\"></i> <i class=\"fa-solid fa-share\"></i>"
+  },
+  "footer": {
+    "disclaimer": "Non affilié à X™ ou Grok™. X et Grok sont des marques déposées de X Corp. et xAI.",
+    "copyright": "© 2025 Brett Davies - Restez curieux, comprenez l'univers !"
+  },
+  "test": {
+    "title": "",
+    "language": "",
+    "basic": "",
+    "simple": "",
+    "paragraph": "",
+    "html": "",
+    "rich": "",
+    "link": "",
+    "dynamic": "",
+    "add": "",
+    "debug": "",
+    "current": "",
+    "detected": "",
+    "show": ""
+  }
+}
