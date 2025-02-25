@@ -5,7 +5,7 @@ import { ThemeManager } from './managers/ThemeManager.js';
 import { FocusManager } from './managers/FocusManager.js';
 import { handleQuestionSubmission } from './api/grokApi.js';
 import config from './config.js';
-import i18n from './i18n/i18n.js';
+import { i18n } from './i18n/i18n.js';
 
 /**
  * Main application initialization
@@ -75,40 +75,72 @@ function setupEventListeners() {
     // Handle home link clicks
     document.querySelector('.home-link').addEventListener('click', function(e) {
         e.preventDefault();
+        console.log('[script.js] Home link clicked, resetting UI');
         
         // Reset UI state using centralized method
         UIState.resetUI();
         
         // Reset placeholder
         PlaceholderManager.reset();
+        
+        // After reset, check if there's any input value and update button state accordingly
+        setTimeout(() => {
+            const hasValue = UIState.elements.question().value.trim().length > 0;
+            console.log(`[script.js] Post-reset check: input has value = ${hasValue}`);
+            UIState.setSubmitButtonState(hasValue);
+            
+            // Ensure focus is set to the question input for better UX
+            const questionInput = UIState.elements.question();
+            if (questionInput && FocusManager && FocusManager.setFocus) {
+                FocusManager.setFocus(questionInput);
+                console.log('[script.js] Focus explicitly set to question input');
+            }
+        }, 100);
     });
 
     // Set up form submission
     UIState.elements.questionForm().addEventListener('submit', function(event) {
         event.preventDefault();
         const submitButton = this.querySelector('button[type="submit"]');
+        console.log('[script.js] Form submitted, disabling button');
         UIState.disableButton(submitButton);
         handleQuestionSubmission(UIState.elements.question().value)
             .finally(() => {
+                console.log('[script.js] Question submission completed, re-enabling button');
                 UIState.enableButton(submitButton);
+                
+                // Double-check button state after a short delay
+                setTimeout(() => {
+                    const hasValue = UIState.elements.question().value.trim().length > 0;
+                    console.log(`[script.js] Post-submission check: input has value = ${hasValue}`);
+                    UIState.setSubmitButtonState(hasValue);
+                }, 100);
             });
     });
 
     // Enable/disable submit button based on input value
     UIState.elements.question().addEventListener('input', function(event) {
         const hasValue = this.value.trim().length > 0;
-        UIState.setSubmitButtonState(hasValue);
+        console.log(`[script.js] Input event triggered with value: "${this.value}", hasValue=${hasValue}`);
+        
+        // Add a data attribute to track that this event handler has run
+        this.setAttribute('data-script-input-handled', 'true');
+        
+        // Force button state update with a small delay to ensure it happens after PlaceholderManager
+        setTimeout(() => {
+            UIState.setSubmitButtonState(hasValue);
+        }, 20);
     });
 
     // Set up copy/share buttons
     UIState.elements.buttons.copyQA().addEventListener('click', () => 
-        ClipboardManager.copyText(ClipboardManager.getShareableText('qa'), 'Question and answer copied!'));
+        ClipboardManager.copyText(ClipboardManager.getShareableText('qa'), 'copy_qa'));
 
     UIState.elements.buttons.copyAnswer().addEventListener('click', () => 
-        ClipboardManager.copyText(ClipboardManager.getShareableText('answer'), 'Answer copied!'));
+        ClipboardManager.copyText(ClipboardManager.getShareableText('answer'), 'copy_answer'));
 
     UIState.elements.buttons.share().addEventListener('click', () => 
-        ClipboardManager.copyText(ClipboardManager.getShareableText('url'), 'Share link copied!'));
+        ClipboardManager.copyText(ClipboardManager.getShareableText('url'), 'copy_link'));
 
     UIState.elements.buttons.shareOnX().addEventListener('click', () => {
         const tweetText = ClipboardManager.getShareableText('tweet');

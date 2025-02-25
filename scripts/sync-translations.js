@@ -1,5 +1,16 @@
 /**
- * Synchronize translation files to ensure consistent structure
+ * @fileoverview Synchronize translation files to ensure consistent structure
+ * 
+ * This script ensures all translation files have the same structure as the source language file.
+ * It preserves existing translations while adding missing keys and removing extra keys.
+ * The script is useful for maintaining consistency across all language files after
+ * adding or removing keys from the source language.
+ * 
+ * @module scripts/sync-translations
+ * @requires fs
+ * @requires path
+ * @requires url
+ * @requires glob
  */
 import fs from 'fs';
 import path from 'path';
@@ -19,7 +30,17 @@ const localeFiles = glob.sync('locales/*.json');
 // Load source translations
 const sourceTranslations = JSON.parse(fs.readFileSync(sourceFile, 'utf8'));
 
-// Sync target structure with source
+/**
+ * Synchronize the structure of a target translation object with the source
+ * 
+ * This function recursively traverses the source object and creates a new object
+ * with the same structure, preserving values from the target where they exist.
+ * Keys that exist in the target but not in the source are omitted from the result.
+ * 
+ * @param {Object} source - The source translation object (usually English)
+ * @param {Object} target - The target translation object to synchronize
+ * @returns {Object} A new object with the source structure and target values
+ */
 function syncStructure(source, target) {
   const result = {};
   
@@ -38,7 +59,7 @@ function syncStructure(source, target) {
   return result;
 }
 
-// Sync all locale files
+// Process each locale file
 localeFiles.forEach(file => {
   const locale = path.basename(file, '.json');
   if (locale === sourceLanguage) return;

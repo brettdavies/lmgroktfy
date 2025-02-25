@@ -343,5 +343,4 @@ class I18n {
 }
 
 // Create singleton instance
-const i18n = new I18n();
-export default i18n; 
+export const i18n = new I18n(); 

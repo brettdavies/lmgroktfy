@@ -28,6 +28,13 @@ input:focus::placeholder {
     color: #9CA3AF !important;
 }
 
+/* Ensure custom placeholder is hidden when input has content */
+input:not(:placeholder-shown) ~ #custom-placeholder,
+input:focus ~ #custom-placeholder {
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
 /* Dialog transitions */
 dialog {
     opacity: 0;
@@ -48,4 +55,19 @@ dialog::backdrop {
 
 dialog[open]::backdrop {
     opacity: 1;
+}
+
+/* Improved focus styles */
+#submit-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.5); /* Gray focus ring */
+}
+
+#submit-button:focus:not(:focus-visible) {
+    box-shadow: none; /* Remove focus ring when using mouse */
+}
+
+/* Ensure focus is visible for keyboard users */
+#submit-button:focus-visible {
+    box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.7); /* Stronger gray focus ring for keyboard focus */
 } 

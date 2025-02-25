@@ -1,5 +1,16 @@
 /**
- * Extract translatable strings from HTML and JS files
+ * @fileoverview Extract translatable strings from HTML and JS files
+ * 
+ * This script scans the project for translatable strings in HTML and JavaScript files.
+ * It extracts strings from data-i18n attributes in HTML and i18n.t() calls in JS files.
+ * The extracted strings are merged with existing translations and written to the source
+ * language JSON file.
+ * 
+ * @module scripts/extract-i18n
+ * @requires fs
+ * @requires path
+ * @requires url
+ * @requires glob
  */
 import fs from 'fs';
 import path from 'path';
@@ -17,7 +28,11 @@ const outputFile = path.join(__dirname, '..', 'locales', `${sourceLanguage}.json
 const htmlFiles = glob.sync('**/*.html', { ignore: 'node_modules/**' });
 const jsFiles = glob.sync('js/**/*.js', { ignore: 'node_modules/**' });
 
-// Load existing translations if available
+/**
+ * Load existing translations from the output file if available
+ * 
+ * @returns {Object} The existing translations or an empty object if none exist
+ */
 let existingTranslations = {};
 try {
   existingTranslations = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
@@ -26,7 +41,11 @@ try {
   console.log('No existing translations found, creating new file');
 }
 
-// Extract keys from HTML files (data-i18n attributes)
+/**
+ * Extract keys from HTML files by searching for data-i18n attributes
+ * 
+ * @type {Set<string>} Set of unique translation keys found in HTML files
+ */
 const htmlKeys = new Set();
 htmlFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
@@ -37,7 +56,11 @@ htmlFiles.forEach(file => {
   }
 });
 
-// Extract keys from JS files (i18n.t() calls)
+/**
+ * Extract keys from JS files by searching for i18n.t() function calls
+ * 
+ * @type {Set<string>} Set of unique translation keys found in JS files
+ */
 const jsKeys = new Set();
 const i18nPattern = /i18n\.t\(['"]([^'"]+)['"]\)/g;
 jsFiles.forEach(file => {
@@ -52,7 +75,17 @@ jsFiles.forEach(file => {
 const allKeys = new Set([...htmlKeys, ...jsKeys]);
 console.log(`Found ${allKeys.size} translatable strings`);
 
-// Create nested structure from dot notation
+/**
+ * Create a nested object structure from a dot-notation key
+ * 
+ * @param {Object} obj - The object to modify
+ * @param {string} key - The dot-notation key (e.g., 'main.title')
+ * @param {string} value - The value to set at the key path
+ * @returns {Object} The modified object
+ * @example
+ * // Returns { main: { title: 'Hello' } }
+ * createNestedObject({}, 'main.title', 'Hello')
+ */
 function createNestedObject(obj, key, value) {
   const keys = key.split('.');
   let current = obj;
@@ -85,7 +118,10 @@ allKeys.forEach(key => {
 fs.writeFileSync(outputFile, JSON.stringify(translations, null, 2));
 console.log(`Updated translations written to ${outputFile}`);
 
-// Output missing translations
+/**
+ * Count and report missing translations
+ * A translation is considered missing if it doesn't exist or equals its key's last segment
+ */
 const missingCount = [...allKeys].filter(key => {
   const value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
   return !value || value === key.split('.').pop();

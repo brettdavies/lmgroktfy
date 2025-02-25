@@ -126,8 +126,24 @@ export const UIState = {
      */
     setSubmitButtonState(isEnabled) {
         const button = this.elements.submitButton();
+        console.log(`[UIState] setSubmitButtonState called with isEnabled=${isEnabled}, button=${button ? 'found' : 'not found'}`);
+        
         if (button) {
-            button.disabled = !isEnabled;
+            // Force a small delay to ensure DOM updates properly
+            setTimeout(() => {
+                button.disabled = !isEnabled;
+                
+                // Add visual indicator for debugging
+                if (isEnabled) {
+                    button.classList.add('debug-enabled');
+                    button.classList.remove('debug-disabled');
+                } else {
+                    button.classList.add('debug-disabled');
+                    button.classList.remove('debug-enabled');
+                }
+                
+                console.log(`[UIState] Button disabled state set to ${button.disabled}, isEnabled=${isEnabled}`);
+            }, 10);
         }
     },
     
@@ -180,7 +196,6 @@ export const UIState = {
     },
     
     /**
-     * Resets the UI to the initial state.
      * Comprehensive reset of all UI elements to their default state.
      * 
      * @example
@@ -205,6 +220,16 @@ export const UIState = {
         
         // Update URL
         window.history.pushState({}, '', '/');
+        
+        // Set focus to the question input for better UX
+        // Use setTimeout to ensure DOM updates are complete
+        setTimeout(() => {
+            const questionInput = this.elements.question();
+            if (questionInput && typeof FocusManager !== 'undefined' && FocusManager.setFocus) {
+                FocusManager.setFocus(questionInput);
+                console.log('[UIState] Focus set to question input after reset');
+            }
+        }, 50);
     },
     
     /**

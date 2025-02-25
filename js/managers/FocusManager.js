@@ -362,5 +362,36 @@ export const FocusManager = {
         
         // Set the message
         UIState.setText(announcer, message);
+    },
+    
+    /**
+     * Focus the first interactive element in the response area
+     * This is called after a successful API response to improve accessibility
+     */
+    focusResponseArea() {
+        // Get the response container
+        const responseElement = UIState.elements.response();
+        if (!responseElement) return;
+        
+        // Find the first focusable element in the response area
+        const focusableElements = this.getFocusableElements(responseElement);
+        
+        if (focusableElements.length > 0) {
+            // Focus the first interactive element (usually a button)
+            this.setFocus(focusableElements[0], {
+                announceToScreenReader: true
+            });
+        } else {
+            // If no focusable elements, focus the response container itself
+            responseElement.setAttribute('tabindex', '-1');
+            this.setFocus(responseElement, {
+                announceToScreenReader: true
+            });
+            
+            // Announce the answer to screen readers
+            const question = UIState.elements.questionDisplay().textContent;
+            const answer = UIState.elements.answer().textContent;
+            this.announceToScreenReader(`Question: ${question}. Answer: ${answer}`);
+        }
     }
 }; 

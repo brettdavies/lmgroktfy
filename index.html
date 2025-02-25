@@ -153,18 +153,18 @@
 
         <form id="question-form" class="w-full max-w-3xl mb-8">
             <div class="relative flex w-full">
-                <div id="custom-placeholder" class="placeholder-text absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 opacity-100 text-lg visible animate" data-i18n="main.placeholder">grok the meaning of life for me...</div>
                 <input type="text" 
                        id="question-input" 
                        placeholder="grok the meaning of life for me..." 
                        class="w-full bg-grok-input-light dark:bg-grok-input-dark text-gray-900 dark:text-white placeholder-gray-400 px-6 py-5 rounded-2xl pr-16 border border-gray-200 dark:border-gray-700/50 focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 shadow-input text-lg placeholder-hidden"
                        required>
+                <div id="custom-placeholder" class="placeholder-text absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 opacity-100 text-lg visible animate" data-i18n="main.placeholder">grok the meaning of life for me...</div>
                 <button type="submit" 
                         disabled
-                        class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 disabled:bg-gray-100 dark:disabled:bg-[#2A2B2D] disabled:text-gray-400 dark:disabled:text-gray-500 enabled:bg-white dark:enabled:bg-white enabled:text-gray-900 rounded-full flex items-center justify-center transition-colors duration-1000 group disabled:cursor-not-allowed"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 disabled:cursor-not-allowed enabled:bg-white dark:enabled:bg-white enabled:text-gray-900 rounded-full flex items-center justify-center transition-colors duration-300 group focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
                         id="submit-button"
                         aria-label="Submit question">
-                    <i class="fa-solid fa-arrow-up text-lg transform group-hover:enabled:translate-y-[-2px] transition-all duration-1000"></i>
+                    <i class="fa-solid fa-arrow-up text-lg transform group-hover:enabled:translate-y-[-2px] transition-all duration-300"></i>
                 </button>
             </div>
         </form>

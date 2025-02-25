@@ -3,7 +3,7 @@
  * @namespace PlaceholderManager
  */
 import { UIState } from './UIState.js';
-import i18n from '../i18n/i18n.js';
+import { i18n } from '../i18n/i18n.js';
 
 export const PlaceholderManager = {
     elements: {
@@ -89,6 +89,8 @@ export const PlaceholderManager = {
             // Hide placeholder when input has value
             UIState.addClass(placeholder, 'opacity-0');
             UIState.addClass(placeholder, 'invisible');
+            // Ensure the native placeholder is visible
+            UIState.removeClass(this.elements.input, 'placeholder-hidden');
         } else {
             // Show placeholder when input is empty
             UIState.removeClass(placeholder, 'opacity-0');
@@ -119,14 +121,33 @@ export const PlaceholderManager = {
     },
 
     setupEventListeners() {
+        // Handle input events for placeholder visibility
         this.elements.input.addEventListener('input', (e) => {
-            this.updatePlaceholderVisibility(e.target.value);
+            const value = e.target.value.trim();
+            console.log(`[PlaceholderManager] Input event triggered with value: "${value}"`);
+            this.updatePlaceholderVisibility(value);
+            
+            // Check if script.js has already handled this input event
+            const isHandledByScript = e.target.hasAttribute('data-script-input-handled');
+            console.log(`[PlaceholderManager] Input handled by script.js: ${isHandledByScript}`);
+            
+            // Only update button state if script.js hasn't handled it
+            if (!isHandledByScript) {
+                console.log(`[PlaceholderManager] Calling setSubmitButtonState with value.length=${value.length > 0}`);
+                UIState.setSubmitButtonState(value.length > 0);
+            } else {
+                console.log(`[PlaceholderManager] Skipping setSubmitButtonState as script.js already handled it`);
+                // Remove the attribute so future events can be processed
+                e.target.removeAttribute('data-script-input-handled');
+            }
         });
 
+        // Handle focus events
         this.elements.input.addEventListener('focus', () => {
             this.updatePlaceholderVisibility(this.elements.input.value);
         });
 
+        // Handle blur events
         this.elements.input.addEventListener('blur', () => {
             this.updatePlaceholderVisibility(this.elements.input.value);
         });
