@@ -15,6 +15,14 @@ if [ "$(basename "$(pwd)")" = "cloudflare" ]; then
   cd ..
 fi
 
+# Ensure package-lock.json is in sync with package.json
+echo "Checking package-lock.json consistency..."
+if ! npm ci --dry-run > /dev/null 2>&1; then
+  echo "package-lock.json is out of sync with package.json, updating..."
+  npm install --package-lock-only
+  echo "Updated package-lock.json"
+fi
+
 # Install minification tools
 echo "Installing minification tools..."
 npm install --no-save terser clean-css-cli html-minifier-terser
