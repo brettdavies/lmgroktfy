@@ -34,20 +34,20 @@ export const ClipboardManager = {
     getShareableText(type) {
         const url = window.location.href;
         const question = decodeURIComponent(UIState.elements.questionDisplay().innerText);
+        const prefix = 'Grok says: ';
         const answer = decodeURIComponent(UIState.elements.answer().innerText);
-        const suffix = ' - Answer by Grok';
         const suffix2 = ' via lmgroktfy.com';
         switch (type) {
             case 'qa':
-                return `${question}\nAnswer: ${answer}${suffix}${suffix2}`;
+                return `${question}\n${prefix}${answer}${suffix2}`;
             case 'answer':
-                return `${answer}${suffix}${suffix2}`;
+                return `${prefix}${answer}${suffix2}`;
             case 'url':
                 return url;
             case 'shareUrl':
                 return encodeURIComponent(url);
             case 'tweet':
-                return `${question} Answer: ${answer}${suffix}`;
+                return `${question} ${prefix}${answer}${suffix2}`;
             default:
                 return '';
         }
