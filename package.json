@@ -12,6 +12,8 @@
     "test:e2e:debug": "playwright test --debug",
     "lint": "eslint js/**/*.js",
     "serve": "http-server . -p 8080",
+    "proxy": "node devProxy.js",
+    "dev": "concurrently \"npm run serve\" \"npm run proxy\"",
     "start": "npm run serve"
   },
   "keywords": [],
@@ -22,6 +24,7 @@
     "@babel/preset-env": "^7.26.9",
     "@playwright/test": "^1.50.1",
     "babel-jest": "^29.7.0",
+    "concurrently": "^8.2.2",
     "eslint": "^9.21.0",
     "http-server": "^14.1.1",
     "jest": "^29.7.0",

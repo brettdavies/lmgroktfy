@@ -97,6 +97,14 @@ class Config {
    */
   getApiUrl(endpoint) {
     console.log('[Config] getApiUrl called with endpoint:', endpoint);
+    
+    // In development mode, use the proxy server
+    if (this.config.isDevelopment && this.config.port) {
+      const proxyUrl = `http://localhost:${this.config.port}${endpoint}`;
+      console.log('[Config] Using development proxy URL:', proxyUrl);
+      return proxyUrl;
+    }
+    
     console.log('[Config] Current apiBaseUrl:', this.config.apiBaseUrl);
     
     // If apiBaseUrl is empty, use relative URL

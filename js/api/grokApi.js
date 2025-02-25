@@ -20,7 +20,7 @@ export async function handleQuestionSubmission(question) {
     UIState.showLoading();
 
     try {
-        // Get the API URL from the config
+        // Get the API URL from the config (which now handles proxy selection)
         const apiUrl = config.getApiUrl('/api/grok');
         console.log(`[API] Sending request to ${apiUrl}`);
         
