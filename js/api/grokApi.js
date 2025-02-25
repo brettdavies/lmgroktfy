@@ -1,4 +1,6 @@
 import { UIState } from '../managers/UIState.js';
+import { FocusManager } from '../managers/FocusManager.js';
+import config from '../config.js';
 
 /**
  * Handles the submission of a question to the Grok API
@@ -18,8 +20,12 @@ export async function handleQuestionSubmission(question) {
     UIState.showLoading();
 
     try {
-        console.log('[API] Sending request to /api/grok');
-        const response = await fetch('/api/grok', {
+        // Get the API URL from the config (which now handles proxy selection)
+        const apiUrl = config.getApiUrl('/api/grok');
+        console.log(`[API] Sending request to ${apiUrl}`);
+        console.log(`[API] isDevelopment: ${config.config.isDevelopment}, port: ${config.config.port}`);
+        
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
@@ -33,16 +39,21 @@ export async function handleQuestionSubmission(question) {
         
         if (data.error) {
             console.error('[Error Handler] API returned error:', data.error);
-            UIState.showError();
+            UIState.showError(question);
         } else {
             console.log('[Success] Displaying response and buttons');
             UIState.showSuccess(data.answer, question);
             const encodedQuestion = encodeURIComponent(question);
             window.history.replaceState({}, '', '/' + encodedQuestion);
+            
+            // Focus the first interactive element in the response area
+            setTimeout(() => {
+                FocusManager.focusResponseArea();
+            }, 100);
         }
     } catch (error) {
         console.error('[Error Handler] Caught error:', error.message, error.stack);
         UIState.hideLoading();
-        UIState.showError();
+        UIState.showError(question);
     }
 } 

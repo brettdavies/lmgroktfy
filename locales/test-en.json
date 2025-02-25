@@ -1,0 +1,80 @@
+{
+  "page": {
+    "title": ""
+  },
+  "nav": {
+    "home": "",
+    "about": "",
+    "contact": ""
+  },
+  "main": {
+    "title": "Test Title",
+    "placeholder": "Test placeholder",
+    "loading": "Loading...",
+    "placeholders": {
+      "0": "test placeholder 1",
+      "1": "test placeholder 2",
+      "2": "test placeholder 3",
+      "3": "test placeholder 4",
+      "4": "test placeholder 5",
+      "5": "test placeholder 6"
+    }
+  },
+  "help": {
+    "title": "",
+    "description": "",
+    "protips": {
+      "title": "",
+      "url": "",
+      "share": "",
+      "copy": ""
+    },
+    "shortcuts": {
+      "title": "",
+      "general": "",
+      "focus": "",
+      "help": "",
+      "theme": "",
+      "close": "",
+      "answer": "",
+      "copy_answer": "",
+      "copy_qa": "",
+      "copy_link": "",
+      "continue": ""
+    }
+  },
+  "actions": {
+    "understand": "",
+    "use": "",
+    "copy_qa": "",
+    "copy_answer": "",
+    "copy_link": "",
+    "share_x": ""
+  },
+  "toast": {
+    "copy_qa": "",
+    "copy_answer": "",
+    "copy_link": "",
+    "error": ""
+  },
+  "footer": {
+    "disclaimer": "",
+    "copyright": ""
+  },
+  "test": {
+    "title": "I18n Test Page",
+    "language": "Select Language:",
+    "basic": "Basic Text Translation",
+    "simple": "This is a simple text that should be translated.",
+    "paragraph": "This is a longer paragraph that demonstrates how the translation system handles longer text content. It should be properly translated to the selected language.",
+    "html": "HTML Content Translation",
+    "rich": "This text has <strong>bold</strong> and <em>italic</em> formatting that should be preserved.",
+    "link": "Click <a href=\"#\">here</a> to learn more about our translation system.",
+    "dynamic": "Dynamic Content",
+    "add": "Add Dynamic Content",
+    "debug": "Debug Information",
+    "current": "Current Language:",
+    "detected": "Detected Language:",
+    "show": "Show Loaded Translations"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "page": {
+    "title": "Deja que Grok te lo explique"
+  },
+  "nav": {
+    "home": "Inicio",
+    "about": "Acerca de",
+    "contact": "Contacto"
+  },
+  "main": {
+    "title": "Deja que <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> te lo explique",
+    "placeholder": "grok, explícame el sentido de la vida...",
+    "loading": "Procesando...",
+    "placeholders": [
+      "grok, explícame el sentido de la vida...",
+      "grok, explícame la física cuántica...",
+      "grok, explícame cómo hacer pasta...",
+      "grok, explícame la inteligencia artificial...",
+      "grok, ¿qué dice el zorro?",
+      "grok, ¿cuándo es el próximo eclipse?"
+    ]
+  },
+  "help": {
+    "title": "Cómo usar LMGROKTFY",
+    "description": "¡Escribe tu pregunta y deja que Grok la responda!",
+    "protips": {
+      "title": "Consejos profesionales",
+      "url": "Añade tu pregunta directamente a la URL:",
+      "share": "Comparte el enlace para que otros vean la misma respuesta",
+      "copy": "Usa los botones de copiar para compartir fácilmente"
+    },
+    "shortcuts": {
+      "title": "Atajos de teclado",
+      "general": "General",
+      "focus": "Enfocar la búsqueda",
+      "help": "Abrir ayuda",
+      "theme": "Cambiar tema",
+      "close": "Cerrar ventana",
+      "answer": "Cuando se muestra la respuesta",
+      "copy_answer": "Copiar respuesta",
+      "copy_qa": "Copiar P&R",
+      "copy_link": "Copiar enlace",
+      "continue": "Continuar en Grok"
+    }
+  },
+  "actions": {
+    "understand": "Entender más en Grok <i class=\"fa-solid fa-robot\"></i>",
+    "use": "Usar Grok en <i class=\"fa-brands fa-x-twitter\"></i>",
+    "copy_qa": "Copiar P&R <i class=\"fa-regular fa-copy\"></i>",
+    "copy_answer": "Copiar respuesta <i class=\"fa-regular fa-copy\"></i>",
+    "copy_link": "Copiar enlace <i class=\"fa-regular fa-copy\"></i>",
+    "share_x": "Compartir en <i class=\"fa-brands fa-x-twitter\"></i> <i class=\"fa-solid fa-share\"></i>"
+  },
+  "toast": {
+    "copy_qa": "¡Pregunta y respuesta copiadas!",
+    "copy_answer": "¡Respuesta copiada!",
+    "copy_link": "¡Enlace para compartir copiado!",
+    "error": "Error al copiar. Por favor, inténtalo de nuevo."
+  },
+  "footer": {
+    "disclaimer": "No afiliado con X™ o Grok™. X y Grok son marcas comerciales de X Corp. y xAI.",
+    "copyright": "© 2025 Brett Davies - ¡Mantente curioso, comprende el universo!"
+  },
+  "test": {
+    "title": "Título",
+    "language": "Idioma",
+    "basic": "Básico",
+    "simple": "Simple",
+    "paragraph": "Párrafo",
+    "html": "HTML",
+    "rich": "Rico",
+    "link": "Enlace",
+    "dynamic": "Dinámico",
+    "add": "Añadir",
+    "debug": "Depurar",
+    "current": "Actual",
+    "detected": "Detectado",
+    "show": "Mostrar"
+  }
+}

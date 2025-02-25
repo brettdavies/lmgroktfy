@@ -1,0 +1,80 @@
+{
+  "page": {
+    "title": "Lassen Sie Grok das für Sie erklären"
+  },
+  "nav": {
+    "home": "Startseite",
+    "about": "Über uns",
+    "contact": "Kontakt"
+  },
+  "main": {
+    "title": "Lass <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> das für dich erklären",
+    "placeholder": "grok, erkläre mir den Sinn des Lebens...",
+    "loading": "Verarbeitung...",
+    "placeholders": {
+      "0": "grok, erkläre mir den Sinn des Lebens...",
+      "1": "grok, erkläre mir die Quantenphysik...",
+      "2": "grok, erkläre mir wie man Pasta macht...",
+      "3": "grok, erkläre mir künstliche Intelligenz...",
+      "4": "grok, was sagt der Fuchs?",
+      "5": "grok, wann ist die nächste Sonnenfinsternis?"
+    }
+  },
+  "help": {
+    "title": "Wie man LMGROKTFY benutzt",
+    "description": "Geben Sie Ihre Frage ein und lassen Sie Grok sie beantworten!",
+    "protips": {
+      "title": "Profi-Tipps",
+      "url": "Fügen Sie Ihre Frage direkt in die URL ein:",
+      "share": "Teilen Sie den Link, damit andere die gleiche Antwort sehen",
+      "copy": "Verwenden Sie die Kopierschaltflächen zum einfachen Teilen"
+    },
+    "shortcuts": {
+      "title": "Tastaturkürzel",
+      "general": "Allgemein",
+      "focus": "Suchfeld fokussieren",
+      "help": "Hilfe öffnen",
+      "theme": "Thema wechseln",
+      "close": "Fenster schließen",
+      "answer": "Wenn die Antwort angezeigt wird",
+      "copy_answer": "Antwort kopieren",
+      "copy_qa": "F&A kopieren",
+      "copy_link": "Link kopieren",
+      "continue": "Auf Grok fortfahren"
+    }
+  },
+  "actions": {
+    "understand": "Mehr auf Grok verstehen <i class=\"fa-solid fa-robot\"></i>",
+    "use": "Grok auf <i class=\"fa-brands fa-x-twitter\"></i> verwenden",
+    "copy_qa": "F&A kopieren <i class=\"fa-regular fa-copy\"></i>",
+    "copy_answer": "Antwort kopieren <i class=\"fa-regular fa-copy\"></i>",
+    "copy_link": "Link kopieren <i class=\"fa-regular fa-copy\"></i>",
+    "share_x": "Auf <i class=\"fa-brands fa-x-twitter\"></i> teilen <i class=\"fa-solid fa-share\"></i>"
+  },
+  "toast": {
+    "copy_qa": "Frage und Antwort kopiert!",
+    "copy_answer": "Antwort kopiert!",
+    "copy_link": "Link zum Teilen kopiert!",
+    "error": "Kopieren fehlgeschlagen. Bitte versuchen Sie es erneut."
+  },
+  "footer": {
+    "disclaimer": "Nicht mit X™ oder Grok™ verbunden. X und Grok sind Marken von X Corp. und xAI.",
+    "copyright": "© 2025 Brett Davies - Bleiben Sie neugierig, verstehen Sie das Universum!"
+  },
+  "test": {
+    "title": "Titel",
+    "language": "Sprache",
+    "basic": "Grundlegend",
+    "simple": "Einfach",
+    "paragraph": "Absatz",
+    "html": "HTML",
+    "rich": "Reich",
+    "link": "Link",
+    "dynamic": "Dynamisch",
+    "add": "Hinzufügen",
+    "debug": "Fehlersuche",
+    "current": "Aktuell",
+    "detected": "Erkannt",
+    "show": "Anzeigen"
+  }
+}

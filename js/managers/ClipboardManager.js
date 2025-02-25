@@ -1,4 +1,5 @@
 import { UIState } from './UIState.js';
+import { i18n } from '../i18n/i18n.js';
 
 /**
  * Manages clipboard operations and text sharing functionality
@@ -9,17 +10,19 @@ export const ClipboardManager = {
      * Copies text to clipboard and shows a success toast
      * @async
      * @param {string} text - The text to copy to clipboard
-     * @param {string} successMessage - Message to show in toast on successful copy
+     * @param {string} toastKey - Key for the localized toast message
      * @throws {Error} When clipboard access is denied or fails
      */
-    async copyText(text, successMessage) {
+    async copyText(text, toastKey) {
         try {
             await navigator.clipboard.writeText(text);
             console.log('[Copy] Copied:', text);
-            UIState.showToast(successMessage);
+            const message = i18n.getTranslation(`toast.${toastKey}`);
+            UIState.showToast(message);
         } catch (err) {
             console.error('[Copy] Copy failed:', err);
-            alert('Failed to copy. Please try again.');
+            const errorMessage = i18n.getTranslation('toast.error');
+            UIState.showToast(errorMessage);
         }
     },
 
@@ -30,7 +33,7 @@ export const ClipboardManager = {
      */
     getShareableText(type) {
         const url = window.location.href;
-        const question = decodeURIComponent(UIState.elements.question().value);
+        const question = decodeURIComponent(UIState.elements.questionDisplay().innerText);
         const answer = decodeURIComponent(UIState.elements.answer().innerText);
         const suffix = ' - Answer by Grok';
         const suffix2 = ' via lmgroktfy.com';

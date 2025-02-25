@@ -1,0 +1,80 @@
+{
+  "page": {
+    "title": ""
+  },
+  "nav": {
+    "home": "",
+    "about": "",
+    "contact": ""
+  },
+  "main": {
+    "title": "Título de Prueba",
+    "placeholder": "Marcador de posición de prueba",
+    "loading": "Cargando...",
+    "placeholders": {
+      "0": "marcador de prueba 1",
+      "1": "marcador de prueba 2",
+      "2": "marcador de prueba 3",
+      "3": "marcador de prueba 4",
+      "4": "marcador de prueba 5",
+      "5": "marcador de prueba 6"
+    }
+  },
+  "help": {
+    "title": "",
+    "description": "",
+    "protips": {
+      "title": "",
+      "url": "",
+      "share": "",
+      "copy": ""
+    },
+    "shortcuts": {
+      "title": "",
+      "general": "",
+      "focus": "",
+      "help": "",
+      "theme": "",
+      "close": "",
+      "answer": "",
+      "copy_answer": "",
+      "copy_qa": "",
+      "copy_link": "",
+      "continue": ""
+    }
+  },
+  "actions": {
+    "understand": "",
+    "use": "",
+    "copy_qa": "",
+    "copy_answer": "",
+    "copy_link": "",
+    "share_x": ""
+  },
+  "toast": {
+    "copy_qa": "",
+    "copy_answer": "",
+    "copy_link": "",
+    "error": ""
+  },
+  "footer": {
+    "disclaimer": "",
+    "copyright": ""
+  },
+  "test": {
+    "title": "Página de Prueba de I18n",
+    "language": "Seleccionar Idioma:",
+    "basic": "Traducción de Texto Básico",
+    "simple": "Este es un texto simple que debería ser traducido.",
+    "paragraph": "Este es un párrafo más largo que demuestra cómo el sistema de traducción maneja contenido de texto más extenso. Debería ser traducido correctamente al idioma seleccionado.",
+    "html": "Traducción de Contenido HTML",
+    "rich": "Este texto tiene formato <strong>negrita</strong> y <em>cursiva</em> que debería conservarse.",
+    "link": "Haz clic <a href=\"#\">aquí</a> para aprender más sobre nuestro sistema de traducción.",
+    "dynamic": "Contenido Dinámico",
+    "add": "Añadir Contenido Dinámico",
+    "debug": "Información de Depuración",
+    "current": "Idioma Actual:",
+    "detected": "Idioma Detectado:",
+    "show": "Mostrar Traducciones Cargadas"
+  }
+}

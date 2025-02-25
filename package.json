@@ -1,0 +1,39 @@
+{
+  "name": "lmgroktfy",
+  "version": "1.0.0",
+  "description": "Let me Grok that for you",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "lint": "eslint js/**/*.js",
+    "serve": "http-server . -p 8080 -c-1 --spa --proxy http://localhost:8080?",
+    "proxy": "node devProxy.js",
+    "dev": "concurrently \"npm run serve\" \"npm run proxy\"",
+    "start": "npm run serve",
+    "i18n:extract": "node scripts/extract-i18n.js",
+    "i18n:validate": "node scripts/validate-i18n.js",
+    "i18n:sync": "node scripts/sync-translations.js",
+    "i18n:status": "node scripts/i18n-status.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@babel/preset-env": "^7.26.9",
+    "@playwright/test": "^1.50.1",
+    "babel-jest": "^29.7.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.21.0",
+    "glob": "^10.4.5",
+    "http-server": "^14.1.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

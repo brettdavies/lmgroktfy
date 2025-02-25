@@ -2,6 +2,9 @@
  * Manages the animated placeholder text functionality
  * @namespace PlaceholderManager
  */
+import { UIState } from './UIState.js';
+import { i18n } from '../i18n/i18n.js';
+
 export const PlaceholderManager = {
     elements: {
         input: null,
@@ -9,14 +12,8 @@ export const PlaceholderManager = {
         customPlaceholder: null
     },
 
-    placeholders: [
-        "grok the meaning of life for me...",
-        "grok quantum physics for me...",
-        "grok how to make pasta for me...",
-        "grok artificial intelligence for me...",
-        "grok what does the fox say?",
-        "grok when is the next eclipse?"
-    ],
+    // Placeholders will be loaded from i18n
+    placeholders: [],
 
     currentIndex: 0,
     rotationInterval: null,
@@ -27,14 +24,23 @@ export const PlaceholderManager = {
         this.elements.submitButton = document.getElementById('submit-button');
         this.elements.customPlaceholder = document.getElementById('custom-placeholder');
 
+        // Load placeholders from current language
+        this.loadPlaceholders();
+
+        // Listen for language changes to update placeholders
+        window.addEventListener('languageChanged', () => {
+            this.loadPlaceholders();
+            this.updatePlaceholder();
+        });
+
         // Check if there's a URL-based question
         const path = window.location.pathname;
         this.hasUrlQuestion = path && path !== '/' && path !== '/index.html';
 
         // If there's a URL question, hide placeholder immediately
         if (this.hasUrlQuestion) {
-            this.elements.customPlaceholder.style.opacity = '0';
-            this.elements.input.classList.remove('placeholder-hidden');
+            UIState.setOpacity(this.elements.customPlaceholder, 0);
+            UIState.removeClass(this.elements.input, 'placeholder-hidden');
         }
 
         this.setupEventListeners();
@@ -44,38 +50,104 @@ export const PlaceholderManager = {
         if (!this.hasUrlQuestion) {
             this.startRotation();
         }
+        
+        // Initialize mobile-specific adjustments
+        this.initMobileSupport();
     },
 
-    updatePlaceholderVisibility(value) {
-        // If we have a URL question, always keep placeholder hidden
-        if (this.hasUrlQuestion) {
-            this.elements.customPlaceholder.style.opacity = '0';
-            this.elements.input.classList.remove('placeholder-hidden');
+    /**
+     * Load placeholders from the current language
+     */
+    loadPlaceholders() {
+        // Get placeholders from i18n
+        const localizedPlaceholders = i18n.t('main.placeholders');
+        
+        // If we have localized placeholders, use them
+        if (localizedPlaceholders && Array.isArray(localizedPlaceholders)) {
+            this.placeholders = localizedPlaceholders;
+        } else {
+            // Fallback to a default placeholder if translation is missing
+            this.placeholders = [i18n.t('main.placeholder')];
+        }
+        
+        // Reset index if it's out of bounds with the new array
+        if (this.currentIndex >= this.placeholders.length) {
+            this.currentIndex = 0;
+        }
+    },
+
+    updatePlaceholderVisibility(inputValue) {
+        const placeholder = this.elements.customPlaceholder;
+        
+        if (!placeholder) {
+            console.warn('[PlaceholderManager] Placeholder element not found');
             return;
         }
-
-        const isEmpty = !value.trim();
-        const isFocused = document.activeElement === this.elements.input;
         
-        // Only show custom placeholder when empty and not focused
-        this.elements.customPlaceholder.style.opacity = isEmpty && !isFocused ? '1' : '0';
-        
-        // Toggle native placeholder visibility
-        this.elements.input.classList.toggle('placeholder-hidden', isEmpty && !isFocused);
-        
-        // Update submit button state
-        this.elements.submitButton.disabled = isEmpty;
+        // Check if input has value
+        if (inputValue && inputValue.trim().length > 0) {
+            // Hide placeholder when input has value
+            UIState.addClass(placeholder, 'opacity-0');
+            UIState.addClass(placeholder, 'invisible');
+            // Ensure the native placeholder is visible
+            UIState.removeClass(this.elements.input, 'placeholder-hidden');
+        } else {
+            // Show placeholder when input is empty
+            UIState.removeClass(placeholder, 'opacity-0');
+            UIState.removeClass(placeholder, 'invisible');
+            
+            // Check for RTL direction and adjust placeholder position if needed
+            const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+            
+            // Remove both positioning classes first
+            UIState.removeClass(placeholder, 'left-6');
+            UIState.removeClass(placeholder, 'right-6');
+            
+            // Then add the appropriate one based on direction
+            if (isRTL) {
+                UIState.addClass(placeholder, 'right-6');
+                // Ensure text alignment is correct for RTL
+                UIState.addClass(placeholder, 'text-right');
+                // Ensure the native placeholder is hidden
+                UIState.addClass(this.elements.input, 'placeholder-hidden');
+            } else {
+                UIState.addClass(placeholder, 'left-6');
+                // Ensure text alignment is correct for LTR
+                UIState.removeClass(placeholder, 'text-right');
+                // Ensure the native placeholder is hidden
+                UIState.addClass(this.elements.input, 'placeholder-hidden');
+            }
+        }
     },
 
     setupEventListeners() {
+        // Handle input events for placeholder visibility
         this.elements.input.addEventListener('input', (e) => {
-            this.updatePlaceholderVisibility(e.target.value);
+            const value = e.target.value.trim();
+            console.log(`[PlaceholderManager] Input event triggered with value: "${value}"`);
+            this.updatePlaceholderVisibility(value);
+            
+            // Check if script.js has already handled this input event
+            const isHandledByScript = e.target.hasAttribute('data-script-input-handled');
+            console.log(`[PlaceholderManager] Input handled by script.js: ${isHandledByScript}`);
+            
+            // Only update button state if script.js hasn't handled it
+            if (!isHandledByScript) {
+                console.log(`[PlaceholderManager] Calling setSubmitButtonState with value.length=${value.length > 0}`);
+                UIState.setSubmitButtonState(value.length > 0);
+            } else {
+                console.log(`[PlaceholderManager] Skipping setSubmitButtonState as script.js already handled it`);
+                // Remove the attribute so future events can be processed
+                e.target.removeAttribute('data-script-input-handled');
+            }
         });
 
+        // Handle focus events
         this.elements.input.addEventListener('focus', () => {
             this.updatePlaceholderVisibility(this.elements.input.value);
         });
 
+        // Handle blur events
         this.elements.input.addEventListener('blur', () => {
             this.updatePlaceholderVisibility(this.elements.input.value);
         });
@@ -85,17 +157,37 @@ export const PlaceholderManager = {
         if (this.hasUrlQuestion || document.activeElement === this.elements.input || this.elements.input.value) return;
         
         this.currentIndex = (this.currentIndex + 1) % this.placeholders.length;
-        this.elements.customPlaceholder.classList.remove('animate');
+        UIState.removeClass(this.elements.customPlaceholder, 'animate');
         // Trigger reflow to restart animation
         void this.elements.customPlaceholder.offsetWidth;
-        this.elements.customPlaceholder.classList.add('animate');
-        this.elements.customPlaceholder.textContent = this.placeholders[this.currentIndex];
-        this.elements.input.placeholder = this.placeholders[this.currentIndex];
+        UIState.addClass(this.elements.customPlaceholder, 'animate');
+        UIState.setText(this.elements.customPlaceholder, this.placeholders[this.currentIndex]);
+        UIState.setAttribute(this.elements.input, 'placeholder', this.placeholders[this.currentIndex]);
     },
 
     initialSetup() {
         if (!this.hasUrlQuestion) {
-            this.elements.customPlaceholder.textContent = this.placeholders[0];
+            UIState.setText(this.elements.customPlaceholder, this.placeholders[0]);
+            
+            // Ensure placeholder is visible
+            UIState.setOpacity(this.elements.customPlaceholder, 1);
+            UIState.removeClass(this.elements.customPlaceholder, 'opacity-0');
+            UIState.removeClass(this.elements.customPlaceholder, 'invisible');
+            
+            // Check for RTL direction and adjust placeholder position if needed
+            const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+            if (isRTL) {
+                UIState.removeClass(this.elements.customPlaceholder, 'left-6');
+                UIState.addClass(this.elements.customPlaceholder, 'right-6');
+                UIState.addClass(this.elements.customPlaceholder, 'text-right');
+            } else {
+                UIState.removeClass(this.elements.customPlaceholder, 'right-6');
+                UIState.addClass(this.elements.customPlaceholder, 'left-6');
+                UIState.removeClass(this.elements.customPlaceholder, 'text-right');
+            }
+            
+            // Ensure the native placeholder is hidden
+            UIState.addClass(this.elements.input, 'placeholder-hidden');
         }
     },
 
@@ -107,5 +199,72 @@ export const PlaceholderManager = {
         if (this.rotationInterval) {
             clearInterval(this.rotationInterval);
         }
+    },
+
+    reset() {
+        this.hasUrlQuestion = false;
+        this.currentIndex = 0;
+        if (this.rotationInterval) {
+            clearInterval(this.rotationInterval);
+        }
+        UIState.setText(this.elements.customPlaceholder, this.placeholders[0]);
+        UIState.setAttribute(this.elements.input, 'placeholder', this.placeholders[0]);
+        
+        // Reset placeholder visibility using UIState
+        UIState.setOpacity(this.elements.customPlaceholder, 1);
+        UIState.removeClass(this.elements.customPlaceholder, 'opacity-0');
+        UIState.removeClass(this.elements.customPlaceholder, 'invisible');
+        UIState.addClass(this.elements.input, 'placeholder-hidden');
+        
+        // Ensure proper positioning based on text direction
+        const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
+        
+        // Remove both positioning classes first
+        UIState.removeClass(this.elements.customPlaceholder, 'left-6');
+        UIState.removeClass(this.elements.customPlaceholder, 'right-6');
+        
+        // Then add the appropriate one based on direction
+        if (isRTL) {
+            UIState.addClass(this.elements.customPlaceholder, 'right-6');
+            UIState.addClass(this.elements.customPlaceholder, 'text-right');
+        } else {
+            UIState.addClass(this.elements.customPlaceholder, 'left-6');
+            UIState.removeClass(this.elements.customPlaceholder, 'text-right');
+        }
+        
+        // Reset submit button state using UIState
+        UIState.setSubmitButtonState(false);
+        
+        this.startRotation();
+    },
+    
+    /**
+     * Initialize mobile-specific support for placeholders
+     */
+    initMobileSupport() {
+        // Check if we're on a mobile device
+        const isMobile = window.innerWidth < 768;
+        
+        if (isMobile) {
+            // Enhance input for mobile
+            UIState.enhanceForTouch(this.elements.input);
+            UIState.enhanceForTouch(this.elements.submitButton);
+            
+            // Adjust placeholder for mobile
+            UIState.addClass(this.elements.customPlaceholder, 'mobile-placeholder');
+        }
+        
+        // Listen for orientation changes
+        window.addEventListener('resize', () => {
+            const newIsMobile = window.innerWidth < 768;
+            
+            if (newIsMobile !== isMobile) {
+                if (newIsMobile) {
+                    UIState.addClass(this.elements.customPlaceholder, 'mobile-placeholder');
+                } else {
+                    UIState.removeClass(this.elements.customPlaceholder, 'mobile-placeholder');
+                }
+            }
+        });
     }
 }; 
