@@ -46,5 +46,21 @@
   "footer": {
     "disclaimer": "Not affiliated with X™ or Grok™. X & Grok are trademarks of X Corp. & xAI.",
     "copyright": "© 2025 Brett Davies - Stay Curious, Understand the Universe!"
+  },
+  "test": {
+    "title": "title",
+    "language": "language",
+    "basic": "basic",
+    "simple": "simple",
+    "paragraph": "paragraph",
+    "html": "html",
+    "rich": "rich",
+    "link": "link",
+    "dynamic": "dynamic",
+    "add": "add",
+    "debug": "debug",
+    "current": "current",
+    "detected": "detected",
+    "show": "show"
   }
-} 
+}

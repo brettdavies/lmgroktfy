@@ -1,4 +1,52 @@
 {
+  "page": {
+    "title": ""
+  },
+  "nav": {
+    "home": "",
+    "about": "",
+    "contact": ""
+  },
+  "main": {
+    "title": "",
+    "placeholder": "",
+    "loading": ""
+  },
+  "help": {
+    "title": "",
+    "description": "",
+    "protips": {
+      "title": "",
+      "url": "",
+      "share": "",
+      "copy": ""
+    },
+    "shortcuts": {
+      "title": "",
+      "general": "",
+      "focus": "",
+      "help": "",
+      "theme": "",
+      "close": "",
+      "answer": "",
+      "copy_answer": "",
+      "copy_qa": "",
+      "copy_link": "",
+      "continue": ""
+    }
+  },
+  "actions": {
+    "understand": "",
+    "use": "",
+    "copy_qa": "",
+    "copy_answer": "",
+    "copy_link": "",
+    "share_x": ""
+  },
+  "footer": {
+    "disclaimer": "",
+    "copyright": ""
+  },
   "test": {
     "title": "Página de Prueba de I18n",
     "language": "Seleccionar Idioma:",
@@ -10,10 +58,9 @@
     "link": "Haz clic <a href=\"#\">aquí</a> para aprender más sobre nuestro sistema de traducción.",
     "dynamic": "Contenido Dinámico",
     "add": "Añadir Contenido Dinámico",
-    "dynamic-content": "Este es un contenido añadido dinámicamente que debería ser traducido.",
     "debug": "Información de Depuración",
     "current": "Idioma Actual:",
     "detected": "Idioma Detectado:",
     "show": "Mostrar Traducciones Cargadas"
   }
-} 
+}

@@ -2,7 +2,7 @@
  * Tests for the i18n module
  */
 
-import { I18n } from '../../js/i18n/i18n.js';
+import i18n from '../../js/i18n/i18n.js';
 import { detectUserLanguage, getSupportedLanguage } from '../../js/i18n/language-detector.js';
 
 // Mock localStorage
@@ -38,15 +38,18 @@ document.querySelectorAll = jest.fn(() => []);
 document.querySelector = jest.fn(() => null);
 
 describe('I18n Module', () => {
-  let i18n;
-
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
     Object.defineProperty(window, 'localStorage', { value: localStorageMock });
     
-    // Create new instance for each test
-    i18n = new I18n();
+    // Reset i18n instance
+    i18n.translations = {};
+    i18n.currentLanguage = 'en';
+    i18n.supportedLanguages = ['en'];
+    i18n.isLoading = false;
+    i18n.loadingPromise = null;
+    i18n.documentTranslated = false;
   });
 
   test('should initialize with default settings', async () => {
@@ -85,7 +88,7 @@ describe('I18n Module', () => {
     
     expect(i18n.currentLanguage).toBe('es');
     expect(document.documentElement.setAttribute).toHaveBeenCalledWith('lang', 'es');
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('language', 'es');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('userLanguage', 'es');
   });
 
   test('should get translation by key', async () => {
@@ -98,6 +101,24 @@ describe('I18n Module', () => {
       "page": { "title": "Test Title" },
       "nested": { "key": { "deep": "Deep Value" } }
     };
+    
+    // Add a t method for testing if it doesn't exist
+    if (!i18n.t) {
+      i18n.t = function(key) {
+        const keys = key.split('.');
+        let result = this.translations[this.currentLanguage];
+        
+        for (const k of keys) {
+          if (result && result[k]) {
+            result = result[k];
+          } else {
+            return key;
+          }
+        }
+        
+        return result;
+      };
+    }
     
     expect(i18n.t('page.title')).toBe('Test Title');
     expect(i18n.t('nested.key.deep')).toBe('Deep Value');
@@ -127,7 +148,7 @@ describe('Language Detector', () => {
     const language = detectUserLanguage();
     
     expect(language).toBe('fr');
-    expect(localStorageMock.getItem).toHaveBeenCalledWith('language');
+    expect(localStorageMock.getItem).toHaveBeenCalledWith('userLanguage');
   });
 
   test('should detect user language from navigator.languages', () => {

@@ -10,6 +10,7 @@ module.exports = {
   },
   testMatch: [
     '**/tests/unit/**/*.test.js',
+    '**/tests/i18n/**/*.test.js',
   ],
   collectCoverage: true,
   coverageDirectory: 'coverage',
