@@ -1,5 +1,6 @@
 import { UIState } from '../managers/UIState.js';
 import { FocusManager } from '../managers/FocusManager.js';
+import config from '../config.js';
 
 /**
  * Handles the submission of a question to the Grok API
@@ -19,8 +20,11 @@ export async function handleQuestionSubmission(question) {
     UIState.showLoading();
 
     try {
-        console.log('[API] Sending request to /api/grok');
-        const response = await fetch('/api/grok', {
+        // Get the API URL from the config
+        const apiUrl = config.getApiUrl('/api/grok');
+        console.log(`[API] Sending request to ${apiUrl}`);
+        
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })

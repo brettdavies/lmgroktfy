@@ -33,3 +33,6 @@ yarn-error.log*
 # Build outputs
 dist/
 build/
+
+# Local configuration
+config.local.json

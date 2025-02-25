@@ -4,6 +4,7 @@ import { PlaceholderManager } from './managers/PlaceholderManager.js';
 import { ThemeManager } from './managers/ThemeManager.js';
 import { FocusManager } from './managers/FocusManager.js';
 import { handleQuestionSubmission } from './api/grokApi.js';
+import config from './config.js';
 
 /**
  * Main application initialization
@@ -11,7 +12,12 @@ import { handleQuestionSubmission } from './api/grokApi.js';
  * - Handles URL-based question loading
  * - Initializes all managers
  */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize configuration first
+    await config.init();
+    console.log('[Config] Initialized with environment:', 
+                config.get('isDevelopment') ? 'development' : 'production');
+    
     // Initialize managers
     PlaceholderManager.initialize();
     ThemeManager.initialize();

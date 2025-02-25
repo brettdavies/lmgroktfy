@@ -47,27 +47,41 @@ A simple, accessible web application that allows users to submit questions to th
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Start the development server: `npm start`
+3. Configure the API endpoint (see below)
+4. Start the development server: `npm run serve`
+
+### API Configuration
+
+For development with the team's API endpoint:
+
+1. Create a `config.local.json` file in the project root (this file is gitignored)
+2. Add the following content, replacing the example URL with the actual development API endpoint:
+
+   ```json
+   {
+     "apiBaseUrl": "https://development-api-domain.com",
+     "debugMode": true
+   }
+   ```
+
+3. The application will automatically use this API endpoint when running locally
+4. In production, the application uses relative URLs by default (`/api/grok`)
+
+> **Note**: The development API endpoint is confidential and should not be committed to the repository or shared publicly. Contact a team member to get the correct endpoint URL.
+
+#### CORS Requirements
+
+When working with the development API:
+
+- **HTTPS is required**: The API endpoint must use HTTPS to avoid mixed-content issues
+- **CORS support**: The API server must allow cross-origin requests from your local development server
+- **Troubleshooting**: If you encounter CORS errors, ensure the API server includes the following headers in its responses:
+  ```
+  Access-Control-Allow-Origin: http://localhost:8080
+  Access-Control-Allow-Methods: POST, OPTIONS
+  Access-Control-Allow-Headers: Content-Type
+  ```
 
 ### Testing
 
 - Run unit tests: `npm test`
-- Run end-to-end tests: `npm run test:e2e`
-- Run specific browser tests: `npm run test:e2e -- --project=chromium`
-
-### Code Structure
-
-- `js/` - JavaScript modules and managers
-- `css/` - Stylesheets
-- `tests/` - Unit and end-to-end tests
-
-## Browser Support
-
-- Chrome/Chromium
-- Firefox
-- Safari
-- Mobile browsers (Chrome, Safari)
-
-## License
-
-[MIT License](LICENSE)
