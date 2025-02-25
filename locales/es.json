@@ -1,0 +1,50 @@
+{
+  "page": {
+    "title": "Deja que Grok te lo explique"
+  },
+  "nav": {
+    "home": "Inicio",
+    "about": "Acerca de",
+    "contact": "Contacto"
+  },
+  "main": {
+    "title": "Deja que <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> te lo explique",
+    "placeholder": "grok, explícame el sentido de la vida...",
+    "loading": "Procesando..."
+  },
+  "help": {
+    "title": "Cómo usar LMGROKTFY",
+    "description": "¡Escribe tu pregunta y deja que Grok la responda!",
+    "protips": {
+      "title": "Consejos",
+      "url": "Añade tu pregunta directamente en la URL:",
+      "share": "Comparte el enlace para que otros vean la misma respuesta",
+      "copy": "Usa los botones de copiar para compartir fácilmente"
+    },
+    "shortcuts": {
+      "title": "Atajos de teclado",
+      "general": "General",
+      "focus": "Enfocar búsqueda",
+      "help": "Abrir ayuda",
+      "theme": "Cambiar tema",
+      "close": "Cerrar modal",
+      "answer": "Cuando se muestra la respuesta",
+      "copy_answer": "Copiar respuesta",
+      "copy_qa": "Copiar P&R",
+      "copy_link": "Copiar enlace",
+      "continue": "Continuar en Grok"
+    }
+  },
+  "actions": {
+    "understand": "Entender más en Grok <i class=\"fa-solid fa-robot\"></i>",
+    "use": "Usar Grok en <i class=\"fa-brands fa-x-twitter\"></i>",
+    "copy_qa": "Copiar P&R <i class=\"fa-regular fa-copy\"></i>",
+    "copy_answer": "Copiar respuesta <i class=\"fa-regular fa-copy\"></i>",
+    "copy_link": "Copiar enlace <i class=\"fa-regular fa-copy\"></i>",
+    "share_x": "Compartir en <i class=\"fa-brands fa-x-twitter\"></i> <i class=\"fa-solid fa-share\"></i>"
+  },
+  "footer": {
+    "disclaimer": "No afiliado con X™ o Grok™. X y Grok son marcas registradas de X Corp. y xAI.",
+    "copyright": "© 2025 Brett Davies - ¡Mantén la curiosidad, comprende el universo!"
+  }
+} 

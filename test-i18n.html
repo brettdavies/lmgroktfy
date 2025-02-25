@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I18n Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .language-switcher {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-element {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 3px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        code {
+            background-color: #f1f1f1;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1 data-i18n="test.title">I18n Test Page</h1>
+    
+    <div class="language-switcher">
+        <label for="language-switcher" data-i18n="test.language">Select Language:</label>
+        <select id="language-switcher">
+            <option value="en">🇺🇸 English</option>
+            <option value="es">🇪🇸 Spanish</option>
+        </select>
+    </div>
+    
+    <div class="test-section">
+        <h2 data-i18n="test.basic">Basic Text Translation</h2>
+        <div class="test-element" data-i18n="test.simple">This is a simple text that should be translated.</div>
+        <div class="test-element" data-i18n="test.paragraph">This is a longer paragraph that demonstrates how the translation system handles longer text content. It should be properly translated to the selected language.</div>
+    </div>
+    
+    <div class="test-section">
+        <h2 data-i18n="test.html">HTML Content Translation</h2>
+        <div class="test-element" data-i18n="test.rich">This text has <strong>bold</strong> and <em>italic</em> formatting that should be preserved.</div>
+        <div class="test-element" data-i18n="test.link">Click <a href="#">here</a> to learn more about our translation system.</div>
+    </div>
+    
+    <div class="test-section">
+        <h2 data-i18n="test.dynamic">Dynamic Content</h2>
+        <button id="add-dynamic" data-i18n="test.add">Add Dynamic Content</button>
+        <div id="dynamic-container"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2 data-i18n="test.debug">Debug Information</h2>
+        <div class="test-element">
+            <strong data-i18n="test.current">Current Language:</strong> <span id="current-language">en</span>
+        </div>
+        <div class="test-element">
+            <strong data-i18n="test.detected">Detected Language:</strong> <span id="detected-language">-</span>
+        </div>
+        <button id="show-translations" data-i18n="test.show">Show Loaded Translations</button>
+        <pre id="translations-debug" style="display: none; margin-top: 10px; padding: 10px; background-color: #f1f1f1; border-radius: 4px; overflow: auto;"></pre>
+    </div>
+    
+    <script type="module">
+        import i18n from './js/i18n/i18n.js';
+        import { detectUserLanguage } from './js/i18n/language-detector.js';
+        
+        // Custom translation loader for test files
+        const loadTestTranslations = async (lang) => {
+            try {
+                const response = await fetch(`/locales/test-${lang}.json`);
+                return await response.json();
+            } catch (error) {
+                console.error(`Failed to load test translations for ${lang}:`, error);
+                return {};
+            }
+        };
+        
+        // Initialize i18n
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Detect language
+            const detectedLang = detectUserLanguage();
+            document.getElementById('detected-language').textContent = detectedLang;
+            
+            // Create custom i18n instance for test page
+            const testI18n = new i18n.constructor();
+            
+            // Override loadTranslations method to use test files
+            testI18n.loadTranslations = async (lang) => {
+                testI18n.isLoading = true;
+                try {
+                    const translations = await loadTestTranslations(lang);
+                    testI18n.translations[lang] = translations;
+                    testI18n.isLoading = false;
+                    return translations;
+                } catch (error) {
+                    console.error(`Failed to load translations for ${lang}:`, error);
+                    testI18n.isLoading = false;
+                    return {};
+                }
+            };
+            
+            // Initialize with test configuration
+            await testI18n.init({
+                supportedLanguages: ['en', 'es'],
+                defaultLanguage: 'en',
+                languageSwitcherSelector: '#language-switcher'
+            });
+            
+            // Update current language display
+            document.getElementById('current-language').textContent = testI18n.currentLanguage;
+            
+            // Add dynamic content button
+            document.getElementById('add-dynamic').addEventListener('click', () => {
+                const container = document.getElementById('dynamic-container');
+                const element = document.createElement('div');
+                element.className = 'test-element';
+                element.setAttribute('data-i18n', 'test.dynamic-content');
+                element.textContent = 'This is dynamically added content that should be translated.';
+                container.appendChild(element);
+                
+                // Translate the new element
+                testI18n.translateElement(element);
+            });
+            
+            // Show translations button
+            document.getElementById('show-translations').addEventListener('click', () => {
+                const debugElement = document.getElementById('translations-debug');
+                if (debugElement.style.display === 'none') {
+                    debugElement.style.display = 'block';
+                    debugElement.textContent = JSON.stringify(testI18n.translations, null, 2);
+                } else {
+                    debugElement.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

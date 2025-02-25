@@ -1,0 +1,50 @@
+{
+  "page": {
+    "title": "Let me Grok that for you"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "main": {
+    "title": "Let me <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> that for you",
+    "placeholder": "grok the meaning of life for me...",
+    "loading": "Grokking..."
+  },
+  "help": {
+    "title": "How to Use LMGROKTFY",
+    "description": "Type your question and let Grok answer it for you!",
+    "protips": {
+      "title": "Pro Tips",
+      "url": "Add your question directly to the URL:",
+      "share": "Share the link to let others see the same answer",
+      "copy": "Use the copy buttons to easily share the Q&A"
+    },
+    "shortcuts": {
+      "title": "Keyboard Shortcuts",
+      "general": "General",
+      "focus": "Focus search input",
+      "help": "Open help modal",
+      "theme": "Toggle theme",
+      "close": "Close modal",
+      "answer": "When Answer is Displayed",
+      "copy_answer": "Copy answer",
+      "copy_qa": "Copy Q&A",
+      "copy_link": "Copy share link",
+      "continue": "Continue on Grok"
+    }
+  },
+  "actions": {
+    "understand": "Understand more on Grok <i class=\"fa-solid fa-robot\"></i>",
+    "use": "Use Grok on <i class=\"fa-brands fa-x-twitter\"></i>",
+    "copy_qa": "Copy Q &amp; A <i class=\"fa-regular fa-copy\"></i>",
+    "copy_answer": "Copy Answer <i class=\"fa-regular fa-copy\"></i>",
+    "copy_link": "Copy Link <i class=\"fa-regular fa-copy\"></i>",
+    "share_x": "Share on <i class=\"fa-brands fa-x-twitter\"></i> <i class=\"fa-solid fa-share\"></i>"
+  },
+  "footer": {
+    "disclaimer": "Not affiliated with X™ or Grok™. X & Grok are trademarks of X Corp. & xAI.",
+    "copyright": "© 2025 Brett Davies - Stay Curious, Understand the Universe!"
+  }
+} 

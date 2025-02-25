@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Let me Grok that for you</title>
+    <title data-i18n="page.title">Let me Grok that for you</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script>
@@ -32,7 +32,15 @@
         }
     </script>
     <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/i18n.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <!-- SEO language meta tags -->
+    <link rel="alternate" hreflang="en" href="https://example.com/" />
+    <link rel="alternate" hreflang="es" href="https://example.com/" />
+    <link rel="alternate" hreflang="fr" href="https://example.com/" />
+    <link rel="alternate" hreflang="de" href="https://example.com/" />
+    <link rel="alternate" hreflang="ja" href="https://example.com/" />
 </head>
 <body class="min-h-screen bg-grok-bg-light dark:bg-grok-bg-dark text-gray-800 dark:text-gray-200 flex flex-col">
     <!-- Toast Container -->
@@ -43,8 +51,15 @@
         </div>
     </div>
 
-    <!-- Theme and Help Controls -->
+    <!-- Theme, Language and Help Controls -->
     <div class="fixed top-4 right-4 flex gap-2">
+        <select id="language-switcher" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors bg-transparent border-none cursor-pointer" aria-label="Select language">
+            <option value="en">🇺🇸 EN</option>
+            <option value="es">🇪🇸 ES</option>
+            <option value="fr">🇫🇷 FR</option>
+            <option value="de">🇩🇪 DE</option>
+            <option value="ja">🇯🇵 JA</option>
+        </select>
         <button id="theme-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors" title="Toggle light/dark theme" aria-label="Toggle light/dark theme">
             <i class="fa-solid fa-moon"></i>
         </button>
@@ -57,66 +72,66 @@
     <dialog id="help_modal" class="modal opacity-0 invisible transition-opacity duration-200">
         <div class="modal-box bg-white dark:bg-[#1E1F23] text-gray-800 dark:text-gray-200">
             <div class="flex justify-between items-start mb-6">
-                <h2 class="text-3xl font-semibold">How to Use LMGROKTFY</h2>
+                <h2 class="text-3xl font-semibold" data-i18n="help.title">How to Use LMGROKTFY</h2>
                 <form method="dialog">
                     <button class="btn btn-circle btn-ghost btn-sm" aria-label="Close help modal">
                         <i class="fa-solid fa-xmark text-xl"></i>
                     </button>
                 </form>
             </div>
-            <p class="text-lg mb-8">Type your question and let Grok answer it for you!</p>
-            <h3 class="text-2xl font-semibold mb-4">Pro Tips</h3>
+            <p class="text-lg mb-8" data-i18n="help.description">Type your question and let Grok answer it for you!</p>
+            <h3 class="text-2xl font-semibold mb-4" data-i18n="help.protips.title">Pro Tips</h3>
             <ul class="space-y-4 text-lg">
                 <li class="flex items-start gap-2">
-                    <span>Add your question directly to the URL:</span>
+                    <span data-i18n="help.protips.url">Add your question directly to the URL:</span>
                     <code class="bg-gray-100 dark:bg-black/30 px-3 py-0.5 rounded font-mono text-base">lmgroktfy.com/Your Question Here</code>
                 </li>
-                <li>Share the link to let others see the same answer</li>
-                <li>Use the copy buttons to easily share the Q&A</li>
+                <li data-i18n="help.protips.share">Share the link to let others see the same answer</li>
+                <li data-i18n="help.protips.copy">Use the copy buttons to easily share the Q&A</li>
             </ul>
             
-            <h3 class="text-2xl font-semibold mb-4 mt-8">Keyboard Shortcuts</h3>
+            <h3 class="text-2xl font-semibold mb-4 mt-8" data-i18n="help.shortcuts.title">Keyboard Shortcuts</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <h4 class="font-semibold mb-2">General</h4>
+                    <h4 class="font-semibold mb-2" data-i18n="help.shortcuts.general">General</h4>
                     <ul class="space-y-2">
                         <li class="flex items-center gap-2">
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">/</kbd> or 
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">?</kbd>
-                            <span>Focus search input</span>
+                            <span data-i18n="help.shortcuts.focus">Focus search input</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">h</kbd>
-                            <span>Open help modal</span>
+                            <span data-i18n="help.shortcuts.help">Open help modal</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">t</kbd>
-                            <span>Toggle theme</span>
+                            <span data-i18n="help.shortcuts.theme">Toggle theme</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">Esc</kbd>
-                            <span>Close modal</span>
+                            <span data-i18n="help.shortcuts.close">Close modal</span>
                         </li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-semibold mb-2">When Answer is Displayed</h4>
+                    <h4 class="font-semibold mb-2" data-i18n="help.shortcuts.answer">When Answer is Displayed</h4>
                     <ul class="space-y-2">
                         <li class="flex items-center gap-2">
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">c</kbd>
-                            <span>Copy answer</span>
+                            <span data-i18n="help.shortcuts.copy_answer">Copy answer</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">q</kbd>
-                            <span>Copy Q&A</span>
+                            <span data-i18n="help.shortcuts.copy_qa">Copy Q&A</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">s</kbd>
-                            <span>Copy share link</span>
+                            <span data-i18n="help.shortcuts.copy_link">Copy share link</span>
                         </li>
                         <li class="flex items-center gap-2">
                             <kbd class="px-2 py-1 bg-gray-100 dark:bg-black/30 rounded font-mono text-sm">g</kbd>
-                            <span>Continue on Grok</span>
+                            <span data-i18n="help.shortcuts.continue">Continue on Grok</span>
                         </li>
                     </ul>
                 </div>
@@ -129,14 +144,14 @@
 
     <main class="flex-1 flex flex-col items-center justify-center px-4 py-16">
         <h1 class="text-[2.5rem] font-light text-center mb-16 tracking-tight">
-            <a href="/" class="home-link hover:opacity-90 transition-opacity">
+            <a href="/" class="home-link hover:opacity-90 transition-opacity" data-i18n="main.title">
                 Let me <span class="text-gray-900 dark:text-white font-normal">Grok</span> that for you
             </a>
         </h1>
 
         <form id="question-form" class="w-full max-w-3xl mb-8">
             <div class="relative flex w-full">
-                <div id="custom-placeholder" class="placeholder-text absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 opacity-100 text-lg visible animate"></div>
+                <div id="custom-placeholder" class="placeholder-text absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 opacity-100 text-lg visible animate" data-i18n="main.placeholder">grok the meaning of life for me...</div>
                 <input type="text" 
                        id="question-input" 
                        placeholder="grok the meaning of life for me..." 
@@ -155,7 +170,7 @@
         <div id="loading" class="hidden" aria-live="polite">
             <div class="flex items-center gap-2">
                 <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                <span>Grokking...</span>
+                <span data-i18n="main.loading">Grokking...</span>
             </div>
         </div>
 
@@ -167,29 +182,29 @@
                 <div class="mt-6 space-y-4">
                     <!-- Primary Actions -->
                     <div class="flex flex-wrap gap-2 justify-center">
-                        <a id="continue-link" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" title="Understand more on Grok" href="#" target="_blank">
+                        <a id="continue-link" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" title="Understand more on Grok" href="#" target="_blank" data-i18n="actions.understand">
                             Understand more on Grok <i class="fa-solid fa-robot"></i>
                         </a>
-                        <a id="use-grok-button" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" title="Use Grok on X" href="#" target="_blank">
+                        <a id="use-grok-button" class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" title="Use Grok on X" href="#" target="_blank" data-i18n="actions.use">
                             Use Grok on <i class="fa-brands fa-x-twitter"></i>
                         </a>
                     </div>
                     
                     <!-- Share Actions -->
                     <div class="flex flex-wrap gap-2 justify-center">
-                        <button id="copy-question-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy question and answer">
+                        <button id="copy-question-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy question and answer" data-i18n="actions.copy_qa">
                             Copy Q &amp; A
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="copy-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy answer">
+                        <button id="copy-answer-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy answer" data-i18n="actions.copy_answer">
                             Copy Answer
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="share-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy share link">
+                        <button id="share-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Copy share link" data-i18n="actions.copy_link">
                             Copy Link
                             <i class="fa-regular fa-copy"></i>
                         </button>
-                        <button id="share-on-x-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Share on X">
+                        <button id="share-on-x-button" class="px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors gap-2 inline-flex items-center" aria-label="Share on X" data-i18n="actions.share_x">
                             Share on <i class="fa-brands fa-x-twitter"></i>
                             <i class="fa-solid fa-share"></i>
                         </button>
@@ -200,14 +215,15 @@
     </main>
 
     <footer class="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
-        <p class="mb-1">
+        <p class="mb-1" data-i18n="footer.disclaimer">
             Not affiliated with X™ or Grok™. X & Grok are trademarks of X Corp. & xAI.
         </p>
-        <p>
+        <p data-i18n="footer.copyright">
             © 2025 Brett Davies - Stay Curious, Understand the Universe!
         </p>
     </footer>
 
     <script type="module" src="js/script.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

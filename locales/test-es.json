@@ -1,0 +1,19 @@
+{
+  "test": {
+    "title": "Página de Prueba de I18n",
+    "language": "Seleccionar Idioma:",
+    "basic": "Traducción de Texto Básico",
+    "simple": "Este es un texto simple que debería ser traducido.",
+    "paragraph": "Este es un párrafo más largo que demuestra cómo el sistema de traducción maneja contenido de texto más extenso. Debería ser traducido correctamente al idioma seleccionado.",
+    "html": "Traducción de Contenido HTML",
+    "rich": "Este texto tiene formato <strong>negrita</strong> y <em>cursiva</em> que debería conservarse.",
+    "link": "Haz clic <a href=\"#\">aquí</a> para aprender más sobre nuestro sistema de traducción.",
+    "dynamic": "Contenido Dinámico",
+    "add": "Añadir Contenido Dinámico",
+    "dynamic-content": "Este es un contenido añadido dinámicamente que debería ser traducido.",
+    "debug": "Información de Depuración",
+    "current": "Idioma Actual:",
+    "detected": "Idioma Detectado:",
+    "show": "Mostrar Traducciones Cargadas"
+  }
+} 
