@@ -12,6 +12,9 @@
 # MacOS
 .DS_Store
 
+# Local configuration
+config.local.json
+
 # Testing
 node_modules/
 coverage/
@@ -33,6 +36,3 @@ yarn-error.log*
 # Build outputs
 dist/
 build/
-
-# Local configuration
-config.local.json
