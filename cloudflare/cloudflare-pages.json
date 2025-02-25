@@ -1,0 +1,28 @@
+{
+  "build": {
+    "command": "bash cloudflare/build.sh",
+    "output_directory": "dist",
+    "environment_variables": {
+      "NODE_VERSION": "18"
+    }
+  },
+  "deployment": {
+    "routes": [
+      { "pattern": "/*", "script": null }
+    ],
+    "environment_variables": {
+      "ENVIRONMENT": "production"
+    }
+  },
+  "preview": {
+    "branch_configurations": [
+      {
+        "branch": "development",
+        "build_command": "bash cloudflare/build.sh",
+        "environment_variables": {
+          "ENVIRONMENT": "development"
+        }
+      }
+    ]
+  }
+} 
