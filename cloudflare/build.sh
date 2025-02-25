@@ -4,8 +4,48 @@
 
 set -e  # Exit immediately if a command exits with a non-zero status
 
+# Function to clean up on failure
+cleanup() {
+  echo "Build failed! Cleaning up..."
+  # Only remove dist if it exists and we're not in a production environment
+  if [ -d "dist" ] && [ "$CI" != "true" ]; then
+    echo "Removing dist directory..."
+    rm -rf dist
+  fi
+  echo "Exiting with error code 1"
+  exit 1
+}
+
+# Trap errors and call cleanup
+trap cleanup ERR
+
 # Record start time
 BUILD_START_TIME=$(date +%s)
+
+# Function to calculate elapsed time
+calculate_elapsed_time() {
+  local start_time=$1
+  local end_time=$(date +%s)
+  local elapsed=$((end_time - start_time))
+  echo $elapsed
+}
+
+# Initialize timing variables
+SETUP_START_TIME=$BUILD_START_TIME
+JS_START_TIME=0
+CSS_START_TIME=0
+LOCALES_START_TIME=0
+HTML_START_TIME=0
+VALIDATION_START_TIME=0
+
+# Initialize timing results
+SETUP_TIME=0
+JS_TIME=0
+CSS_TIME=0
+LOCALES_TIME=0
+HTML_TIME=0
+VALIDATION_TIME=0
+TOTAL_TIME=0
 
 echo "Starting build process for Cloudflare Pages deployment..."
 
@@ -25,7 +65,10 @@ fi
 
 # Install minification tools
 echo "Installing minification tools..."
-npm install --no-save terser clean-css-cli html-minifier-terser
+npm install --no-save terser clean-css-cli html-minifier-terser || {
+  echo "ERROR: Failed to install minification tools"
+  cleanup
+}
 
 # Extract version and build information
 VERSION=$(node -e "console.log(require('./package.json').version || '1.0.0')")
@@ -35,15 +78,37 @@ GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 
 echo "Building version $VERSION (commit: $GIT_COMMIT, branch: $GIT_BRANCH)"
 
+# Define required files - these must exist for a valid build
+REQUIRED_FILES=(
+  "index.html"
+  "js/script.js"
+  "css/animations.css"
+  "css/i18n.css"
+  "js/config.js"
+)
+
+# Check for required source files before proceeding
+echo "Validating required source files..."
+MISSING_FILES=0
+for file in "${REQUIRED_FILES[@]}"; do
+  if [ ! -f "$file" ]; then
+    echo "ERROR: Required file not found: $file"
+    MISSING_FILES=$((MISSING_FILES + 1))
+  fi
+done
+
+if [ $MISSING_FILES -gt 0 ]; then
+  echo "Build failed: $MISSING_FILES required files are missing"
+  cleanup
+fi
+
 # Clean and create dist directory
 echo "Creating distribution directory..."
 rm -rf dist
-mkdir -p dist
-
-# Define files and directories to include
-echo "Copying essential files to dist..."
+mkdir -p dist/js dist/css
 
 # Copy HTML files (excluding test files)
+echo "Copying essential files to dist..."
 echo "  Copying HTML files..."
 find . -maxdepth 1 -name "*.html" -not -name "test-*.html" -exec cp {} dist/ \;
 
@@ -54,8 +119,9 @@ echo "  Copying root assets..."
 [ -f sitemap.xml ] && cp sitemap.xml dist/
 [ -f config.json ] && cp config.json dist/
 
-# Create necessary directories
-mkdir -p dist/js dist/css
+# Record setup time
+SETUP_TIME=$(calculate_elapsed_time $SETUP_START_TIME)
+echo "Setup completed in ${SETUP_TIME}s"
 
 # Create temporary files for statistics
 JS_ORIG_SIZE=$(mktemp)
@@ -75,6 +141,7 @@ echo "0" > $HTML_MIN_SIZE
 
 # Process JavaScript files
 echo "Processing JavaScript files..."
+JS_START_TIME=$(date +%s)
 find js -name "*.js" -not -name "*.test.js" -not -name "*.spec.js" | while read file; do
   # Create output directory
   dir=$(dirname "$file")
@@ -90,7 +157,10 @@ find js -name "*.js" -not -name "*.test.js" -not -name "*.spec.js" | while read 
   
   # Minify
   echo "  Minifying $file..."
-  npx terser "$file" --compress --mangle --output "dist/$dir/$filename"
+  npx terser "$file" --compress --mangle --output "dist/$dir/$filename" || {
+    echo "ERROR: Failed to minify $file"
+    exit 1  # This will trigger the trap
+  }
   
   # Get minified size
   minified_size=$(wc -c < "dist/$dir/$filename")
@@ -105,9 +175,12 @@ find js -name "*.js" -not -name "*.test.js" -not -name "*.spec.js" | while read 
     echo "    Original file was empty"
   fi
 done
+JS_TIME=$(calculate_elapsed_time $JS_START_TIME)
+echo "JavaScript processing completed in ${JS_TIME}s"
 
 # Process CSS files
 echo "Processing CSS files..."
+CSS_START_TIME=$(date +%s)
 find css -name "*.css" | while read file; do
   # Create output directory
   dir=$(dirname "$file")
@@ -123,7 +196,10 @@ find css -name "*.css" | while read file; do
   
   # Minify
   echo "  Minifying $file..."
-  npx cleancss -o "dist/$dir/$filename" "$file"
+  npx cleancss -o "dist/$dir/$filename" "$file" || {
+    echo "ERROR: Failed to minify $file"
+    exit 1  # This will trigger the trap
+  }
   
   # Get minified size
   minified_size=$(wc -c < "dist/$dir/$filename")
@@ -138,9 +214,12 @@ find css -name "*.css" | while read file; do
     echo "    Original file was empty"
   fi
 done
+CSS_TIME=$(calculate_elapsed_time $CSS_START_TIME)
+echo "CSS processing completed in ${CSS_TIME}s"
 
 # Process locales directory if it exists
 echo "Processing locales..."
+LOCALES_START_TIME=$(date +%s)
 if [ -d "locales" ]; then
   echo "  Locales directory found"
   mkdir -p dist/locales
@@ -176,7 +255,10 @@ if [ -d "locales" ]; then
         console.error('Error minifying $filename:', e.message);
         fs.copyFileSync('$file', 'dist/locales/$filename');
       }
-    "
+    " || {
+      echo "ERROR: Failed to minify $filename"
+      exit 1  # This will trigger the trap
+    }
     
     # Get minified size
     minified_size=$(wc -c < "dist/locales/$filename")
@@ -204,9 +286,12 @@ else
   TOTAL_JSON_ORIGINAL=0
   TOTAL_JSON_MINIFIED=0
 fi
+LOCALES_TIME=$(calculate_elapsed_time $LOCALES_START_TIME)
+echo "Locales processing completed in ${LOCALES_TIME}s"
 
 # Minify HTML files
 echo "Minifying HTML files..."
+HTML_START_TIME=$(date +%s)
 find dist -maxdepth 1 -name "*.html" | while read file; do
   # Get original size
   original_size=$(wc -c < "$file")
@@ -229,7 +314,11 @@ find dist -maxdepth 1 -name "*.html" | while read file; do
     --minify-css true \
     --minify-js true \
     -o "$temp_file" \
-    "$file"
+    "$file" || {
+      echo "ERROR: Failed to minify $(basename "$file")"
+      rm -f "$temp_file"
+      exit 1  # This will trigger the trap
+    }
   
   # Replace original with minified
   mv "$temp_file" "$file"
@@ -247,6 +336,8 @@ find dist -maxdepth 1 -name "*.html" | while read file; do
     echo "    Original file was empty"
   fi
 done
+HTML_TIME=$(calculate_elapsed_time $HTML_START_TIME)
+echo "HTML processing completed in ${HTML_TIME}s"
 
 # Read the final statistics
 TOTAL_JS_ORIGINAL=$(cat $JS_ORIG_SIZE)
@@ -259,37 +350,14 @@ TOTAL_HTML_MINIFIED=$(cat $HTML_MIN_SIZE)
 # Clean up temporary files
 rm -f $JS_ORIG_SIZE $JS_MIN_SIZE $CSS_ORIG_SIZE $CSS_MIN_SIZE $HTML_ORIG_SIZE $HTML_MIN_SIZE
 
-# Create build manifest
-echo "Creating build manifest..."
-cat > dist/build-manifest.json << EOF
-{
-  "version": "$VERSION",
-  "buildDate": "$BUILD_DATE",
-  "gitCommit": "$GIT_COMMIT",
-  "gitBranch": "$GIT_BRANCH",
-  "environment": "production",
-  "buildStats": {
-    "jsOriginalSize": $TOTAL_JS_ORIGINAL,
-    "jsMinifiedSize": $TOTAL_JS_MINIFIED,
-    "cssOriginalSize": $TOTAL_CSS_ORIGINAL,
-    "cssMinifiedSize": $TOTAL_CSS_MINIFIED,
-    "htmlOriginalSize": $TOTAL_HTML_ORIGINAL,
-    "htmlMinifiedSize": $TOTAL_HTML_MINIFIED,
-    "jsonOriginalSize": $TOTAL_JSON_ORIGINAL,
-    "jsonMinifiedSize": $TOTAL_JSON_MINIFIED,
-    "totalOriginalSize": $((TOTAL_JS_ORIGINAL + TOTAL_CSS_ORIGINAL + TOTAL_HTML_ORIGINAL + TOTAL_JSON_ORIGINAL)),
-    "totalMinifiedSize": $((TOTAL_JS_MINIFIED + TOTAL_CSS_MINIFIED + TOTAL_HTML_MINIFIED + TOTAL_JSON_MINIFIED))
-  }
-}
-EOF
-
 # Validate the build output
 echo "Validating build output..."
+VALIDATION_START_TIME=$(date +%s)
 VALIDATION_ERRORS=0
 
 # Validate JSON files
 echo "  Validating JSON files..."
-find dist/locales -name "*.json" | while read file; do
+find dist/locales -name "*.json" 2>/dev/null | while read file; do
   echo "    Checking $file..."
   if ! node -e "
     try {
@@ -351,14 +419,6 @@ done
 
 # Check for required files
 echo "  Checking for required files..."
-REQUIRED_FILES=(
-  "index.html"
-  "js/script.js"
-  "css/animations.css"
-  "css/i18n.css"
-  "js/config.js"
-)
-
 for file in "${REQUIRED_FILES[@]}"; do
   if [ ! -f "dist/$file" ]; then
     echo "    ERROR: Required file missing: $file"
@@ -366,20 +426,28 @@ for file in "${REQUIRED_FILES[@]}"; do
   fi
 done
 
+# Check for empty directories
+EMPTY_DIRS=$(find dist -type d -empty | wc -l)
+if [ $EMPTY_DIRS -gt 0 ]; then
+  echo "WARNING: Build contains $EMPTY_DIRS empty directories"
+fi
+VALIDATION_TIME=$(calculate_elapsed_time $VALIDATION_START_TIME)
+echo "Validation completed in ${VALIDATION_TIME}s"
+
 # Final validation result
 if [ $VALIDATION_ERRORS -gt 0 ]; then
   echo "Build validation failed with $VALIDATION_ERRORS errors"
   echo "Please fix the errors and try again"
-  exit 1
+  cleanup
 else
   echo "Build validation successful!"
 fi
 
 # Calculate build time
 BUILD_END_TIME=$(date +%s)
-BUILD_DURATION=$((BUILD_END_TIME - BUILD_START_TIME))
-MINUTES=$((BUILD_DURATION / 60))
-SECONDS=$((BUILD_DURATION % 60))
+TOTAL_TIME=$((BUILD_END_TIME - BUILD_START_TIME))
+MINUTES=$((TOTAL_TIME / 60))
+SECONDS=$((TOTAL_TIME % 60))
 
 # Calculate total size reduction
 TOTAL_ORIGINAL=$((TOTAL_JS_ORIGINAL + TOTAL_CSS_ORIGINAL + TOTAL_HTML_ORIGINAL + TOTAL_JSON_ORIGINAL))
@@ -416,6 +484,45 @@ else
   TOTAL_REDUCTION=0
 fi
 
+# Create build manifest with timing information
+echo "Creating build manifest..."
+cat > dist/build-manifest.json << EOF
+{
+  "version": "$VERSION",
+  "buildDate": "$BUILD_DATE",
+  "gitCommit": "$GIT_COMMIT",
+  "gitBranch": "$GIT_BRANCH",
+  "environment": "production",
+  "buildStats": {
+    "jsOriginalSize": $TOTAL_JS_ORIGINAL,
+    "jsMinifiedSize": $TOTAL_JS_MINIFIED,
+    "jsReduction": $JS_REDUCTION,
+    "cssOriginalSize": $TOTAL_CSS_ORIGINAL,
+    "cssMinifiedSize": $TOTAL_CSS_MINIFIED,
+    "cssReduction": $CSS_REDUCTION,
+    "htmlOriginalSize": $TOTAL_HTML_ORIGINAL,
+    "htmlMinifiedSize": $TOTAL_HTML_MINIFIED,
+    "htmlReduction": $HTML_REDUCTION,
+    "jsonOriginalSize": $TOTAL_JSON_ORIGINAL,
+    "jsonMinifiedSize": $TOTAL_JSON_MINIFIED,
+    "jsonReduction": $JSON_REDUCTION,
+    "totalOriginalSize": $TOTAL_ORIGINAL,
+    "totalMinifiedSize": $TOTAL_MINIFIED,
+    "totalReduction": $TOTAL_REDUCTION
+  },
+  "buildTimes": {
+    "setup": $SETUP_TIME,
+    "javascript": $JS_TIME,
+    "css": $CSS_TIME,
+    "locales": $LOCALES_TIME,
+    "html": $HTML_TIME,
+    "validation": $VALIDATION_TIME,
+    "total": $TOTAL_TIME,
+    "formattedTotal": "${MINUTES}m ${SECONDS}s"
+  }
+}
+EOF
+
 echo "Build process completed successfully in ${MINUTES}m ${SECONDS}s!"
 echo "Minified files are available in the 'dist' directory."
 echo ""
@@ -426,5 +533,15 @@ echo "CSS: $TOTAL_CSS_ORIGINAL → $TOTAL_CSS_MINIFIED bytes ($CSS_REDUCTION% re
 echo "HTML: $TOTAL_HTML_ORIGINAL → $TOTAL_HTML_MINIFIED bytes ($HTML_REDUCTION% reduction)"
 echo "JSON: $TOTAL_JSON_ORIGINAL → $TOTAL_JSON_MINIFIED bytes ($JSON_REDUCTION% reduction)"
 echo "Total: $TOTAL_ORIGINAL → $TOTAL_MINIFIED bytes ($TOTAL_REDUCTION% reduction)"
+echo ""
+echo "Build Times:"
+echo "----------------"
+echo "Setup: ${SETUP_TIME}s"
+echo "JavaScript processing: ${JS_TIME}s"
+echo "CSS processing: ${CSS_TIME}s"
+echo "Locales processing: ${LOCALES_TIME}s"
+echo "HTML processing: ${HTML_TIME}s"
+echo "Validation: ${VALIDATION_TIME}s"
+echo "Total build time: ${MINUTES}m ${SECONDS}s"
 echo ""
 echo "Build manifest created at dist/build-manifest.json" 
