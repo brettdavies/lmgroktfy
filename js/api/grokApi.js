@@ -46,10 +46,10 @@ export async function handleQuestionSubmission(question) {
             const encodedQuestion = encodeURIComponent(question);
             window.history.replaceState({}, '', '/' + encodedQuestion);
             
-            // Focus the first interactive element in the response area
-            setTimeout(() => {
-                FocusManager.focusResponseArea();
-            }, 100);
+            // // Focus the first interactive element in the response area
+            // setTimeout(() => {
+            //     FocusManager.focusResponseArea();
+            // }, 100);
         }
     } catch (error) {
         console.error('[Error Handler] Caught error:', error.message, error.stack);
