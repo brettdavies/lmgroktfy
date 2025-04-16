@@ -14,27 +14,31 @@ async function handleRequest(request) {
         'dev.lmgroktfy.com'
     ];
 
-    // Check Referer header
-    const referer = request.headers.get('Referer');
-    const refererDomain = referer ? new URL(referer).hostname : null;
-    console.log('[Security] Referer domain:', refererDomain);
+    // // Check Referer header
+    // const referer = request.headers.get('Referer');
+    // const refererDomain = referer ? new URL(referer).hostname : null;
+    // console.log('[Security] Referer domain:', refererDomain);
 
-    if (!refererDomain || !allowedDomains.includes(refererDomain)) {
-        console.log('[Security] Access denied: Invalid or missing referer domain');
-        return new Response(
-            JSON.stringify({ error: 'Access denied' }),
-            { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
-    }
+    // if (!refererDomain || !allowedDomains.includes(refererDomain)) {
+    //     console.log('[Security] Access denied: Invalid or missing referer domain');
+    //     return new Response(
+    //         JSON.stringify({ error: 'Access denied' }),
+    //         { status: 403, headers: { 'Content-Type': 'application/json' } }
+    //     );
+    // }
 
     // Verify Cloudflare zone
-    if (!request.cf || !allowedDomains.includes(request.cf.zoneName)) {
-        console.log('[Security] Access denied: Invalid Cloudflare zone');
-        return new Response(
-            JSON.stringify({ error: 'Access denied' }),
-            { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
-    }
+    console.log(request.cf);
+    console.log(allowedDomains);
+    console.log(request.cf.zoneName);
+    console.log(allowedDomains.includes(request.cf.zoneName));
+    // if (!request.cf || !allowedDomains.includes(request.cf.zoneName)) {
+    //     console.log('[Security] Access denied: Invalid Cloudflare zone');
+    //     return new Response(
+    //         JSON.stringify({ error: 'Access denied' }),
+    //         { status: 403, headers: { 'Content-Type': 'application/json' } }
+    //     );
+    // }
 
     try {
         const body = await request.json();
