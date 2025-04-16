@@ -58,7 +58,7 @@ async function handleRequest(request) {
                 'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify({
-                model: "grok-2-1212",
+                model: "grok-3-mini-latest",
                 messages: [
                     {
                         role: "system",
