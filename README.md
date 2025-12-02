@@ -1,5 +1,7 @@
 # LMGROKTFY (Let Me GROK That For You)
 
+> **Project Overview:** See [PROJECT.md](PROJECT.md) for a high-level overview, achievements, and technical highlights.
+
 A simple, accessible web application that allows users to submit questions to the Grok AI and share the answers.
 
 ## Features
