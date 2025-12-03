@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "@lmgroktfy/shared": ["../shared/src/index.ts"]
+    }
   },
   "include": ["src/**/*"],
   "references": [{ "path": "../shared" }]
