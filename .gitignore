@@ -1,38 +1,21 @@
-# Project specific
-.idea/
-
-# Cursor
-.cursor/
-.cursorrules
-.cursorignore
-.cursorconfig
-.cursorrules
-.cursorignore
-
-# MacOS
-.DS_Store
-
 # Local configuration
 config.local.json
 
-# Testing
+# Dependencies
 node_modules/
+
+# Testing
 coverage/
-test-results/
-playwright-report/
-playwright/.cache/
-.nyc_output/
-/test-report.xml
-/junit.xml
-/test-results.json
 
 # Logs
-logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Build outputs
-dist/
-build/
+packages/**/dist/
+# packages/web/public/ is the static/public assets dir, but output is not typically built here
+# Remove from ignore if you want to check in static assets or if it's used in the deployment process
+packages/web/public/
+
+# Wrangler
+.wrangler/
+.dev.vars

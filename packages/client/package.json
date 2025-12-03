@@ -1,0 +1,14 @@
+{
+  "name": "@lmgroktfy/client",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir=dist --minify",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lmgroktfy/shared": "workspace:*"
+  }
+}

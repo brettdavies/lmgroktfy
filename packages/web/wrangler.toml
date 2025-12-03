@@ -1,0 +1,46 @@
+# LMGROKTFY Worker Configuration
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "lmgroktfy"
+main = "src/index.ts"
+
+# Pin to a stable compatibility date - update periodically after testing
+# https://developers.cloudflare.com/workers/configuration/compatibility-dates/
+compatibility_date = "2025-11-01"
+
+# Opt into useful compatibility flags
+compatibility_flags = ["nodejs_compat"]
+
+# Disable anonymous telemetry
+send_metrics = false
+
+# Static assets served by the Worker
+[assets]
+directory = "./public"
+
+# Observability - enable logging with sampling
+[observability]
+enabled = true
+head_sampling_rate = 1.0  # Log all requests (adjust for high-traffic)
+
+# Production environment variables
+[vars]
+ENVIRONMENT = "production"
+
+# Rate limiting for API protection
+# Limits: 30 requests per 60 seconds per IP
+# namespace_id must be unique positive integer for your account
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
+# Development environment overrides
+[env.development]
+vars = { ENVIRONMENT = "development" }
+
+# Disable rate limiting in development
+# [[env.development.ratelimits]]
+# binding = "RATE_LIMITER"
+# namespace_id = "1002"
+# simple = { limit = 1000, period = 60 }

@@ -1,121 +1,172 @@
 # LMGROKTFY (Let Me GROK That For You)
 
-A simple, accessible web application that allows users to submit questions to the Grok AI and share the answers.
+> **Project Overview:** See [PROJECT.md](PROJECT.md) for a high-level overview, achievements, and technical highlights.
 
-## Features
+A simple, accessible web application that lets you ask questions to Grok AI and share the answers with others.
 
-- Submit questions to Grok AI and view responses
-- Copy answers or question-answer pairs for sharing
-- Share links directly to specific questions and answers
-- Toggle between light and dark themes
-- Fully accessible interface with keyboard navigation and screen reader support
+**Live site: [lmgroktfy.com](https://lmgroktfy.com)**
 
-## Accessibility Features
+🇺🇸 [English](https://lmgroktfy.com/?lang=en) · 🇪🇸 [Español](https://lmgroktfy.com/?lang=es) · 🇫🇷 [Français](https://lmgroktfy.com/?lang=fr) · 🇩🇪 [Deutsch](https://lmgroktfy.com/?lang=de) · 🇯🇵 [日本語](https://lmgroktfy.com/?lang=ja) · 🇸🇦 [العربية](https://lmgroktfy.com/?lang=ar)
 
-### ARIA Live Regions
+## How to Use
 
-- Dynamic content updates are announced to screen readers
-- Loading states use `aria-live="polite"` to inform users of progress
-- Toast notifications use `aria-live="assertive"` for important updates
+1. **Ask a question** - Type your question in the search box and press Enter or click "Ask Grok"
+2. **Get an answer** - Grok AI will respond with an answer
+3. **Share it** - Copy the share link and send it to someone who needs the answer
 
-### Keyboard Navigation
+### Sharing Links
 
-- Full keyboard navigation throughout the application
-- Focus management for modal dialogs
-- Focus trapping within modals for improved usability
-- Automatic focus on interactive elements in the response area
+You can create shareable links in two ways:
+
+- **After asking**: Click "Copy Share Link" to get a URL that shows both your question and Grok's answer
+- **Direct URL**: Add your question to the URL: `lmgroktfy.com/your+question+here`
+
+When someone opens a shared link, they'll see your question automatically submitted with the answer displayed.
 
 ### Keyboard Shortcuts
 
-#### General
+| Key | Action |
+|-----|--------|
+| `/` or `?` | Focus the search input |
+| `h` | Open help |
+| `t` | Toggle light/dark theme |
+| `Esc` | Close modal |
 
-- `/` or `?` - Focus the search input
-- `h` - Open the help modal
-- `t` - Toggle between light and dark themes
-- `Esc` - Close any open modal
+**When an answer is displayed:**
 
-#### When Answer is Displayed
+| Key | Action |
+|-----|--------|
+| `c` | Copy answer |
+| `q` | Copy question + answer |
+| `s` | Copy share link |
+| `g` | Continue on Grok |
 
-- `c` - Copy the answer
-- `q` - Copy the question and answer
-- `s` - Copy the share link
-- `g` - Continue on Grok
+---
+
+## For Developers
+
+### Architecture
+
+This is a TypeScript monorepo using Bun workspaces:
+
+```plaintext
+packages/
+├── shared/     # Shared types, schemas (Zod), constants, utilities
+├── client/     # Frontend application (TypeScript)
+└── web/        # Cloudflare Worker serving API + static assets
+```
+
+### Key Design Decisions
+
+- **Bun** - Package manager and runtime
+- **TypeScript** - Strict mode enabled
+- **Zod** - Single source of truth for API types
+- **Cloudflare Workers** - Single worker serves entire site (API + assets)
+- **Biome + Prettier** - Linting and formatting
 
 ## Development
 
+### Prerequisites
+
+- [Bun](https://bun.sh/) v1.0+
+
 ### Setup
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Configure the API endpoint (see below)
-4. Start the development server: `npm run serve`
+```bash
+# Install dependencies
+bun install
 
-### API Configuration
+# Start development server (uses wrangler)
+bun run dev
+```
 
-For development with the team's API endpoint:
+### Commands
 
-1. Create a `config.local.json` file in the project root (this file is gitignored)
-2. Add the following content, replacing the example URL with the actual development API endpoint:
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start local dev server with wrangler |
+| `bun run build` | Build all packages |
+| `bun test` | Run tests |
+| `bun run typecheck` | TypeScript type checking |
+| `bun run lint` | Run Biome linter |
+| `bun run lint:fix` | Auto-fix lint issues |
+| `bun run deploy` | Build and deploy to Cloudflare |
 
-   ```json
-   {
-     "apiBaseUrl": "https://development-api-domain.com",
-     "debugMode": true
-   }
-   ```
+### Project Structure
 
-3. The application will automatically use this API endpoint when running locally
-4. In production, the application uses relative URLs by default (`/api/grok`)
+```plaintext
+lmgroktfy/
+├── packages/
+│   ├── shared/           # @lmgroktfy/shared
+│   │   └── src/
+│   │       ├── schemas/  # Zod schemas (API types)
+│   │       ├── types/    # Inferred TypeScript types
+│   │       ├── constants/# Shared constants
+│   │       └── utils/    # Shared utilities
+│   ├── client/           # @lmgroktfy/client
+│   │   └── src/
+│   │       ├── ui/       # UI utilities (DOM, visibility, transitions, a11y, viewport)
+│   │       ├── managers/ # Feature managers (clipboard, theme, placeholder, focus, animation)
+│   │       ├── i18n/     # Internationalization
+│   │       └── api/      # API client
+│   └── web/              # @lmgroktfy/web
+│       └── src/
+│           ├── api/      # API route handlers
+│           ├── static/   # Static asset serving
+│           └── middleware/ # CORS, security
+├── locales/              # Translation files
+├── scripts/              # Build scripts
+└── package.json          # Workspace root
+```
 
-> **Note**: The development API endpoint is confidential and should not be committed to the repository or shared publicly. Contact a team member to get the correct endpoint URL.
+### Accessibility
 
-#### CORS Requirements
+- ARIA live regions for dynamic content updates
+- Focus management for modal dialogs
+- Accessible loading states and error messages
+- Full keyboard navigation support
 
-When working with the development API:
+### Deployment
 
-- **HTTPS is required**: The API endpoint must use HTTPS to avoid mixed-content issues
-- **CORS support**: The API server must allow cross-origin requests from your local development server
-- **Troubleshooting**: If you encounter CORS errors, ensure the API server includes the following headers in its responses:
-  ```
-  Access-Control-Allow-Origin: http://localhost:8080
-  Access-Control-Allow-Methods: POST, OPTIONS
-  Access-Control-Allow-Headers: Content-Type
-  ```
-
-### Testing
-
-- Run unit tests: `npm test`
-- Run end-to-end tests: `npm run test:e2e`
-
-## Deployment
-
-This project is deployed using Cloudflare Pages, which automatically minifies all assets for production.
-
-### Deployment Process
-
-1. Development is done on the `development` branch with unminified code for easier debugging
-2. When code is pushed to either the `development` or `main` branch, Cloudflare Pages:
-   - Runs the build script located at `cloudflare/build.sh`
-   - Minifies all JavaScript, CSS, and HTML files
-   - Deploys the minified code to Cloudflare's global CDN
-
-### Cloudflare Pages Configuration
-
-The Cloudflare Pages configuration is documented in `cloudflare/cloudflare-pages.json` and includes:
-- Build command: `bash cloudflare/build.sh`
-- Output directory: `dist`
-- Environment variables for both production and preview deployments
-
-For more details on the deployment configuration, see the [Cloudflare Pages documentation](cloudflare/README.md).
-
-### Local Testing of Production Build
-
-To test the minified production build locally:
+Deployed to Cloudflare Workers:
 
 ```bash
-# Run the build script
-bash cloudflare/build.sh
-
-# Serve the dist directory to preview the minified site
-npx http-server dist
+bun run deploy
 ```
+
+This builds all packages and deploys the worker with static assets.
+
+## Environment Variables
+
+Set these in Cloudflare Workers dashboard or `.dev.vars` for local development:
+
+| Variable | Description |
+|----------|-------------|
+| `XAI_API_KEY` | xAI API key for Grok |
+
+## Testing
+
+```bash
+# Run all tests
+bun test
+
+# With coverage
+bun test --coverage
+```
+
+Tests use Bun's built-in test runner with coverage reporting.
+
+### Internationalization (i18n)
+
+Translation files are in `locales/`. All 6 languages are at 100% completion.
+
+| Command | Description |
+|---------|-------------|
+| `bun run i18n:extract` | Extract translatable strings from source files |
+| `bun run i18n:validate` | Validate all translations against English source |
+| `bun run i18n:sync` | Sync structure across all locale files |
+| `bun run i18n:status` | Generate translation status report |
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.

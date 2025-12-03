@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Format with Prettier (includes Tailwind class sorting)
+bun run format
+
+# Stage any formatted files
+git add -u
+
+# Lint with Biome
+bun run lint
+
+# Run typecheck
+bun run typecheck
+
+# Run tests
+bun test
