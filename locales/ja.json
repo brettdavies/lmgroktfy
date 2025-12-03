@@ -11,14 +11,14 @@
     "title": "<span class=\"text-gray-900 dark:text-white font-normal\">Grok</span>に説明してもらいましょう",
     "placeholder": "grok、人生の意味を説明して...",
     "loading": "処理中...",
-    "placeholders": [
-      "grok、人生の意味を説明して...",
-      "grok、量子物理学を説明して...",
-      "grok、パスタの作り方を説明して...",
-      "grok、人工知能を説明して...",
-      "grok、キツネは何と言う？",
-      "grok、次の日食はいつ？"
-    ]
+    "placeholders": {
+      "0": "grok、人生の意味を説明して...",
+      "1": "grok、量子物理学を説明して...",
+      "2": "grok、パスタの作り方を説明して...",
+      "3": "grok、人工知能を説明して...",
+      "4": "grok、キツネは何と言う？",
+      "5": "grok、次の日食はいつ？"
+    }
   },
   "help": {
     "title": "LMGROKTFYの使い方",

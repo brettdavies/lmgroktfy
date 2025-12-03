@@ -11,14 +11,14 @@
     "title": "Laissez <span class=\"text-gray-900 dark:text-white font-normal\">Grok</span> vous expliquer ça",
     "placeholder": "grok, explique-moi le sens de la vie...",
     "loading": "Traitement en cours...",
-    "placeholders": [
-      "grok, explique-moi le sens de la vie...",
-      "grok, explique-moi la physique quantique...",
-      "grok, explique-moi comment faire des pâtes...",
-      "grok, explique-moi l'intelligence artificielle...",
-      "grok, que dit le renard ?",
-      "grok, quand est la prochaine éclipse ?"
-    ]
+    "placeholders": {
+      "0": "grok, explique-moi le sens de la vie...",
+      "1": "grok, explique-moi la physique quantique...",
+      "2": "grok, explique-moi comment faire des pâtes...",
+      "3": "grok, explique-moi l'intelligence artificielle...",
+      "4": "grok, que dit le renard ?",
+      "5": "grok, quand est la prochaine éclipse ?"
+    }
   },
   "help": {
     "title": "Comment utiliser LMGROKTFY",

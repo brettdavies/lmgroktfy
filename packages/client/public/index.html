@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title data-i18n="page.title">Let me Grok that for you</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!-- SEO language meta tags -->
+    <link rel="alternate" hreflang="ar" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="de" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="en" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="es" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="fr" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="ja" href="https://lmgroktfy.com/" />
+  </head>
+  <body
+    class="bg-grok-bg-light dark:bg-grok-bg-dark flex min-h-screen flex-col text-gray-800 dark:text-gray-200"
+  >
+    <!-- Toast Container -->
+    <div class="fixed top-4 right-4 z-50">
+      <div
+        id="toast"
+        class="hidden rounded-lg bg-green-600 px-4 py-2 text-white shadow-lg"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <i class="fa-solid fa-circle-check mr-2"></i>
+        <span id="toast-message"></span>
+      </div>
+    </div>
+
+    <!-- Theme, Language and Help Controls -->
+    <div class="fixed top-4 right-4 flex gap-2">
+      <select
+        id="language-switcher"
+        class="cursor-pointer border-none bg-transparent p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        aria-label="Select language"
+      >
+        <option value="ar">🇪🇬 AR</option>
+        <option value="de">🇩🇪 DE</option>
+        <option value="en">🇺🇸 EN</option>
+        <option value="es">🇪🇸 ES</option>
+        <option value="fr">🇫🇷 FR</option>
+        <option value="ja">🇯🇵 JA</option>
+      </select>
+      <button
+        id="theme-toggle"
+        class="p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        title="Toggle light/dark theme"
+        aria-label="Toggle light/dark theme"
+      >
+        <i class="fa-solid fa-moon"></i>
+      </button>
+      <button
+        onclick="help_modal.showModal()"
+        class="p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        title="How to use"
+        aria-label="How to use"
+      >
+        <i class="fa-solid fa-circle-info"></i>
+      </button>
+    </div>
+
+    <!-- Help Modal -->
+    <dialog id="help_modal" class="modal invisible opacity-0 transition-opacity duration-200">
+      <div class="modal-box bg-white text-gray-800 dark:bg-[#1E1F23] dark:text-gray-200">
+        <div class="mb-6 flex items-start justify-between">
+          <h2 class="text-3xl font-semibold" data-i18n="help.title">How to Use LMGROKTFY</h2>
+          <form method="dialog">
+            <button class="btn btn-circle btn-ghost btn-sm" aria-label="Close help modal">
+              <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+          </form>
+        </div>
+        <p class="mb-8 text-lg" data-i18n="help.description">
+          Type your question and let Grok answer it for you!
+        </p>
+        <h3 class="mb-4 text-2xl font-semibold" data-i18n="help.protips.title">Pro Tips</h3>
+        <ul class="space-y-4 text-lg">
+          <li class="flex items-start gap-2">
+            <span data-i18n="help.protips.url">Add your question directly to the URL:</span>
+            <code class="rounded bg-gray-100 px-3 py-0.5 font-mono text-base dark:bg-black/30"
+              >lmgroktfy.com/Your Question Here</code
+            >
+          </li>
+          <li data-i18n="help.protips.share">Share the link to let others see the same answer</li>
+          <li data-i18n="help.protips.copy">Use the copy buttons to easily share the Q&A</li>
+        </ul>
+
+        <h3 class="mt-8 mb-4 text-2xl font-semibold" data-i18n="help.shortcuts.title">
+          Keyboard Shortcuts
+        </h3>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <h4 class="mb-2 font-semibold" data-i18n="help.shortcuts.general">General</h4>
+            <ul class="space-y-2">
+              <li class="flex items-center gap-2">
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >/</kbd
+                >
+                or
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >?</kbd
+                >
+                <span data-i18n="help.shortcuts.focus">Focus search input</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >h</kbd
+                >
+                <span data-i18n="help.shortcuts.help">Open help modal</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >t</kbd
+                >
+                <span data-i18n="help.shortcuts.theme">Toggle theme</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >Esc</kbd
+                >
+                <span data-i18n="help.shortcuts.close">Close modal</span>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="mb-2 font-semibold" data-i18n="help.shortcuts.answer">
+              When Answer is Displayed
+            </h4>
+            <ul class="space-y-2">
+              <li class="flex items-center gap-2">
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >c</kbd
+                >
+                <span data-i18n="help.shortcuts.copy_answer">Copy answer</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >q</kbd
+                >
+                <span data-i18n="help.shortcuts.copy_qa">Copy Q&A</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >s</kbd
+                >
+                <span data-i18n="help.shortcuts.copy_link">Copy share link</span>
+              </li>
+              <li class="flex items-center gap-2">
+                <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30"
+                  >g</kbd
+                >
+                <span data-i18n="help.shortcuts.continue">Continue on Grok</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button aria-label="Close modal backdrop">close</button>
+      </form>
+    </dialog>
+
+    <main class="flex flex-1 flex-col items-center justify-center px-4 py-16">
+      <h1 class="mb-16 text-center text-[2.5rem] font-light tracking-tight">
+        <a href="/" class="home-link transition-opacity hover:opacity-90" data-i18n="main.title">
+          Let me <span class="font-normal text-gray-900 dark:text-white">Grok</span> that for you
+        </a>
+      </h1>
+
+      <form id="question-form" class="mb-8 w-full max-w-3xl">
+        <div class="relative flex w-full">
+          <input
+            type="text"
+            id="question-input"
+            placeholder="grok the meaning of life for me..."
+            class="bg-grok-input-light dark:bg-grok-input-dark shadow-input placeholder-hidden w-full rounded-2xl border border-gray-200 px-6 py-5 pr-16 text-lg text-gray-900 placeholder-gray-400 focus:border-gray-300 focus:outline-none dark:border-gray-700/50 dark:text-white dark:focus:border-gray-600"
+            required
+          />
+          <div
+            id="custom-placeholder"
+            class="placeholder-text animate visible absolute top-1/2 left-6 -translate-y-1/2 text-lg text-gray-400 opacity-100"
+            data-i18n="main.placeholder"
+          >
+            grok the meaning of life for me...
+          </div>
+          <button
+            type="submit"
+            disabled
+            class="group absolute top-1/2 right-2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-colors duration-300 focus:ring-2 focus:ring-gray-300 focus:outline-none enabled:bg-white enabled:text-gray-900 disabled:cursor-not-allowed dark:focus:ring-gray-600 dark:enabled:bg-white"
+            id="submit-button"
+            aria-label="Submit question"
+          >
+            <i
+              class="fa-solid fa-arrow-up transform text-lg transition-all duration-300 group-hover:enabled:translate-y-[-2px]"
+            ></i>
+          </button>
+        </div>
+      </form>
+
+      <div id="loading" class="hidden" aria-live="polite">
+        <div class="flex items-center gap-2">
+          <div class="h-5 w-5 animate-spin rounded-full border-b-2 border-current"></div>
+          <span data-i18n="main.loading">Grokking...</span>
+        </div>
+      </div>
+
+      <div id="response" class="hidden w-full max-w-2xl" aria-live="polite" aria-atomic="true">
+        <div class="bg-grok-input-light dark:bg-grok-input-dark rounded-xl p-6 shadow-lg">
+          <p
+            id="question-display"
+            class="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300"
+          ></p>
+          <p id="answer" class="text-lg"></p>
+
+          <div class="mt-6 space-y-4">
+            <!-- Primary Actions -->
+            <div class="flex flex-wrap justify-center gap-2">
+              <a
+                id="continue-link"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                title="Understand more on Grok"
+                href="#"
+                target="_blank"
+                data-i18n="actions.understand"
+              >
+                Understand more on Grok <i class="fa-solid fa-robot"></i>
+              </a>
+              <a
+                id="use-grok-button"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                title="Use Grok on X"
+                href="#"
+                target="_blank"
+                data-i18n="actions.use"
+              >
+                Use Grok on <i class="fa-brands fa-x-twitter"></i>
+              </a>
+            </div>
+
+            <!-- Share Actions -->
+            <div class="flex flex-wrap justify-center gap-2">
+              <button
+                id="copy-question-answer-button"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                aria-label="Copy question and answer"
+                data-i18n="actions.copy_qa"
+              >
+                Copy Q &amp; A
+                <i class="fa-regular fa-copy"></i>
+              </button>
+              <button
+                id="copy-answer-button"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                aria-label="Copy answer"
+                data-i18n="actions.copy_answer"
+              >
+                Copy Answer
+                <i class="fa-regular fa-copy"></i>
+              </button>
+              <button
+                id="share-button"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                aria-label="Copy share link"
+                data-i18n="actions.copy_link"
+              >
+                Copy Link
+                <i class="fa-regular fa-copy"></i>
+              </button>
+              <button
+                id="share-on-x-button"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+                aria-label="Share on X"
+                data-i18n="actions.share_x"
+              >
+                Share on <i class="fa-brands fa-x-twitter"></i>
+                <i class="fa-solid fa-share"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+      <p class="mb-2" data-i18n="footer.disclaimer">
+        Not affiliated with X™ or Grok™. X & Grok are trademarks of X Corp. Grok is a trademark of
+        xAI.
+      </p>
+      <p class="mb-2" data-i18n="footer.copyright">
+        © 2025 Brett Davies - Stay Curious, Understand the Universe!
+      </p>
+      <div class="flex items-center justify-center gap-4">
+        <a
+          href="https://x.com/brettdavies"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+          aria-label="Follow on X"
+        >
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+            />
+          </svg>
+        </a>
+        <a
+          href="https://github.com/brettdavies/lmgroktfy"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+          aria-label="View source on GitHub"
+        >
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill-rule="evenodd"
+              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </a>
+      </div>
+    </footer>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>
