@@ -6,9 +6,8 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "baseUrl": ".",
     "paths": {
-      "@lmgroktfy/shared": ["../shared/src/index.ts"]
+      "@lmgroktfy/shared": ["../shared/dist"]
     }
   },
-  "include": ["src/**/*"],
-  "references": [{ "path": "../shared" }]
+  "include": ["src/**/*"]
 }
