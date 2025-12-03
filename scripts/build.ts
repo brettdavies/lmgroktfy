@@ -25,6 +25,7 @@ async function buildClient(): Promise<void> {
   const clientSrc = join(clientDir, 'src', 'index.ts');
   const clientStylesSrc = join(clientDir, 'src', 'styles', 'main.css');
   const clientDist = join(clientDir, 'dist');
+  const sharedSrc = join(PACKAGES_DIR, 'shared', 'src', 'index.ts');
 
   // Clean dist directory
   if (existsSync(clientDist)) {
@@ -32,15 +33,30 @@ async function buildClient(): Promise<void> {
   }
   mkdirSync(clientDist, { recursive: true });
 
-  // Bundle client code with Bun
-  await Bun.build({
+  // Bundle client code with Bun, resolving workspace package
+  const result = await Bun.build({
     entrypoints: [clientSrc],
     outdir: clientDist,
     minify: true,
     target: 'browser',
     format: 'esm',
     naming: 'app.js',
+    plugins: [
+      {
+        name: 'resolve-workspace',
+        setup(build) {
+          build.onResolve({ filter: /^@lmgroktfy\/shared$/ }, () => {
+            return { path: sharedSrc };
+          });
+        },
+      },
+    ],
   });
+
+  if (!result.success) {
+    console.error('Build errors:', result.logs);
+    throw new Error('Client build failed');
+  }
 
   // Build Tailwind CSS
   await $`bunx @tailwindcss/cli -i ${clientStylesSrc} -o ${join(clientDist, 'styles.css')} --minify`;
