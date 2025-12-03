@@ -14,11 +14,20 @@ compatibility_flags = ["nodejs_compat"]
 # Disable anonymous telemetry
 send_metrics = false
 
-# Enable workers.dev subdomain (set to false for production)
-workers_dev = true
+# Disable workers.dev subdomain for production
+workers_dev = false
 
-# Enable preview URLs for testing (set to false for production)
-preview_urls = true
+# Disable preview URLs for production
+preview_urls = false
+
+# Custom domains
+[[routes]]
+pattern = "lmgroktfy.com"
+custom_domain = true
+
+[[routes]]
+pattern = "www.lmgroktfy.com"
+custom_domain = true
 
 # Static assets served by the Worker
 [assets]
