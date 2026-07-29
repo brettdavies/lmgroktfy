@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a problem with the LMGROKTFY site (not with Grok's answers — those go to xAI).
+labels: []
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Ask ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, OS, and language
+      placeholder: e.g. Firefox 141 on Linux, lang=es
+    validations:
+      required: false
+  - type: checkboxes
+    id: accessibility
+    attributes:
+      label: Accessibility
+      options:
+        - label: This affects keyboard navigation or screen-reader use
+          required: false

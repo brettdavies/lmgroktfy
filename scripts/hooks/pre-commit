@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Pre-commit — fast, staged-file-scoped checks that catch cheap mistakes before
+# they reach a commit. The whole-repo CI mirror lives in scripts/hooks/pre-push;
+# keep this hook fast enough that it is never the reason someone reaches for
+# --no-verify.
+#
+# Activate per clone via: git config core.hooksPath scripts/hooks
+# core.hooksPath is machine-local git config: it does not travel with the clone,
+# and an unset core.hooksPath is the most common reason a tracked hook never
+# fires. Run the command above once per fresh clone (see README "Local hooks").
+#
+# Defensive no-ops: each check guards on its tool being present and on the
+# relevant file type being staged, then skips cleanly. Every skip branch echoes
+# what it skipped and why — a silent skip is indistinguishable from a pass.
+#
+# Exit codes: 0 = all staged checks pass (or cleanly skipped), 1 = failure.
+set -euo pipefail
+
+# Only ACMR (added/copied/modified/renamed) staged paths; deletions cannot fail
+# a lint.
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged" ]; then
+  echo "pre-commit: nothing staged; nothing to check"
+  exit 0
+fi
+
+# Biome: lint staged JS/TS/JSON. Biome is Rust-fast, so scoping to staged files
+# keeps this well under a second.
+if echo "$staged" | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc)$'; then
+  if command -v bunx >/dev/null 2>&1; then
+    mapfile -t biome_files < <(echo "$staged" | grep -E '\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc)$')
+    bunx --bun biome lint "${biome_files[@]}" || {
+      echo "pre-commit: biome lint failed (run \`bun run lint:fix\`)"
+      exit 1
+    }
+  else
+    echo "pre-commit: bunx not found; skipping biome lint"
+  fi
+fi
+
+# Prettier: format-check staged TS/CSS/HTML (matches the repo format script's
+# globs). Check only — never auto-format-and-restage inside a hook.
+if echo "$staged" | grep -qE '\.(ts|tsx|css|html)$'; then
+  if command -v bunx >/dev/null 2>&1; then
+    mapfile -t fmt_files < <(echo "$staged" | grep -E '\.(ts|tsx|css|html)$')
+    bunx --bun prettier --check "${fmt_files[@]}" || {
+      echo "pre-commit: prettier --check failed (run \`bun run format\`)"
+      exit 1
+    }
+  else
+    echo "pre-commit: bunx not found; skipping prettier check"
+  fi
+fi
+
+# Workflows: lint staged .github/workflows/*.yml with actionlint.
+if echo "$staged" | grep -qE '^\.github/workflows/.*\.ya?ml$'; then
+  if command -v actionlint >/dev/null 2>&1; then
+    actionlint
+  else
+    echo "pre-commit: actionlint not installed; skipping workflow lint"
+  fi
+fi
+
+# Markdown: lint staged .md files with markdownlint-cli2.
+if echo "$staged" | grep -qE '\.md$'; then
+  if command -v markdownlint-cli2 >/dev/null 2>&1; then
+    echo "$staged" | grep -E '\.md$' | tr '\n' '\0' | xargs -0 markdownlint-cli2
+  else
+    echo "pre-commit: markdownlint-cli2 not installed; skipping markdown lint"
+  fi
+fi
+
+echo "pre-commit: staged checks passed"
