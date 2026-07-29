@@ -1,0 +1,21 @@
+# Caller workflow for the centralized reusable guard-main-provenance workflow.
+#
+# Verifies commits in PRs to main came from squash-merged PRs to dev (have
+# (#N) references). Only needs pull-requests: read.
+#
+# brettdavies/.github is first-party and owned by the same account as this repo,
+# so the reusable-workflow ref stays on @main rather than a SHA pin (the
+# supply-chain threat a SHA pin defends against does not apply when source and
+# consumer are both under the same control).
+name: Guard main commit provenance
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  guard-provenance:
+    uses: brettdavies/.github/.github/workflows/guard-main-provenance.yml@main
