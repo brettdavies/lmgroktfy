@@ -1,0 +1,28 @@
+# Caller workflow for the centralized reusable guard-release-branch workflow.
+#
+# Rejects PRs to main whose head branch doesn't start with `release/`. Keeps
+# `dev` off the list of PR heads, which is what makes `deleteBranchOnMerge:
+# true` safe to leave on without risking `origin/dev`.
+#
+# Default prefix `release/` is supplied by the reusable workflow; pass
+# `with: prefix: <other>` to override.
+#
+# brettdavies/.github is first-party and owned by the same account as this repo,
+# so the reusable-workflow ref stays on @main rather than a SHA pin (the
+# supply-chain threat a SHA pin defends against does not apply when source and
+# consumer are both under the same control).
+#
+# The caller's job key must be `guard-release:` so the required status check
+# context is `guard-release / check-release-branch-name`.
+name: Guard release branch pattern
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  guard-release:
+    uses: brettdavies/.github/.github/workflows/guard-release-branch.yml@main
