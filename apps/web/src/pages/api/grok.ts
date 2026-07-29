@@ -1,6 +1,7 @@
 import {
   type GrokError,
   GrokRequestSchema,
+  type GrokResponse,
   HEADERS,
   HTTP_STATUS,
   REQUEST_LIMITS,
@@ -53,10 +54,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const cached = await getCachedAnswer(env.ANSWER_CACHE, question);
   if (cached) {
-    return new Response(JSON.stringify(cached), {
-      status: HTTP_STATUS.OK,
-      headers: { [HEADERS.CONTENT_TYPE]: HEADERS.JSON },
-    });
+    return answerResponse(cached, 'HIT');
   }
 
   const apiKey = getSecret('API_KEY');
@@ -76,11 +74,20 @@ export const POST: APIRoute = async ({ request }) => {
 
   await putCachedAnswer(env.ANSWER_CACHE, question, result.response);
 
-  return new Response(JSON.stringify(result.response), {
-    status: HTTP_STATUS.OK,
-    headers: { [HEADERS.CONTENT_TYPE]: HEADERS.JSON },
-  });
+  return answerResponse(result.response, 'MISS');
 };
+
+/**
+ * A successful answer, tagged with `X-Cache: HIT|MISS` so a cached reply is
+ * distinguishable from a fresh xAI call (both are otherwise an identical 200).
+ * Observability only — the body and status are the same either way.
+ */
+function answerResponse(payload: GrokResponse, cache: 'HIT' | 'MISS'): Response {
+  return new Response(JSON.stringify(payload), {
+    status: HTTP_STATUS.OK,
+    headers: { [HEADERS.CONTENT_TYPE]: HEADERS.JSON, 'X-Cache': cache },
+  });
+}
 
 /**
  * Reads the request body, rejecting anything past the byte cap. A declared

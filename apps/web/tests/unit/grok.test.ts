@@ -445,10 +445,12 @@ describe('POST /api/grok', () => {
 
       const first = await invoke(apiRequest(ask('What is Grok?')));
       expect(first.status).toBe(200);
+      expect(first.headers.get('X-Cache')).toBe('MISS');
       expect(counted.calls()).toBe(1);
 
       const second = await invoke(apiRequest(ask('What is Grok?')));
       expect(second.status).toBe(200);
+      expect(second.headers.get('X-Cache')).toBe('HIT');
       expect(counted.calls()).toBe(1);
       const body = (await second.json()) as { answer: string; shareId: string };
       expect(body.answer).toBe('The answer is 42.');
