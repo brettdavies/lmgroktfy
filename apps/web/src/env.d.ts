@@ -15,10 +15,3 @@ declare namespace Cloudflare {
 	interface Env extends __BaseEnv_Env {}
 }
 interface Env extends __BaseEnv_Env {}
-
-declare namespace App {
-	interface Locals {
-		/** Per-request CSP nonce set by middleware for the island script tag. */
-		cspNonce: string;
-	}
-}

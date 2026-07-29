@@ -20,7 +20,7 @@ const { cors, securityHeaders, onRequest, langRedirect } = await import('../../s
 type FakeContext = {
   request: Request;
   url: URL;
-  locals: { cspNonce?: string };
+  locals: Record<string, unknown>;
 };
 
 function makeContext(urlStr: string, opts: { method?: string; origin?: string } = {}): FakeContext {
@@ -144,17 +144,31 @@ describe('cors middleware', () => {
 describe('securityHeaders middleware', () => {
   const nextHtml = async () => new Response('<html></html>', { status: 200 });
 
-  test('sets CSP with a per-request nonce but no HSTS on the workers.dev host', async () => {
+  test('sets the static CSP with no nonce and no HSTS on the workers.dev host', async () => {
     const context = makeContext('https://lmgroktfy-staging.workers.dev/');
     const response = await asMiddleware(securityHeaders)(context, nextHtml);
     const csp = response.headers.get('Content-Security-Policy');
     expect(csp).toBeTruthy();
+    expect(csp).toContain("script-src 'self'");
     expect(csp).toContain('https://challenges.cloudflare.com');
     expect(csp).toContain('https://cdnjs.cloudflare.com');
     expect(csp).toContain("base-uri 'none'");
-    expect(csp).toContain(`'nonce-${context.locals.cspNonce}'`);
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).not.toContain('nonce-');
     expect(response.headers.get('Strict-Transport-Security')).toBeNull();
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  test('sets the full static header map on an SSR response', async () => {
+    const context = makeContext('https://lmgroktfy.com/');
+    const response = await asMiddleware(securityHeaders)(context, nextHtml);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
+    expect(response.headers.get('Cross-Origin-Opener-Policy')).toBe('same-origin');
+    expect(response.headers.get('Permissions-Policy')).toBe(
+      'geolocation=(), microphone=(), camera=()'
+    );
   });
 
   test('sets HSTS on the production custom domain', async () => {
@@ -169,16 +183,6 @@ describe('securityHeaders middleware', () => {
     const response = await asMiddleware(securityHeaders)(context, nextHtml);
     expect(response.headers.get('Content-Security-Policy')).toBeTruthy();
     expect(response.headers.get('Strict-Transport-Security')).toBeNull();
-  });
-
-  test('mints a fresh nonce per request', async () => {
-    const first = makeContext('https://lmgroktfy.com/');
-    const second = makeContext('https://lmgroktfy.com/');
-    await asMiddleware(securityHeaders)(first, nextHtml);
-    await asMiddleware(securityHeaders)(second, nextHtml);
-    expect(first.locals.cspNonce).toBeTruthy();
-    expect(second.locals.cspNonce).toBeTruthy();
-    expect(first.locals.cspNonce).not.toBe(second.locals.cspNonce);
   });
 
   test('skips strict headers on localhost during development', async () => {

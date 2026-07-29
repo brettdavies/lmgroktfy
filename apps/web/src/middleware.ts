@@ -6,12 +6,11 @@ import {
   SUPPORTED_LOCALES,
 } from '@lmgroktfy/shared';
 import { defineMiddleware, sequence } from 'astro:middleware';
+import { HSTS_HEADER, SECURITY_HEADERS } from './lib/security-headers';
 
 const API_PATH_PREFIX = '/api/';
 const WELL_KNOWN_PREFIX = '/.well-known/';
 const LANG_QUERY_PARAM = 'lang';
-const TURNSTILE_HOST = 'https://challenges.cloudflare.com';
-const FONT_AWESOME_HOST = 'https://cdnjs.cloudflare.com';
 
 function isSupportedLocale(value: string): boolean {
   return (SUPPORTED_LOCALES as readonly string[]).includes(value);
@@ -113,16 +112,15 @@ export const cors = defineMiddleware(async (context, next) => {
 });
 
 /**
- * Emits security headers, including a concrete CSP whose script-src carries a
- * fresh per-request nonce (exposed on `locals.cspNonce`) so a script tag is
- * allowed without `'unsafe-inline'`. HSTS is sent only on the production custom
- * domains, never on staging (`dev.lmgroktfy.com`) or the shared `workers.dev`
- * host, so a browser is never pinned to https for a non-production host.
+ * Applies the shared static security headers to SSR responses. The prerendered
+ * pages Cloudflare serves from the ASSETS layer bypass this Worker entirely, so
+ * they receive the same headers from the build-generated `_headers` instead —
+ * both paths draw from {@link SECURITY_HEADERS}. HSTS is sent only on the
+ * production custom domains, never on staging (`dev.lmgroktfy.com`) or the
+ * shared `workers.dev` host, so a browser is never pinned to https for a
+ * non-production host.
  */
 export const securityHeaders = defineMiddleware(async (context, next) => {
-  const nonce = createNonce();
-  context.locals.cspNonce = nonce;
-
   const response = await next();
 
   const scope = securityScope(context.url.hostname);
@@ -130,42 +128,16 @@ export const securityHeaders = defineMiddleware(async (context, next) => {
     return response;
   }
 
-  response.headers.set('Content-Security-Policy', buildCsp(nonce));
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
-  response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(name, value);
+  }
   if (scope.applyHsts) {
-    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    response.headers.set(HSTS_HEADER.name, HSTS_HEADER.value);
   }
   return response;
 });
 
 export const onRequest = sequence(langRedirect, cors, securityHeaders);
-
-function buildCsp(nonce: string): string {
-  return [
-    "default-src 'self'",
-    `script-src 'self' ${TURNSTILE_HOST} 'nonce-${nonce}'`,
-    `frame-src ${TURNSTILE_HOST}`,
-    `style-src 'self' ${FONT_AWESOME_HOST}`,
-    `font-src ${FONT_AWESOME_HOST}`,
-    "connect-src 'self'",
-    "img-src 'self' data:",
-    "base-uri 'none'",
-    "object-src 'none'",
-  ].join('; ');
-}
-
-function createNonce(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-}
 
 function securityScope(hostname: string): { applyHeaders: boolean; applyHsts: boolean } {
   const isLocalhost =
