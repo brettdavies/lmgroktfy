@@ -32,7 +32,7 @@
     "@types/bun": "latest",
     "prettier": "^3.4.0",
     "prettier-plugin-astro": "0.14.1",
-    "prettier-plugin-tailwindcss": "0.7.2",
+    "prettier-plugin-tailwindcss": "0.8.1",
     "typescript": "^5.7.0",
     "wrangler": "^4.83.0",
     "zod": "^3.23.0"
