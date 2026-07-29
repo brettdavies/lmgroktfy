@@ -7,8 +7,6 @@ import {
 } from '@lmgroktfy/shared';
 import { describeError, isAbort } from './errors';
 
-const DEFAULT_TIMEOUT_MS = 10_000;
-
 /**
  * Outcome of a call to the xAI upstream. `detail` is for server-side logging
  * only; callers must map every failure to a generic client-facing message so no
@@ -40,7 +38,7 @@ export async function callXai(
   apiKey: string,
   options: XaiCallOptions = {}
 ): Promise<XaiResult> {
-  const { timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = fetch as FetchLike } = options;
+  const { timeoutMs = GROK_API.TIMEOUT_MS, fetchImpl = fetch as FetchLike } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 

@@ -17,6 +17,11 @@ export const GROK_API = {
     "You are Grok, created by xAI, providing concise, helpful, and accurate answers for the 'Let me Grok that for you' app.",
   TEMPERATURE: 0,
   STREAM: false,
+  // The pinned model is a reasoning model whose latency runs several seconds and
+  // can exceed ten on a harder question; the upstream call is I/O rather than
+  // Worker CPU, so it gets wide headroom before the proxy gives up. Single source
+  // of truth for the Grok proxy timeout and the health canary that mirrors it.
+  TIMEOUT_MS: 25_000,
 } as const;
 
 /**
