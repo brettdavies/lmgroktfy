@@ -29,10 +29,11 @@ create the GitHub Release; deploying the built app to `https://lmgroktfy.com` is
 | `feat/*`, `fix/*`, `chore/*`, `docs/*` | Feature work.                           | One PR's worth. Auto-deleted on merge.      | None. Squash into dev freely. |
 | `release/*`                            | Head of a dev → main PR.                | One release's worth. Auto-deleted on merge. | None.                         |
 
-Both rulesets are applied directly via the GitHub API/UI rather than committed as JSON under `.github/rulesets/`.
-Neither currently requires a status check; add `guard-docs / check-forbidden-docs`, `guard-provenance /
-check-provenance`, and `guard-release / check-release-branch-name` to `Protect main`'s required checks once the guard
-workflows below have a green run on this repo (see [§ Branch protection](#branch-protection)).
+Both rulesets are versioned as JSON under `.github/rulesets/` (`protect-dev.json`, `protect-main.json`, the source of
+truth) and applied to GitHub via the API. `Protect main` already requires the three guard checks (`guard-docs /
+check-forbidden-docs`, `guard-provenance / check-provenance`, `guard-release / check-release-branch-name`); they first
+run on the initial `release/* -> main` PR, which carries the guard workflows (see
+[§ Branch protection](#branch-protection)).
 
 → Rationale: [`RELEASES-RATIONALE.md` § Branching model](./RELEASES-RATIONALE.md#branching-model).
 
@@ -245,25 +246,27 @@ regenerate. Hand-editing `CHANGELOG.md` directly produces drift the next regener
 
 ## Branch protection
 
-`Protect dev` and `Protect main` are GitHub rulesets applied via the API (`gh api repos/<owner>/<repo>/rulesets`), not
-committed JSON files. Both currently enforce: PR required, 1 approving review, signed commits, linear history,
-squash-only merges, creation/deletion blocked, non-fast-forward blocked. Neither has a required status check yet.
+`Protect dev` and `Protect main` are GitHub rulesets, versioned as JSON under `.github/rulesets/` (`protect-dev.json`,
+`protect-main.json`) and applied to GitHub via the API. `Protect main` enforces: PR required, 1 approving review, signed
+commits, linear history, squash-only merges, creation/deletion blocked, non-fast-forward blocked, and the three guard
+checks required (`guard-docs / check-forbidden-docs`, `guard-provenance / check-provenance`, `guard-release /
+check-release-branch-name`). `Protect dev` enforces the same set minus the guard checks and keeps its PR-review
+requirement.
 
-### Adding the guard checks as required
+The guard checks are required on `main` already, but the guard caller workflows land on `main` only with the first
+`release/* -> main` PR. They first run, and become satisfiable, on that PR, from the PR head against the reusable
+workflows in `brettdavies/.github`. Until then, no non-release PR should target `main`.
 
-Once `guard-main-docs.yml`, `guard-main-provenance.yml`, and `guard-release-branch.yml` have a green run against a real
-PR to `main`, add their status checks to `Protect main`:
+### Re-applying a ruleset after an edit
+
+Edit the JSON under `.github/rulesets/`, then PUT it live:
 
 ```bash
 # Find the ruleset id.
-gh api repos/<owner>/<repo>/rulesets --jq '.[] | select(.name == "Protect main") | .id'
+gh api repos/<owner>/<repo>/rulesets --jq '.[] | {id, name}'
 
-# Confirm the real context strings after a run.
-gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[].name'
-
-# PATCH the ruleset with required_status_checks added to its rules array
-# (fetch the current ruleset JSON first, add the rule, PUT it back).
-gh api -X PUT repos/<owner>/<repo>/rulesets/<id> --input /tmp/protect-main-updated.json
+# Apply the edited ruleset.
+gh api -X PUT repos/<owner>/<repo>/rulesets/<id> --input .github/rulesets/protect-main.json
 ```
 
 Expected context strings: `guard-docs / check-forbidden-docs`, `guard-provenance / check-provenance`, `guard-release /
