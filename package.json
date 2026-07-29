@@ -17,7 +17,7 @@
     "lint:fix": "biome lint --write .",
     "format": "prettier --write \"packages/*/src/**/*.{ts,tsx,css}\" \"apps/web/**/*.{ts,astro,css,mjs}\"",
     "format:check": "prettier --check \"packages/*/src/**/*.{ts,tsx,css}\" \"apps/web/**/*.{ts,astro,css,mjs}\"",
-    "typecheck": "tsc --noEmit -p packages/shared && bun run --cwd apps/web check",
+    "typecheck": "bun run build:shared && bun run --cwd apps/web check",
     "deploy:staging": "bun run build:shared && cd apps/web && CLOUDFLARE_ENV=staging bunx astro build && bunx wrangler deploy --env staging",
     "deploy:prod": "bun run build:shared && cd apps/web && CLOUDFLARE_ENV=production bunx astro build && bunx wrangler deploy --env production",
     "i18n:extract": "bun scripts/extract-i18n.ts",
