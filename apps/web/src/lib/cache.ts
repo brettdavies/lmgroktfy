@@ -1,4 +1,5 @@
 import { type GrokResponse, GrokResponseSchema } from '@lmgroktfy/shared';
+import { describeError } from './errors';
 
 /** ~1 week: bounds spend/latency on a repeated question without holding it indefinitely. */
 export const CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -73,8 +74,4 @@ export async function putCachedAnswer(
   } catch (error) {
     console.error(`cache: write failed, answer not cached: ${describeError(error)}`);
   }
-}
-
-function describeError(error: unknown): string {
-  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 }

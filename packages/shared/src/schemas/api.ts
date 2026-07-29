@@ -12,6 +12,7 @@ import { REQUEST_LIMITS, TURNSTILE } from '../constants/api';
 export const GrokRequestSchema = z.object({
   question: z
     .string()
+    .trim()
     .min(1, 'Question is required')
     .max(REQUEST_LIMITS.MAX_QUESTION_LENGTH, 'Question is too long'),
   turnstileToken: z

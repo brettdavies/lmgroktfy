@@ -12,17 +12,23 @@ const API_PATH_PREFIX = '/api/';
 const WELL_KNOWN_PREFIX = '/.well-known/';
 const LANG_QUERY_PARAM = 'lang';
 
+// The Worker-served endpoint files (`llms.txt`, `robots.txt`, `sitemap.xml`, the
+// markdown twins) must never be locale-redirected. A bare "has a dot" test would
+// also skip a legitimate question containing a dot (`/node.js+vs+deno`), diverging
+// from the client-side mirror that redirects it. Match only these known suffixes.
+const ENDPOINT_FILE_EXTENSIONS = ['.md', '.xml', '.txt', '.json'] as const;
+
 function isSupportedLocale(value: string): boolean {
   return (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
 
 /**
- * Legacy `?lang=xx` shim: rewrites the old query-string language selector to the
- * canonical locale-prefixed path (`/es/…`, and the unprefixed root for the
- * default locale). Only page navigations are rewritten — API, `.well-known`,
- * and file/endpoint routes are left untouched so a token-bearing POST or a
- * markdown/xml twin is never redirected. A no-op target (the locale already
- * matches the path) falls through instead of self-redirecting.
+ * Backward-compatible `?lang=xx` shim: rewrites the query-string language
+ * selector to the canonical locale-prefixed path (`/es/…`, and the unprefixed
+ * root for the default locale). Only page navigations are rewritten — API,
+ * `.well-known`, and file/endpoint routes are left untouched so a token-bearing
+ * POST or a markdown/xml twin is never redirected. A no-op target (the locale
+ * already matches the path) falls through instead of self-redirecting.
  */
 export const langRedirect = defineMiddleware(async (context, next) => {
   if (context.request.method !== 'GET') {
@@ -41,7 +47,7 @@ export const langRedirect = defineMiddleware(async (context, next) => {
 
   const segments = url.pathname.split('/').filter(Boolean);
   const lastSegment = segments[segments.length - 1] ?? '';
-  if (lastSegment.includes('.')) {
+  if (ENDPOINT_FILE_EXTENSIONS.some((ext) => lastSegment.endsWith(ext))) {
     return next();
   }
 
@@ -82,7 +88,7 @@ function corsHeaders(origin: string): Record<string, string> {
  * controls; this is defense-in-depth against browser-based cross-site use.
  */
 export const cors = defineMiddleware(async (context, next) => {
-  const url = new URL(context.request.url);
+  const url = context.url;
   if (!url.pathname.startsWith(API_PATH_PREFIX)) {
     return next();
   }

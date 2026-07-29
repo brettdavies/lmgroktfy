@@ -53,6 +53,11 @@ export default defineConfig({
   site: 'https://lmgroktfy.com',
   adapter: cloudflare(),
   integrations: [staticSecurityHeaders()],
+  // Never inline a small CSS chunk as a `<style>` element: the static CSP ships
+  // `style-src 'self'` with no `'unsafe-inline'`, so an inlined stylesheet would
+  // be blocked. Emitting every stylesheet as an external `self` asset keeps the
+  // build within the policy regardless of chunk size.
+  build: { inlineStylesheets: 'never' },
   i18n: {
     locales: ['ar', 'de', 'en', 'es', 'fr', 'ja'],
     defaultLocale: 'en',

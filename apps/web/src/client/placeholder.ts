@@ -1,8 +1,8 @@
-import { BREAKPOINTS } from '@lmgroktfy/shared';
+import { CSS_CLASSES } from '@lmgroktfy/shared';
 import { getIslandConfig } from './config';
 import { addClass, elements, removeClass, setAttribute, setOpacity, setText } from './dom';
 import { setSubmitButtonState } from './visibility';
-import { enhanceForTouch } from './viewport';
+import { enhanceForTouch, isMobile } from './viewport';
 import { hasUrlQuestion } from './question-url';
 
 /**
@@ -59,7 +59,7 @@ function showPlaceholder(): void {
   setOpacity(customPlaceholder, 1);
   removeClass(customPlaceholder, 'opacity-0');
   removeClass(customPlaceholder, 'invisible');
-  addClass(input, 'placeholder-hidden');
+  addClass(input, CSS_CLASSES.PLACEHOLDER_HIDDEN);
   applyRTLPosition(customPlaceholder);
 }
 
@@ -67,7 +67,7 @@ function hidePlaceholder(): void {
   const { customPlaceholder, input } = state;
   if (!customPlaceholder || !input) return;
   setOpacity(customPlaceholder, 0);
-  removeClass(input, 'placeholder-hidden');
+  removeClass(input, CSS_CLASSES.PLACEHOLDER_HIDDEN);
 }
 
 function updatePlaceholderForInput(value: string): void {
@@ -77,14 +77,14 @@ function updatePlaceholderForInput(value: string): void {
   if (value.trim().length > 0) {
     addClass(placeholder, 'opacity-0');
     addClass(placeholder, 'invisible');
-    removeClass(input, 'placeholder-hidden');
+    removeClass(input, CSS_CLASSES.PLACEHOLDER_HIDDEN);
     return;
   }
 
   removeClass(placeholder, 'opacity-0');
   removeClass(placeholder, 'invisible');
   applyRTLPosition(placeholder);
-  addClass(input, 'placeholder-hidden');
+  addClass(input, CSS_CLASSES.PLACEHOLDER_HIDDEN);
 }
 
 function rotate(): void {
@@ -126,14 +126,14 @@ function setupEvents(): void {
 function initMobileSupport(): void {
   const applyMobileClass = () => {
     if (!state.customPlaceholder) return;
-    if (window.innerWidth < BREAKPOINTS.MOBILE) {
+    if (isMobile()) {
       addClass(state.customPlaceholder, 'mobile-placeholder');
     } else {
       removeClass(state.customPlaceholder, 'mobile-placeholder');
     }
   };
 
-  if (window.innerWidth < BREAKPOINTS.MOBILE) {
+  if (isMobile()) {
     enhanceForTouch(state.input);
     enhanceForTouch(elements.submitButton());
     applyMobileClass();

@@ -27,6 +27,25 @@ describe('GrokRequestSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  test('should reject a whitespace-only question (trimmed to empty)', () => {
+    const result = GrokRequestSchema.safeParse({
+      question: '   \n\t  ',
+      turnstileToken: VALID_TOKEN,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('trims surrounding whitespace from a valid question', () => {
+    const result = GrokRequestSchema.safeParse({
+      question: '  What is Grok?  ',
+      turnstileToken: VALID_TOKEN,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.question).toBe('What is Grok?');
+    }
+  });
+
   test('should reject a missing question', () => {
     const result = GrokRequestSchema.safeParse({});
     expect(result.success).toBe(false);

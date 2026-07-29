@@ -1,3 +1,4 @@
+import { CSS_CLASSES } from '@lmgroktfy/shared';
 import { elements } from './dom';
 import { openHelpDialog } from './events';
 
@@ -20,7 +21,7 @@ function shouldIgnore(): boolean {
 
 function responseVisible(): boolean {
   const response = elements.response();
-  return response !== null && !response.classList.contains('hidden');
+  return response !== null && !response.classList.contains(CSS_CLASSES.HIDDEN);
 }
 
 function handleKeydown(event: KeyboardEvent): void {

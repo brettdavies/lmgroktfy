@@ -154,6 +154,7 @@ describe('securityHeaders middleware', () => {
     expect(csp).toContain('https://cdnjs.cloudflare.com');
     expect(csp).toContain("base-uri 'none'");
     expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("form-action 'self'");
     expect(csp).not.toContain('nonce-');
     expect(response.headers.get('Strict-Transport-Security')).toBeNull();
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
@@ -261,6 +262,27 @@ describe('langRedirect middleware', () => {
 
   test('leaves a POST to the API untouched', async () => {
     const context = makeLangContext('https://lmgroktfy.com/api/grok?lang=es', 'POST');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('passthrough');
+  });
+
+  test('redirects a dotted question deep-link (not mistaken for a file)', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/node.js+vs+deno?lang=es');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('/es/node.js+vs+deno');
+  });
+
+  test('leaves a markdown twin (.md) untouched under ?lang', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/index.md?lang=es');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('passthrough');
+  });
+
+  test('leaves a sitemap (.xml) endpoint untouched under ?lang', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/sitemap.xml?lang=es');
     const response = await asMiddleware(langRedirect)(context, passthrough);
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('passthrough');

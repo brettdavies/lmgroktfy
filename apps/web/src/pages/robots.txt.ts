@@ -1,11 +1,5 @@
 import type { APIRoute } from 'astro';
-
-// The configured `site` (apps/web/astro.config.mjs) is always set for this
-// project; the fallback only satisfies the `URL | undefined` type Astro
-// exposes for sites that omit it.
-function resolveSite(site: URL | undefined): URL {
-  return site ?? new URL('https://lmgroktfy.com');
-}
+import { resolveSite } from '../lib/site';
 
 function buildRobotsTxt(site: URL): string {
   const sitemapUrl = new URL('/sitemap.xml', site).toString();

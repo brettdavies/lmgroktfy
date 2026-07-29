@@ -1,16 +1,6 @@
+import { SUPPORTED_LOCALES } from '@lmgroktfy/shared';
 import type { APIRoute } from 'astro';
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@lmgroktfy/shared';
-
-function localeHomePath(locale: string): string {
-  return locale === DEFAULT_LOCALE ? '/' : `/${locale}/`;
-}
-
-// The configured `site` (apps/web/astro.config.mjs) is always set for this
-// project; the fallback only satisfies the `URL | undefined` type Astro
-// exposes for sites that omit it.
-function resolveSite(site: URL | undefined): URL {
-  return site ?? new URL('https://lmgroktfy.com');
-}
+import { localeHomePath, resolveSite } from '../lib/site';
 
 function buildSitemapXml(site: URL): string {
   const urlEntries = SUPPORTED_LOCALES.map((locale) => {

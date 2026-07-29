@@ -113,4 +113,38 @@ describe('callXai', () => {
       expect(result.reason).toBe('malformed');
     }
   });
+
+  test('treats an empty content as malformed rather than a placeholder answer', async () => {
+    const result = await callXai('q', 'key', {
+      fetchImpl: async () => completion(''),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('malformed');
+    }
+  });
+
+  test('treats a whitespace-only content as malformed', async () => {
+    const result = await callXai('q', 'key', {
+      fetchImpl: async () => completion('   \n\t  '),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('malformed');
+    }
+  });
+
+  test('treats absent choices as malformed', async () => {
+    const result = await callXai('q', 'key', {
+      fetchImpl: async () =>
+        new Response(JSON.stringify({ id: 'share-1', choices: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('malformed');
+    }
+  });
 });

@@ -63,6 +63,27 @@ test.describe('submit and share', () => {
     await expect(page.locator('#answer')).toHaveText(MOCK_ANSWER);
   });
 
+  test('a rapid double-submit POSTs the single-use token only once', async ({ page }) => {
+    const posts = await mockGrok(page);
+    await page.goto('/');
+    await injectTurnstileToken(page);
+    await page.fill('#question-input', 'what is grok');
+
+    // Fire two submits in the same tick: the first sets the in-flight guard
+    // before it yields, so the second must drop rather than re-POST the
+    // single-use Turnstile token.
+    await page.evaluate(() => {
+      const form = document.getElementById('question-form') as HTMLFormElement;
+      form.requestSubmit();
+      form.requestSubmit();
+    });
+
+    await expect(page.locator('#answer')).toHaveText(MOCK_ANSWER);
+    // Let any erroneous second POST land before asserting the count.
+    await page.waitForTimeout(200);
+    expect(posts).toHaveLength(1);
+  });
+
   test('copy share link writes the current URL to the clipboard', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await mockGrok(page);

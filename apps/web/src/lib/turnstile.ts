@@ -1,4 +1,5 @@
 import { HEADERS } from '@lmgroktfy/shared';
+import { describeError, isAbort } from './errors';
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const FORM_CONTENT_TYPE = 'application/x-www-form-urlencoded';
@@ -68,8 +69,7 @@ export async function verifyTurnstileToken(
       if (isAbort(controller, error)) {
         return { ok: false, reason: 'timeout', detail: `siteverify aborted after ${timeoutMs}ms` };
       }
-      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      return { ok: false, reason: 'transport', detail };
+      return { ok: false, reason: 'transport', detail: describeError(error) };
     }
 
     if (!response.ok) {
@@ -97,10 +97,6 @@ export async function verifyTurnstileToken(
   } finally {
     clearTimeout(timer);
   }
-}
-
-function isAbort(controller: AbortController, error: unknown): boolean {
-  return controller.signal.aborted || (error instanceof Error && error.name === 'AbortError');
 }
 
 /**

@@ -274,7 +274,7 @@ describe('POST /api/grok', () => {
     expect(called).toBe(false);
   });
 
-  test('collapses two IPv6 addresses in the same /64 to one limiter bucket', async () => {
+  test('collapses two IPv6 addresses in the same /48 (different /64) to one limiter bucket', async () => {
     const keys: string[] = [];
     workersEnv.RATE_LIMITER = {
       limit: async ({ key }) => {
@@ -283,13 +283,15 @@ describe('POST /api/grok', () => {
       },
     };
     globalThis.fetch = completionFetch('ok');
+    // Same /48 (2001:db8:1) but different /64 (…:2 vs …:9): a /64 collapse would
+    // split these into two buckets and hand one routed client thousands of keys.
     await invoke(
       apiRequest(ask('hi'), {
         'CF-Connecting-IP': '2001:db8:1:2:aaaa:bbbb:cccc:dddd',
       })
     );
-    await invoke(apiRequest(ask('hi'), { 'CF-Connecting-IP': '2001:db8:1:2::1' }));
-    expect(keys).toEqual(['2001:db8:1:2::/64', '2001:db8:1:2::/64']);
+    await invoke(apiRequest(ask('hi'), { 'CF-Connecting-IP': '2001:db8:1:9::1' }));
+    expect(keys).toEqual(['2001:db8:1::/48', '2001:db8:1::/48']);
   });
 
   test('denies an absent CF-Connecting-IP under an active limiter with 429', async () => {
@@ -509,6 +511,22 @@ describe('POST /api/grok', () => {
       const response = await invoke(apiRequest(ask('What is Grok?')));
       expect(response.status).toBe(200);
       expect(counted.calls()).toBe(1);
+    });
+
+    test('an empty xAI answer is malformed → 502 and is never cached (no put)', async () => {
+      let puts = 0;
+      workersEnv.ANSWER_CACHE = {
+        get: async () => null,
+        put: async () => {
+          puts += 1;
+        },
+      };
+      globalThis.fetch = completionFetch('');
+      const response = await invoke(apiRequest(ask('What is Grok?')));
+      expect(response.status).toBe(502);
+      expect(puts).toBe(0);
+      const body = (await response.json()) as { error: string };
+      expect(body.error).toBe('Upstream request failed');
     });
   });
 });

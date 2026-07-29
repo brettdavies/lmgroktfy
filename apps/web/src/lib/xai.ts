@@ -5,6 +5,7 @@ import {
   HEADERS,
   XAICompletionResponseSchema,
 } from '@lmgroktfy/shared';
+import { describeError, isAbort } from './errors';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
@@ -67,8 +68,7 @@ export async function callXai(
       if (isAbort(controller, error)) {
         return { ok: false, reason: 'timeout', detail: `xAI request aborted after ${timeoutMs}ms` };
       }
-      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      return { ok: false, reason: 'transport', detail };
+      return { ok: false, reason: 'transport', detail: describeError(error) };
     }
 
     if (!upstream.ok) {
@@ -91,8 +91,17 @@ export async function callXai(
       return { ok: false, reason: 'malformed', detail: 'xAI response failed schema validation' };
     }
 
+    // An empty or whitespace-only answer (or absent choices) is not a servable
+    // result: substituting a placeholder would cache that degenerate answer for
+    // the full TTL and serve it to every caller asking the same question. Treat
+    // it as malformed so the endpoint returns 502 and caches nothing.
+    const content = parsed.data.choices[0]?.message?.content;
+    if (!content || content.trim().length === 0) {
+      return { ok: false, reason: 'malformed', detail: 'xAI response carried no answer content' };
+    }
+
     const response: GrokResponse = {
-      answer: parsed.data.choices[0]?.message?.content || 'No answer provided',
+      answer: content,
       shareId: parsed.data.id,
     };
 
@@ -105,10 +114,6 @@ export async function callXai(
   } finally {
     clearTimeout(timer);
   }
-}
-
-function isAbort(controller: AbortController, error: unknown): boolean {
-  return controller.signal.aborted || (error instanceof Error && error.name === 'AbortError');
 }
 
 async function safeText(response: Response): Promise<string> {

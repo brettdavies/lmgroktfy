@@ -20,6 +20,7 @@ export const CONTENT_SECURITY_POLICY = [
   "base-uri 'none'",
   "object-src 'none'",
   "frame-ancestors 'none'",
+  "form-action 'self'",
 ].join('; ');
 
 export const SECURITY_HEADERS: Record<string, string> = {

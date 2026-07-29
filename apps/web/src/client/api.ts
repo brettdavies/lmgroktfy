@@ -9,6 +9,8 @@ import { elements } from './dom';
 import { hideLoading, showError, showLoading, showSuccess } from './transitions';
 import { awaitTurnstileToken, getTurnstileToken } from './turnstile';
 
+let submitInFlight = false;
+
 /**
  * Submits a question to the Grok proxy and renders the result.
  *
@@ -16,16 +18,23 @@ import { awaitTurnstileToken, getTurnstileToken } from './turnstile';
  * widget resolves asynchronously), the island shows a visible pending state and
  * AWAITS the token rather than firing an unverified request. This is what keeps
  * a `/your+question` deep link from 403-ing on load.
+ *
+ * A Turnstile token is single-use: a second submit while the first is resolving
+ * its token or awaiting the response would POST the same token again, draw a 403,
+ * and clobber the rendered answer. The in-flight guard spans the whole window —
+ * token resolution and the fetch — so a rapid double-submit fires exactly one POST.
  */
 export async function submitQuestion(question: string): Promise<void> {
   if (!question?.trim()) return;
-
-  const token = await resolveToken(question);
-  if (token === null) return;
-
-  showLoading();
+  if (submitInFlight) return;
+  submitInFlight = true;
 
   try {
+    const token = await resolveToken(question);
+    if (token === null) return;
+
+    showLoading();
+
     const response = await fetch(API_ENDPOINTS.GROK, {
       method: 'POST',
       headers: { [HEADERS.CONTENT_TYPE]: HEADERS.JSON },
@@ -56,6 +65,8 @@ export async function submitQuestion(question: string): Promise<void> {
     console.error('[api] request failed:', error);
     hideLoading();
     showError(question);
+  } finally {
+    submitInFlight = false;
   }
 }
 

@@ -161,8 +161,8 @@ async function verifyChallenge(token: string, request: Request): Promise<Respons
  * Rate-limits on the Cloudflare-trusted client IP only. A forged
  * `X-Forwarded-For` can never mint a key, and an absent `CF-Connecting-IP` under
  * an active limiter is denied rather than bucketed under a shared fallback. The
- * key is normalized so a routed IPv6 allocation collapses to its /64 prefix and
- * cannot spread one client across 2^64 buckets.
+ * key is normalized so a routed IPv6 allocation collapses to its /48 prefix and
+ * cannot spread one client across the addresses in its allocation.
  */
 async function enforceRateLimit(request: Request): Promise<Response | null> {
   const limiter = env.RATE_LIMITER;
@@ -183,9 +183,12 @@ async function enforceRateLimit(request: Request): Promise<Response | null> {
 }
 
 /**
- * Reduces an IPv6 address to its /64 routing prefix so a single client cannot
- * mint a distinct limiter key per address in its allocation. IPv4 addresses key
- * whole; an unparseable value keys as-is (still bucketed, never dropped).
+ * Reduces an IPv6 address to its /48 routing prefix so a single client cannot
+ * mint a distinct limiter key per address in its allocation. A /64 collapse is
+ * too narrow: ISPs and tunnel brokers routinely route a whole /48–/56 to one
+ * customer, so keying on /64 would still hand that customer thousands of
+ * buckets. IPv4 addresses key whole; an unparseable value keys as-is (still
+ * bucketed, never dropped).
  */
 function normalizeClientIp(ip: string): string {
   if (!ip.includes(':')) {
@@ -195,7 +198,7 @@ function normalizeClientIp(ip: string): string {
   if (!groups) {
     return ip;
   }
-  return `${groups.slice(0, 4).join(':')}::/64`;
+  return `${groups.slice(0, 3).join(':')}::/48`;
 }
 
 function expandIpv6(ip: string): string[] | null {
