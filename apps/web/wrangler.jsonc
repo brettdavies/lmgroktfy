@@ -18,12 +18,17 @@
 
   "env": {
     "staging": {
-      // workers.dev preview target; verified before promoting production in place.
+      // Staging serves on the dev.lmgroktfy.com custom domain, not workers.dev: Turnstile
+      // refuses to issue a widget for the shared *.workers.dev zone, so a real staging
+      // challenge needs a registered domain. Verified before promoting production in place.
       "name": "lmgroktfy-staging",
-      "workers_dev": true,
+      "workers_dev": false,
+      "routes": [{ "pattern": "dev.lmgroktfy.com", "custom_domain": true }],
       "vars": {
         "ENVIRONMENT": "staging"
-        // TURNSTILE_SITE_KEY (the public Turnstile site key) is per-environment and belongs in this block.
+        // TURNSTILE_SITE_KEY (public) is baked at build time by the Turnstile unit, not a
+        // runtime var (the widget renders on prerendered pages). Staging widget sitekey
+        // 0x4AAAAAAEAmF7QdqUEQKt7L (1Password: "lmgroktfy Turnstile (staging)").
       },
       "ratelimits": [
         {
@@ -33,14 +38,7 @@
           "simple": { "limit": 30, "period": 60 }
         }
       ],
-      "kv_namespaces": [
-        {
-          "binding": "ANSWER_CACHE",
-          // PLACEHOLDER — PENDING provisioning. Not a real Cloudflare KV namespace id;
-          // replace with the actual staging id from `wrangler kv namespace create` before deploy.
-          "id": "PENDING_PROVISIONING_STAGING_ANSWER_CACHE_KV_ID"
-        }
-      ]
+      "kv_namespaces": [{ "binding": "ANSWER_CACHE", "id": "ae8ae20fb2c840389761fc814567dab7" }]
     },
 
     "production": {
@@ -56,7 +54,9 @@
       ],
       "vars": {
         "ENVIRONMENT": "production"
-        // TURNSTILE_SITE_KEY (the public Turnstile site key) is per-environment and belongs in this block.
+        // TURNSTILE_SITE_KEY (public) is baked at build time by the Turnstile unit, not a
+        // runtime var. Production widget sitekey 0x4AAAAAAEAmHJj54x5mc02v
+        // (1Password: "lmgroktfy Turnstile (production)").
       },
       "ratelimits": [
         {
@@ -65,14 +65,7 @@
           "simple": { "limit": 30, "period": 60 }
         }
       ],
-      "kv_namespaces": [
-        {
-          "binding": "ANSWER_CACHE",
-          // PLACEHOLDER — PENDING provisioning. Not a real Cloudflare KV namespace id;
-          // replace with the actual production id from `wrangler kv namespace create` before deploy.
-          "id": "PENDING_PROVISIONING_PRODUCTION_ANSWER_CACHE_KV_ID"
-        }
-      ]
+      "kv_namespaces": [{ "binding": "ANSWER_CACHE", "id": "766e516a0b524d67945944b07519dc52" }]
     }
   }
 }
