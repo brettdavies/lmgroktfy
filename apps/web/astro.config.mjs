@@ -65,5 +65,13 @@ export default defineConfig({
   },
   vite: {
     plugins: [tailwindcss()],
+    // The Turnstile site key is chosen per environment inside a prerendered
+    // component, whose SSR/prerender bundle does not see the build shell's
+    // `process.env`. Injecting the value here, in the main config process where
+    // `CLOUDFLARE_ENV` is set, bakes the correct key into the static HTML
+    // (mirroring how the `_headers` integration reads the same variable).
+    define: {
+      'import.meta.env.CLOUDFLARE_ENV': JSON.stringify(process.env.CLOUDFLARE_ENV ?? 'development'),
+    },
   },
 });
