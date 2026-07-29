@@ -12,9 +12,6 @@ coverage/
 
 # Build outputs
 packages/**/dist/
-# packages/web/public/ is the static/public assets dir, but output is not typically built here
-# Remove from ignore if you want to check in static assets or if it's used in the deployment process
-packages/web/public/
 
 # Astro app build output and generated types
 apps/web/dist/

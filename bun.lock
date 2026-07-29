@@ -36,28 +36,11 @@
         "vite": "8.1.5",
       },
     },
-    "packages/client": {
-      "name": "@lmgroktfy/client",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lmgroktfy/shared": "workspace:*",
-      },
-    },
     "packages/shared": {
       "name": "@lmgroktfy/shared",
       "version": "1.0.0",
       "dependencies": {
         "zod": "^3.23.0",
-      },
-    },
-    "packages/web": {
-      "name": "@lmgroktfy/web",
-      "version": "1.0.0",
-      "dependencies": {
-        "@lmgroktfy/shared": "workspace:*",
-      },
-      "devDependencies": {
-        "@cloudflare/workers-types": "^4.20241205.0",
       },
     },
   },
@@ -312,11 +295,7 @@
 
     "@lmgroktfy/app": ["@lmgroktfy/app@workspace:apps/web"],
 
-    "@lmgroktfy/client": ["@lmgroktfy/client@workspace:packages/client"],
-
     "@lmgroktfy/shared": ["@lmgroktfy/shared@workspace:packages/shared"],
-
-    "@lmgroktfy/web": ["@lmgroktfy/web@workspace:packages/web"],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.6", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg=="],
 

@@ -17,9 +17,7 @@
       "node_modules",
       "dist",
       "packages/*/dist",
-      "packages/web/public",
       ".wrangler",
-      "packages/web/.wrangler",
       "apps/web"
     ]
   }
