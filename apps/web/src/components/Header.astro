@@ -1,0 +1,51 @@
+---
+import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
+
+const locale = Astro.currentLocale ?? DEFAULT_LOCALE;
+---
+
+<header>
+  <!-- Toast Container -->
+  <div class="fixed top-4 right-4 z-50">
+    <div
+      id="toast"
+      class="hidden rounded-lg bg-green-600 px-4 py-2 text-white shadow-lg"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <i class="fa-solid fa-circle-check mr-2"></i>
+      <span id="toast-message"></span>
+    </div>
+  </div>
+
+  <!-- Theme, Language and Help Controls -->
+  <div class="fixed top-4 right-4 flex gap-2">
+    <select
+      id="language-switcher"
+      class="cursor-pointer border-none bg-transparent p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+      aria-label="Select language"
+    >
+      <option value="ar" selected={locale === 'ar'}>🇪🇬 AR</option>
+      <option value="de" selected={locale === 'de'}>🇩🇪 DE</option>
+      <option value="en" selected={locale === 'en'}>🇺🇸 EN</option>
+      <option value="es" selected={locale === 'es'}>🇪🇸 ES</option>
+      <option value="fr" selected={locale === 'fr'}>🇫🇷 FR</option>
+      <option value="ja" selected={locale === 'ja'}>🇯🇵 JA</option>
+    </select>
+    <button
+      id="theme-toggle"
+      class="p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+      title="Toggle light/dark theme"
+      aria-label="Toggle light/dark theme"
+    >
+      <i class="fa-solid fa-moon"></i>
+    </button>
+    <button
+      class="p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+      title="How to use"
+      aria-label="How to use"
+    >
+      <i class="fa-solid fa-circle-info"></i>
+    </button>
+  </div>
+</header>

@@ -43,19 +43,32 @@ pass "bun ($(bun --version))"
 bun run lint || fail "bun run lint"
 pass "lint"
 
-# 2. Type check across shared/client/web. CI mirror: test.yml "Type check" step.
+# 2. Format check (Prettier, incl. .astro via prettier-plugin-astro). apps/web
+# is excluded from Biome, so Prettier owns its formatting. CI mirror: test.yml
+# "Format check" step.
+bun run format:check || fail "bun run format:check"
+pass "format"
+
+# 3. Type check: tsc over packages/shared, astro check over apps/web. CI mirror:
+# test.yml "Type check" step.
 bun run typecheck || fail "bun run typecheck"
 pass "typecheck"
 
-# 3. Build all packages. CI mirror: test.yml "Build" step.
+# 4. Build shared + the Astro app. CI mirror: test.yml "Build" step.
 bun run build || fail "bun run build"
 pass "build"
 
-# 4. Tests. CI mirror: test.yml "Run tests" step (CI adds --coverage).
-bun test || fail "bun test"
+# 5. Unit tests (packages + app). CI mirror: test.yml "Unit tests" step.
+bun run test:all || fail "bun run test:all"
 pass "test"
 
-# 5. Workflow lint — actionlint over .github/workflows. Skip-with-hint.
+# 6. End-to-end (Playwright). CI mirror: test.yml "End-to-end tests" step. The
+# build above produced the dist the harness serves; browsers are system-provided
+# (never run `playwright install` locally).
+bun run test:e2e || fail "bun run test:e2e"
+pass "e2e"
+
+# 7. Workflow lint — actionlint over .github/workflows. Skip-with-hint.
 if command -v actionlint >/dev/null 2>&1; then
   actionlint || fail "actionlint"
   pass "actionlint"
@@ -63,7 +76,7 @@ else
   echo "  - actionlint (skipped: install via \`brew install actionlint\`)"
 fi
 
-# 6. Shell lint — shellcheck over tracked shell scripts and the hooks
+# 8. Shell lint — shellcheck over tracked shell scripts and the hooks
 # themselves. Severity "warning" catches real bugs while ignoring style noise.
 if command -v shellcheck >/dev/null 2>&1; then
   mapfile -t shell_files < <({

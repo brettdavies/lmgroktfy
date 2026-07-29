@@ -1,0 +1,70 @@
+---
+import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
+import { useTranslations } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale ?? DEFAULT_LOCALE);
+---
+
+<div id="loading" class="hidden" aria-live="polite">
+  <div class="flex items-center gap-2">
+    <div class="h-5 w-5 animate-spin rounded-full border-b-2 border-current"></div>
+    <span>{t('main.loading')}</span>
+  </div>
+</div>
+
+<div id="response" class="hidden w-full max-w-2xl" aria-live="polite" aria-atomic="true">
+  <div class="bg-grok-input-light dark:bg-grok-input-dark rounded-xl p-6 shadow-lg">
+    <p id="question-display" class="mb-4 text-lg font-medium text-gray-700 dark:text-gray-300"></p>
+    <p id="answer" class="text-lg"></p>
+
+    <div class="mt-6 space-y-4">
+      <!-- Primary Actions -->
+      <div class="flex flex-wrap justify-center gap-2">
+        <a
+          id="continue-link"
+          class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          title="Understand more on Grok"
+          href="#"
+          target="_blank"
+          set:html={t('actions.understand')}
+        />
+        <a
+          id="use-grok-button"
+          class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          title="Use Grok on X"
+          href="#"
+          target="_blank"
+          set:html={t('actions.use')}
+        />
+      </div>
+
+      <!-- Share Actions -->
+      <div class="flex flex-wrap justify-center gap-2">
+        <button
+          id="copy-question-answer-button"
+          class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          aria-label="Copy question and answer"
+          set:html={t('actions.copy_qa')}
+        />
+        <button
+          id="copy-answer-button"
+          class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          aria-label="Copy answer"
+          set:html={t('actions.copy_answer')}
+        />
+        <button
+          id="share-button"
+          class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          aria-label="Copy share link"
+          set:html={t('actions.copy_link')}
+        />
+        <button
+          id="share-on-x-button"
+          class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          aria-label="Share on X"
+          set:html={t('actions.share_x')}
+        />
+      </div>
+    </div>
+  </div>
+</div>

@@ -16,29 +16,53 @@ LMGROKTFY ("Let Me Grok That For You") is a public, accessibility-first web app 
 renders a shareable answer. It supports six languages, full keyboard navigation, and screen-reader semantics, and runs
 on Cloudflare Workers.
 
-A Bun workspaces monorepo under `packages/`:
+A Bun workspaces monorepo:
 
-| Package             | Role                                                                    |
-| ------------------- | ----------------------------------------------------------------------- |
-| `@lmgroktfy/shared` | Zod schemas and types shared across the client and the Worker           |
-| `@lmgroktfy/client` | Vanilla-TypeScript browser client (query box, keyboard shortcuts, i18n) |
-| `@lmgroktfy/web`    | Cloudflare Worker: API routes, middleware, and static asset serving     |
+| Workspace           | Role                                                                                                                                                  |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`          | Astro app on Cloudflare Workers (`@astrojs/cloudflare`): prerendered pages, the SSR `/api/grok` endpoint, URL-routed i18n, and the interactive island |
+| `@lmgroktfy/shared` | Zod schemas, types, and constants shared with the app                                                                                                 |
 
-`scripts/build.ts` orchestrates the per-package builds; `packages/web` builds with `tsc` and runs under `wrangler dev`.
-
-## Direction: Astro rewrite (planned)
-
-A full rewrite of the site into Astro (SSG/SSR per route, still on Cloudflare Workers, never Pages) is planned. Until it
-lands, the stack described below is authoritative — do not assume an Astro layout.
+`bun run build` builds `@lmgroktfy/shared`, then the Astro app (`astro build`) into a single Cloudflare Worker via the
+`@astrojs/cloudflare` adapter. `apps/web` runs under `astro dev`.
 
 ## Bun + Biome + Wrangler + Tailwind conventions
 
 - Package manager and test runner: Bun. Install with `bun install --frozen-lockfile`; commit `bun.lock`. `bunfig.toml`
   sets `exact = true`, so new dependencies pin exact versions.
-- Lint: Biome (`bun run lint`). Format: Prettier with `prettier-plugin-tailwindcss` (`bun run format`).
-- Styling: Tailwind v4 (`@tailwindcss/cli`) plus daisyUI.
-- Typecheck: `bun run typecheck` runs `tsc --noEmit` across `shared`, `client`, and `web`.
-- Deploy: Wrangler (`bun run deploy`). Cloudflare Workers only, never Cloudflare Pages — a Pages reference is a bug.
+- Lint: Biome (`bun run lint`) over the packages; `apps/web` is checked by `astro check`. Format: Prettier (`bun run
+  format`) with `prettier-plugin-astro` for `.astro` and `prettier-plugin-tailwindcss` for class sorting. Prettier owns
+  `apps/web` formatting because Biome cannot format `.astro`.
+- Styling: Tailwind v4 (`@tailwindcss/vite`) plus daisyUI.
+- Typecheck: `bun run typecheck` runs `tsc --noEmit` over `packages/shared` and `astro check` over `apps/web`.
+- Deploy: Wrangler per environment (`bun run deploy:staging` / `bun run deploy:prod`). Cloudflare Workers only, never
+  Cloudflare Pages; a Pages reference is a bug.
+
+## Deploying the Astro app
+
+`apps/web` (the Astro app) builds to one Cloudflare Worker via the `@astrojs/cloudflare` adapter and targets two
+environments defined in `apps/web/wrangler.jsonc`:
+
+- **Staging** — Worker `lmgroktfy-staging` on `lmgroktfy-staging.workers.dev`. `bun run deploy:staging`.
+- **Production** — Worker `lmgroktfy` on the `lmgroktfy.com` / `www.lmgroktfy.com` custom domains. `bun run
+  deploy:prod`.
+
+`[env.production].name` is pinned to `lmgroktfy` so `--env production` promotes the existing Worker in place; a distinct
+`lmgroktfy-production` Worker would collide on the `lmgroktfy.com` custom domain. The top-level `name` is a throwaway
+`lmgroktfy-dev`, so a bare `wrangler deploy` with no `--env` cannot reach production — always select an environment.
+
+The adapter fixes the environment at build time via `CLOUDFLARE_ENV`, not the deploy-time `--env` flag; the deploy
+scripts set `CLOUDFLARE_ENV` and pass a matching `--env` so Wrangler rejects a build/deploy environment mismatch.
+Dry-run a target from `apps/web` with `CLOUDFLARE_ENV=<env> bunx astro build && bunx wrangler deploy --env <env>
+--dry-run`.
+
+Secrets (`API_KEY`, `TURNSTILE_SECRET_KEY`) are per-environment and set with `wrangler secret put <NAME> --env <env>` —
+never in `wrangler.jsonc` or git. Staging and production carry distinct rate-limit and KV namespace ids so the two
+Workers never share state while both exist.
+
+Rollback: `wrangler rollback --env production --message "<reason>"` reverts the production Worker to its previous
+version; alternatively redeploy the last-known-good build with `bun run deploy:prod`. Keep that build deployable so a
+rollback never waits on recovering deleted source.
 
 ## Internationalization
 
@@ -53,21 +77,24 @@ Keep every supported locale in sync; accessibility and i18n are product commitme
 
 ## Testing
 
-`bun test` runs the TypeScript tests under `packages/` (`bunfig.toml` scopes the test root to `./packages`). CI runs
-lint, typecheck, build, and `bun test --coverage`.
+`bun test` runs the TypeScript tests under `packages/` (`bunfig.toml` scopes the test root to `./packages`). The
+`apps/web` unit tests live outside that root, so `bun run test:app` runs them explicitly and `bun run test:all` runs the
+package suite followed by the app suite. Playwright end-to-end tests live in `apps/web/tests/e2e` and run with `bun run
+test:e2e`. CI and the pre-push hook run the full set (see below).
 
 ## CI
 
 `.github/workflows/test.yml` (workflow `CI`, job `test`) runs on pull requests into `dev` and `main`: install, Biome
-lint, typecheck, build, and tests with coverage. Actions are SHA-pinned with a `# vX.Y.Z` trailing comment; keep them
-pinned. There is no `push` trigger — under squash merges the merge commit's tree equals the PR head CI already verified.
+lint, Prettier format check, typecheck, build, unit tests, and Playwright end-to-end (Chromium installed explicitly).
+Actions are SHA-pinned with a `# vX.Y.Z` trailing comment; keep them pinned. There is no `push` trigger — under squash
+merges the merge commit's tree equals the PR head CI already verified.
 
 ## Local hooks
 
 Hooks live at `scripts/hooks/`, activated per clone with `git config core.hooksPath scripts/hooks` (machine-local; does
-not travel with the checkout). `pre-commit` runs fast staged-scoped checks (Biome, Prettier, actionlint, markdownlint);
-`pre-push` mirrors CI (`bun run lint`, `typecheck`, `build`, `bun test`). Keep the pre-push checks in lockstep with
-`test.yml`.
+not travel with the checkout). `pre-commit` runs fast staged-scoped checks (Biome, Prettier incl. `.astro`, actionlint,
+markdownlint); `pre-push` mirrors CI (`lint`, `format:check`, `typecheck`, `build`, `test:all`, Playwright e2e,
+actionlint, shellcheck). Keep the pre-push checks in lockstep with `test.yml`.
 
 ## Branch and release model
 

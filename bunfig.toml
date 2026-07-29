@@ -2,6 +2,17 @@
 # Use exact versions for reproducibility
 exact = true
 
+# These pinned packages publish newer than the local minimumReleaseAge cooldown
+# allows; exempt them by name so the pinned versions resolve while the cooldown
+# still guards every other dependency.
+minimumReleaseAgeExcludes = [
+  "astro",
+  "@astrojs/cloudflare",
+  "@astrojs/check",
+  "@astrojs/internal-helpers",
+  "daisyui",
+]
+
 [test]
 # Test configuration
 coverage = true

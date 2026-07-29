@@ -17,12 +17,12 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: "/"
+    directory: '/'
     target-branch: dev
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
       timezone: America/Chicago
     cooldown:
       default-days: 7
@@ -33,21 +33,38 @@ updates:
       - dependencies
       - javascript
     groups:
+      # Keep the Astro 7.1.x / Cloudflare adapter / wrangler / Vite stack moving
+      # as one PR so no single package drifts out of the locked, mutually
+      # compatible set. Listed first: Dependabot assigns a dependency to the
+      # first matching group in file order.
+      astro-cloudflare:
+        patterns:
+          - 'astro'
+          - '@astrojs/*'
+          - '@cloudflare/*'
+          - 'wrangler'
+          - 'vite'
+          - '@tailwindcss/*'
+          - 'tailwindcss'
+          - 'daisyui'
+        update-types:
+          - minor
+          - patch
       npm-minor-patch:
         update-types:
           - minor
           - patch
     ignore:
-      - dependency-name: "*"
+      - dependency-name: '*'
         update-types:
           - version-update:semver-major
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: '/'
     target-branch: dev
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
       timezone: America/Chicago
     cooldown:
       default-days: 7
@@ -58,6 +75,6 @@ updates:
       - dependencies
       - github-actions
     ignore:
-      - dependency-name: "*"
+      - dependency-name: '*'
         update-types:
           - version-update:semver-major

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { REQUEST_LIMITS, TURNSTILE } from '../constants/api';
 import {
   GrokErrorSchema,
   GrokRequestSchema,
@@ -6,14 +7,18 @@ import {
   XAICompletionResponseSchema,
 } from '../schemas/api';
 
+const VALID_TOKEN = 'x'.repeat(40);
+
 describe('GrokRequestSchema', () => {
   test('should validate a valid request', () => {
     const result = GrokRequestSchema.safeParse({
       question: 'What is TypeScript?',
+      turnstileToken: VALID_TOKEN,
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.question).toBe('What is TypeScript?');
+      expect(result.data.turnstileToken).toBe(VALID_TOKEN);
     }
   });
 
@@ -22,21 +27,76 @@ describe('GrokRequestSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  test('should reject a whitespace-only question (trimmed to empty)', () => {
+    const result = GrokRequestSchema.safeParse({
+      question: '   \n\t  ',
+      turnstileToken: VALID_TOKEN,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('trims surrounding whitespace from a valid question', () => {
+    const result = GrokRequestSchema.safeParse({
+      question: '  What is Grok?  ',
+      turnstileToken: VALID_TOKEN,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.question).toBe('What is Grok?');
+    }
+  });
+
   test('should reject a missing question', () => {
     const result = GrokRequestSchema.safeParse({});
     expect(result.success).toBe(false);
   });
 
-  test('should reject a question that is too long', () => {
-    const longQuestion = 'a'.repeat(10001);
+  test('should reject a question longer than the tightened bound', () => {
+    const longQuestion = 'a'.repeat(REQUEST_LIMITS.MAX_QUESTION_LENGTH + 1);
     const result = GrokRequestSchema.safeParse({ question: longQuestion });
     expect(result.success).toBe(false);
   });
 
-  test('should accept a question at max length', () => {
-    const maxQuestion = 'a'.repeat(10000);
-    const result = GrokRequestSchema.safeParse({ question: maxQuestion });
+  test('should accept a question at the tightened max length', () => {
+    const maxQuestion = 'a'.repeat(REQUEST_LIMITS.MAX_QUESTION_LENGTH);
+    const result = GrokRequestSchema.safeParse({
+      question: maxQuestion,
+      turnstileToken: VALID_TOKEN,
+    });
     expect(result.success).toBe(true);
+  });
+
+  test('worst-case serialized max question fits within the body cap', () => {
+    // A schema-valid question must never be rejected by the endpoint body cap.
+    // Worst case per JS code unit is a \\uXXXX escape (6 bytes) plus a Turnstile
+    // token; that ceiling must stay under the byte budget.
+    const worstCaseQuestionBytes = REQUEST_LIMITS.MAX_QUESTION_LENGTH * 6;
+    const turnstileTokenBudget = 2048;
+    const envelopeBudget = 64;
+    expect(worstCaseQuestionBytes + turnstileTokenBudget + envelopeBudget).toBeLessThan(
+      REQUEST_LIMITS.MAX_BODY_BYTES
+    );
+  });
+
+  test('should require a turnstileToken', () => {
+    const result = GrokRequestSchema.safeParse({ question: 'What is Grok?' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path[0] === 'turnstileToken')).toBe(true);
+    }
+  });
+
+  test('should reject a turnstileToken below the minimum length', () => {
+    const result = GrokRequestSchema.safeParse({
+      question: 'What is Grok?',
+      turnstileToken: 'x'.repeat(TURNSTILE.MIN_TOKEN_LENGTH - 1),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('should reject an empty turnstileToken', () => {
+    const result = GrokRequestSchema.safeParse({ question: 'What is Grok?', turnstileToken: '' });
+    expect(result.success).toBe(false);
   });
 });
 

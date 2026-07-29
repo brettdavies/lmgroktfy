@@ -1,0 +1,13 @@
+---
+import Home from '../components/Home.astro';
+
+// Lowest-precedence catch-all for `/your+question` deep links. Astro ranks the
+// static `/` and named `[locale]` routes above this spread route, and the
+// adapter serves prerendered assets before the Worker runs, so this only handles
+// genuine question paths. It is SSR (`prerender = false`) but renders no answer
+// and makes no upstream/billed call: the island decodes the path and fetches the
+// answer client-side, gated on a Turnstile token.
+export const prerender = false;
+---
+
+<Home />
