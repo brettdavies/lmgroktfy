@@ -1,0 +1,78 @@
+---
+---
+
+<dialog id="help_modal" class="modal invisible opacity-0 transition-opacity duration-200">
+  <div class="modal-box bg-white text-gray-800 dark:bg-[#1E1F23] dark:text-gray-200">
+    <div class="mb-6 flex items-start justify-between">
+      <h2 class="text-3xl font-semibold">How to Use LMGROKTFY</h2>
+      <form method="dialog">
+        <button class="btn btn-circle btn-ghost btn-sm" aria-label="Close help modal">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </form>
+    </div>
+    <p class="mb-8 text-lg">Type your question and let Grok answer it for you!</p>
+    <h3 class="mb-4 text-2xl font-semibold">Pro Tips</h3>
+    <ul class="space-y-4 text-lg">
+      <li class="flex items-start gap-2">
+        <span>Add your question directly to the URL:</span>
+        <code class="rounded bg-gray-100 px-3 py-0.5 font-mono text-base dark:bg-black/30"
+          >lmgroktfy.com/Your Question Here</code
+        >
+      </li>
+      <li>Share the link to let others see the same answer</li>
+      <li>Use the copy buttons to easily share the Q&A</li>
+    </ul>
+
+    <h3 class="mt-8 mb-4 text-2xl font-semibold">Keyboard Shortcuts</h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <h4 class="mb-2 font-semibold">General</h4>
+        <ul class="space-y-2">
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">/</kbd>
+            or
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">?</kbd>
+            <span>Focus search input</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">h</kbd>
+            <span>Open help modal</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">t</kbd>
+            <span>Toggle theme</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">Esc</kbd>
+            <span>Close modal</span>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="mb-2 font-semibold">When Answer is Displayed</h4>
+        <ul class="space-y-2">
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">c</kbd>
+            <span>Copy answer</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">q</kbd>
+            <span>Copy Q&A</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">s</kbd>
+            <span>Copy share link</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">g</kbd>
+            <span>Continue on Grok</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button aria-label="Close modal backdrop">close</button>
+  </form>
+</dialog>

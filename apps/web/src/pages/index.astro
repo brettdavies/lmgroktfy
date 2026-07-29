@@ -1,19 +1,24 @@
 ---
-import '../styles/global.css';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import HelpDialog from '../components/HelpDialog.astro';
+import QueryForm from '../components/QueryForm.astro';
+import ResponseRegion from '../components/ResponseRegion.astro';
+import Base from '../layouts/Base.astro';
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>lmgroktfy</title>
-  </head>
-  <body>
-    <main class="hero min-h-screen">
-      <div class="hero-content">
-        <button type="button" class="btn btn-primary">lmgroktfy</button>
-      </div>
-    </main>
-  </body>
-</html>
+<Base lang="en" title="Let me Grok that for you">
+  <Header />
+  <HelpDialog />
+  <main class="flex flex-1 flex-col items-center justify-center px-4 py-16">
+    <h1 class="mb-16 text-center text-[2.5rem] font-light tracking-tight">
+      <a href="/" class="home-link transition-opacity hover:opacity-90">
+        Let me <span class="font-normal text-gray-900 dark:text-white">Grok</span> that for you
+      </a>
+    </h1>
+
+    <QueryForm />
+    <ResponseRegion />
+  </main>
+  <Footer />
+</Base>

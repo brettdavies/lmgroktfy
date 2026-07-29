@@ -1,0 +1,44 @@
+---
+import '../styles/global.css';
+import { RTL_LOCALES } from '@lmgroktfy/shared';
+
+interface Props {
+  lang?: string;
+  title?: string;
+}
+
+const { lang = 'en', title = 'Let me Grok that for you' } = Astro.props;
+
+// RTL_LOCALES is the single source of truth for direction; U4 wires the real locale-routed value.
+const dir = RTL_LOCALES.includes(lang as (typeof RTL_LOCALES)[number]) ? 'rtl' : 'ltr';
+---
+
+<!doctype html>
+<html lang={lang} dir={dir} class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!-- SEO language meta tags -->
+    <link rel="alternate" hreflang="ar" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="de" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="en" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="es" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="fr" href="https://lmgroktfy.com/" />
+    <link rel="alternate" hreflang="ja" href="https://lmgroktfy.com/" />
+  </head>
+  <body
+    class="bg-grok-bg-light dark:bg-grok-bg-dark flex min-h-screen flex-col text-gray-800 dark:text-gray-200"
+  >
+    <slot />
+  </body>
+</html>
