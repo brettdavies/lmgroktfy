@@ -5,7 +5,28 @@ interface FakeLimiter {
   limit: (options: { key: string }) => Promise<{ success: boolean }>;
 }
 
-const workersEnv: { RATE_LIMITER?: FakeLimiter } = {};
+interface FakeKv {
+  get: (key: string, type?: string) => Promise<unknown>;
+  put: (key: string, value: string, options?: { expirationTtl?: number }) => Promise<void>;
+}
+
+function makeFakeKv(): FakeKv {
+  const store = new Map<string, string>();
+  return {
+    get: async (key: string, type?: string) => {
+      const raw = store.get(key);
+      if (raw === undefined) {
+        return null;
+      }
+      return type === 'json' ? JSON.parse(raw) : raw;
+    },
+    put: async (key: string, value: string) => {
+      store.set(key, value);
+    },
+  };
+}
+
+const workersEnv: { RATE_LIMITER?: FakeLimiter; ANSWER_CACHE?: FakeKv } = {};
 
 let apiKeyValue: string | undefined = 'test-api-key';
 
@@ -21,6 +42,7 @@ const realFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = realFetch;
   workersEnv.RATE_LIMITER = undefined;
+  workersEnv.ANSWER_CACHE = undefined;
   apiKeyValue = 'test-api-key';
 });
 
@@ -30,6 +52,18 @@ function completionFetch(content: string, id = 'share-1'): typeof fetch {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })) as unknown as typeof fetch;
+}
+
+function countingCompletionFetch(content: string, id = 'share-1'): { fetch: typeof fetch; calls: () => number } {
+  let calls = 0;
+  const fetchImpl = (async () => {
+    calls += 1;
+    return new Response(JSON.stringify({ id, choices: [{ message: { content } }] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }) as unknown as typeof fetch;
+  return { fetch: fetchImpl, calls: () => calls };
 }
 
 async function invoke(request: Request): Promise<Response> {
@@ -241,5 +275,82 @@ describe('POST /api/grok', () => {
     expect(raw).not.toContain('ECONNREFUSED');
     const body = JSON.parse(raw) as { error: string };
     expect(body.error).toBe('Upstream request failed');
+  });
+
+  describe('answer cache', () => {
+    test('a second identical ask is served from cache with no upstream call', async () => {
+      workersEnv.ANSWER_CACHE = makeFakeKv();
+      const counted = countingCompletionFetch('The answer is 42.', 'share-xyz');
+      globalThis.fetch = counted.fetch;
+
+      const first = await invoke(apiRequest(JSON.stringify({ question: 'What is Grok?' })));
+      expect(first.status).toBe(200);
+      expect(counted.calls()).toBe(1);
+
+      const second = await invoke(apiRequest(JSON.stringify({ question: 'What is Grok?' })));
+      expect(second.status).toBe(200);
+      expect(counted.calls()).toBe(1);
+      const body = (await second.json()) as { answer: string; shareId: string };
+      expect(body.answer).toBe('The answer is 42.');
+      expect(body.shareId).toBe('share-xyz');
+    });
+
+    test('a cache hit needs no API_KEY (no xAI call is attempted)', async () => {
+      workersEnv.ANSWER_CACHE = makeFakeKv();
+      globalThis.fetch = completionFetch('Cached answer.', 'share-1');
+      await invoke(apiRequest(JSON.stringify({ question: 'What is Grok?' })));
+
+      apiKeyValue = undefined;
+      const response = await invoke(apiRequest(JSON.stringify({ question: 'What is Grok?' })));
+      expect(response.status).toBe(200);
+    });
+
+    test('questions differing only in whitespace/case share one cache entry (no second upstream call)', async () => {
+      workersEnv.ANSWER_CACHE = makeFakeKv();
+      const counted = countingCompletionFetch('Grok is an AI.');
+      globalThis.fetch = counted.fetch;
+
+      await invoke(apiRequest(JSON.stringify({ question: ' What is Grok? ' })));
+      const response = await invoke(apiRequest(JSON.stringify({ question: 'what is grok?' })));
+
+      expect(response.status).toBe(200);
+      expect(counted.calls()).toBe(1);
+    });
+
+    test('a KV read failure degrades to a live call rather than a 500', async () => {
+      workersEnv.ANSWER_CACHE = {
+        get: async () => {
+          throw new Error('KV unavailable');
+        },
+        put: async () => {},
+      };
+      globalThis.fetch = completionFetch('Live answer despite KV outage.');
+      const response = await invoke(apiRequest(JSON.stringify({ question: 'What is Grok?' })));
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { answer: string };
+      expect(body.answer).toBe('Live answer despite KV outage.');
+    });
+
+    test('a KV write failure after a successful xAI call still returns 200 (not 500)', async () => {
+      workersEnv.ANSWER_CACHE = {
+        get: async () => null,
+        put: async () => {
+          throw new Error('KV unavailable');
+        },
+      };
+      globalThis.fetch = completionFetch('Answer survives an uncached write.');
+      const response = await invoke(apiRequest(JSON.stringify({ question: 'What is Grok?' })));
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { answer: string };
+      expect(body.answer).toBe('Answer survives an uncached write.');
+    });
+
+    test('a bare cache miss with no binding still calls xAI normally (no binding = no cache)', async () => {
+      const counted = countingCompletionFetch('No cache configured.');
+      globalThis.fetch = counted.fetch;
+      const response = await invoke(apiRequest(JSON.stringify({ question: 'What is Grok?' })));
+      expect(response.status).toBe(200);
+      expect(counted.calls()).toBe(1);
+    });
   });
 });

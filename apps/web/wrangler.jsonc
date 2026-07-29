@@ -32,9 +32,15 @@
           "namespace_id": "1002",
           "simple": { "limit": 30, "period": 60 }
         }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "ANSWER_CACHE",
+          // PLACEHOLDER — PENDING provisioning. Not a real Cloudflare KV namespace id;
+          // replace with the actual staging id from `wrangler kv namespace create` before deploy.
+          "id": "PENDING_PROVISIONING_STAGING_ANSWER_CACHE_KV_ID"
+        }
       ]
-      // kv_namespaces: this environment's answer-cache namespace binding belongs here; its
-      // id is provisioned separately and must differ from the other environment's.
     },
 
     "production": {
@@ -58,9 +64,15 @@
           "namespace_id": "1001",
           "simple": { "limit": 30, "period": 60 }
         }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "ANSWER_CACHE",
+          // PLACEHOLDER — PENDING provisioning. Not a real Cloudflare KV namespace id;
+          // replace with the actual production id from `wrangler kv namespace create` before deploy.
+          "id": "PENDING_PROVISIONING_PRODUCTION_ANSWER_CACHE_KV_ID"
+        }
       ]
-      // kv_namespaces: this environment's answer-cache namespace binding belongs here; its
-      // id is provisioned separately and must differ from the other environment's.
     }
   }
 }

@@ -8,6 +8,7 @@ import {
 import type { APIRoute } from 'astro';
 import { getSecret } from 'astro:env/server';
 import { env } from 'cloudflare:workers';
+import { getCachedAnswer, putCachedAnswer } from '../../lib/cache';
 import { callXai } from '../../lib/xai';
 
 export const prerender = false;
@@ -36,6 +37,14 @@ export const POST: APIRoute = async ({ request }) => {
     return rateLimited;
   }
 
+  const cached = await getCachedAnswer(env.ANSWER_CACHE, question);
+  if (cached) {
+    return new Response(JSON.stringify(cached), {
+      status: HTTP_STATUS.OK,
+      headers: { [HEADERS.CONTENT_TYPE]: HEADERS.JSON },
+    });
+  }
+
   const apiKey = getSecret('API_KEY');
   if (!apiKey) {
     console.error('grok: API_KEY secret is not configured');
@@ -50,6 +59,8 @@ export const POST: APIRoute = async ({ request }) => {
     }
     return errorResponse('Upstream request failed', HTTP_STATUS.BAD_GATEWAY);
   }
+
+  await putCachedAnswer(env.ANSWER_CACHE, question, result.response);
 
   return new Response(JSON.stringify(result.response), {
     status: HTTP_STATUS.OK,
