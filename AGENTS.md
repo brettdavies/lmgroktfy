@@ -62,6 +62,13 @@ lint, typecheck, build, and `bun test --coverage`.
 lint, typecheck, build, and tests with coverage. Actions are SHA-pinned with a `# vX.Y.Z` trailing comment; keep them
 pinned. There is no `push` trigger — under squash merges the merge commit's tree equals the PR head CI already verified.
 
+## Local hooks
+
+Hooks live at `scripts/hooks/`, activated per clone with `git config core.hooksPath scripts/hooks` (machine-local; does
+not travel with the checkout). `pre-commit` runs fast staged-scoped checks (Biome, Prettier, actionlint, markdownlint);
+`pre-push` mirrors CI (`bun run lint`, `typecheck`, `build`, `bun test`). Keep the pre-push checks in lockstep with
+`test.yml`.
+
 ## Branch and release model
 
 - `dev` is the default branch and the forever integration branch; it is never a PR head. Feature branches (`feat/*`,

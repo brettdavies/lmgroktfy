@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Local CI mirror — the whole-repo pre-push gate. Runs the same checks as
+# .github/workflows/test.yml (lint, typecheck, build, tests), so a push that
+# survives the hook passes CI and a push that fails it would have failed CI
+# anyway, just slower. This is the compensating control for CI running one
+# pull_request check per change; it reproduces CI's verdict before the network
+# round-trip and is the only remote-equivalent check for code that never opens
+# a PR. Its fast, staged-scoped companion is scripts/hooks/pre-commit.
+#
+# Activate per clone via: git config core.hooksPath scripts/hooks
+# core.hooksPath is machine-local git config: it does not travel with the clone
+# and is not enforced by cloning. An unset core.hooksPath is the most common
+# reason a tracked hook never fires. Run the command above once per fresh clone
+# (see README "Local hooks").
+#
+# Assumes dependencies are installed (bun install). The lint/typecheck/build/
+# test steps do not skip: their tools ship with the repo toolchain, and a
+# missing one means the toolchain itself is broken. actionlint and shellcheck
+# skip-with-hint when absent, so the hook never blocks a push on an
+# under-provisioned machine — but every skip echoes what it skipped and why.
+#
+# Exit codes: 0 = all pass, 1 = failure.
+# Requires bash >= 4.4 (mapfile).
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+pass() { echo -e "  ${GREEN}✓${RESET} $1"; }
+fail() {
+  echo -e "  ${RED}✗${RESET} $1"
+  exit 1
+}
+
+echo -e "${BOLD}Running local CI checks...${RESET}"
+
+command -v bun >/dev/null 2>&1 || fail "bun not installed (https://bun.sh)"
+pass "bun ($(bun --version))"
+
+# 1. Lint (Biome). CI mirror: test.yml "Lint" step (bun run lint).
+bun run lint || fail "bun run lint"
+pass "lint"
+
+# 2. Type check across shared/client/web. CI mirror: test.yml "Type check" step.
+bun run typecheck || fail "bun run typecheck"
+pass "typecheck"
+
+# 3. Build all packages. CI mirror: test.yml "Build" step.
+bun run build || fail "bun run build"
+pass "build"
+
+# 4. Tests. CI mirror: test.yml "Run tests" step (CI adds --coverage).
+bun test || fail "bun test"
+pass "test"
+
+# 5. Workflow lint — actionlint over .github/workflows. Skip-with-hint.
+if command -v actionlint >/dev/null 2>&1; then
+  actionlint || fail "actionlint"
+  pass "actionlint"
+else
+  echo "  - actionlint (skipped: install via \`brew install actionlint\`)"
+fi
+
+# 6. Shell lint — shellcheck over tracked shell scripts and the hooks
+# themselves. Severity "warning" catches real bugs while ignoring style noise.
+if command -v shellcheck >/dev/null 2>&1; then
+  mapfile -t shell_files < <({
+    git ls-files '*.sh' 2>/dev/null
+    git ls-files 'scripts/hooks/*' 2>/dev/null
+  } | sort -u)
+  if [ ${#shell_files[@]} -gt 0 ]; then
+    shellcheck --severity=warning "${shell_files[@]}" || fail "shellcheck --severity=warning"
+  fi
+  pass "shellcheck"
+else
+  echo "  - shellcheck (skipped: install via \`brew install shellcheck\`)"
+fi
+
+echo -e "${BOLD}${GREEN}All checks passed.${RESET}"
