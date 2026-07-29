@@ -120,3 +120,80 @@ test.describe('client-side language redirect', () => {
     await expect(page).toHaveURL(/\/es\/$/);
   });
 });
+
+test.describe('turnstile widget a11y', () => {
+  // Block the real widget script so the container is asserted deterministically
+  // regardless of network; the client seam injects the token separately.
+  async function stubTurnstileScript(page: import('@playwright/test').Page): Promise<void> {
+    await page.route('**/challenges.cloudflare.com/**', (route) => route.abort());
+  }
+
+  test('the widget mounts inside the form with the built site key and does not steal initial focus', async ({
+    page,
+  }) => {
+    await stubTurnstileScript(page);
+    await page.goto('/');
+
+    const widget = page.locator('#turnstile-widget.cf-turnstile');
+    await expect(widget).toHaveCount(1);
+    await expect(widget).toHaveAttribute('data-sitekey', /.+/);
+
+    // The managed widget renders without moving focus off the question input.
+    await expect(page.locator('#question-input')).toBeFocused();
+
+    const inForm = await widget.evaluate((el) => el.closest('#question-form') !== null);
+    expect(inForm).toBe(true);
+
+    // Present in the script surface for the browser to load.
+    const scriptCount = await page
+      .locator('script[src*="challenges.cloudflare.com/turnstile/v0/api.js"]')
+      .count();
+    expect(scriptCount).toBe(1);
+  });
+
+  test('the widget is keyboard-eligible and sits outside the aria-live regions', async ({
+    page,
+  }) => {
+    await stubTurnstileScript(page);
+    await page.goto('/');
+
+    const widget = page.locator('#turnstile-widget');
+    // No override removes it from the tab order or hides it from assistive tech.
+    await expect(widget).not.toHaveAttribute('tabindex', '-1');
+    await expect(widget).not.toHaveAttribute('aria-hidden', 'true');
+
+    const nestedInLiveRegion = await widget.evaluate(
+      (el) => el.closest('#response') !== null || el.closest('#loading') !== null
+    );
+    expect(nestedInLiveRegion).toBe(false);
+
+    const hasLiveAncestor = await widget.evaluate((el) => el.closest('[aria-live]') !== null);
+    expect(hasLiveAncestor).toBe(false);
+  });
+
+  test('the help-dialog focus trap holds with the widget present (widget is not reachable)', async ({
+    page,
+  }) => {
+    await stubTurnstileScript(page);
+    await page.goto('/');
+    await expect(page.locator('#question-input')).toBeFocused();
+
+    await page.locator('button[aria-label="How to use"]').focus();
+    await page.keyboard.press('?');
+    await expect(page.locator('#help_modal')).toBeVisible();
+
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press('Tab');
+    }
+
+    const trappedInDialog = await page.evaluate(
+      () => document.getElementById('help_modal')?.contains(document.activeElement) ?? false
+    );
+    expect(trappedInDialog).toBe(true);
+
+    const focusOnWidget = await page.evaluate(
+      () => document.getElementById('turnstile-widget')?.contains(document.activeElement) ?? false
+    );
+    expect(focusOnWidget).toBe(false);
+  });
+});

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { REQUEST_LIMITS } from '../constants/api';
+import { REQUEST_LIMITS, TURNSTILE } from '../constants/api';
 import {
   GrokErrorSchema,
   GrokRequestSchema,
@@ -7,14 +7,18 @@ import {
   XAICompletionResponseSchema,
 } from '../schemas/api';
 
+const VALID_TOKEN = 'x'.repeat(40);
+
 describe('GrokRequestSchema', () => {
   test('should validate a valid request', () => {
     const result = GrokRequestSchema.safeParse({
       question: 'What is TypeScript?',
+      turnstileToken: VALID_TOKEN,
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.question).toBe('What is TypeScript?');
+      expect(result.data.turnstileToken).toBe(VALID_TOKEN);
     }
   });
 
@@ -36,7 +40,10 @@ describe('GrokRequestSchema', () => {
 
   test('should accept a question at the tightened max length', () => {
     const maxQuestion = 'a'.repeat(REQUEST_LIMITS.MAX_QUESTION_LENGTH);
-    const result = GrokRequestSchema.safeParse({ question: maxQuestion });
+    const result = GrokRequestSchema.safeParse({
+      question: maxQuestion,
+      turnstileToken: VALID_TOKEN,
+    });
     expect(result.success).toBe(true);
   });
 
@@ -52,20 +59,25 @@ describe('GrokRequestSchema', () => {
     );
   });
 
-  test('should accept an optional turnstileToken', () => {
-    const result = GrokRequestSchema.safeParse({
-      question: 'What is Grok?',
-      turnstileToken: 'token-value',
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.turnstileToken).toBe('token-value');
+  test('should require a turnstileToken', () => {
+    const result = GrokRequestSchema.safeParse({ question: 'What is Grok?' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path[0] === 'turnstileToken')).toBe(true);
     }
   });
 
-  test('should still accept a request with no turnstileToken', () => {
-    const result = GrokRequestSchema.safeParse({ question: 'What is Grok?' });
-    expect(result.success).toBe(true);
+  test('should reject a turnstileToken below the minimum length', () => {
+    const result = GrokRequestSchema.safeParse({
+      question: 'What is Grok?',
+      turnstileToken: 'x'.repeat(TURNSTILE.MIN_TOKEN_LENGTH - 1),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('should reject an empty turnstileToken', () => {
+    const result = GrokRequestSchema.safeParse({ question: 'What is Grok?', turnstileToken: '' });
+    expect(result.success).toBe(false);
   });
 });
 

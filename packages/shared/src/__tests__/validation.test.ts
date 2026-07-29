@@ -3,7 +3,10 @@ import { isNonEmptyString, validateGrokRequest } from '../utils/validation';
 
 describe('validateGrokRequest', () => {
   test('should return success for valid request', () => {
-    const result = validateGrokRequest({ question: 'What is Bun?' });
+    const result = validateGrokRequest({
+      question: 'What is Bun?',
+      turnstileToken: 'x'.repeat(40),
+    });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.question).toBe('What is Bun?');

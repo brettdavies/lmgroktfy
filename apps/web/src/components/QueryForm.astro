@@ -1,11 +1,13 @@
 ---
 import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
 import { getPlaceholders, useTranslations } from '../i18n';
+import { getTurnstileSiteKey } from '../lib/turnstile-sitekey';
 
 const locale = Astro.currentLocale ?? DEFAULT_LOCALE;
 const t = useTranslations(locale);
 const placeholder = t('main.placeholder');
 const placeholders = getPlaceholders(locale);
+const turnstileSiteKey = getTurnstileSiteKey();
 ---
 
 <form
@@ -44,8 +46,26 @@ const placeholders = getPlaceholders(locale);
       ></i>
     </button>
   </div>
+
+  {/*
+    Managed Turnstile widget: on success it populates the hidden
+    `input[name="cf-turnstile-response"]` the client island reads. It sits
+    outside the `#response`/`#loading` aria-live regions so a rendered challenge
+    raises no stray screen-reader announcement, and carries no
+    `tabindex`/`aria-hidden` override so its iframe stays in the natural tab
+    order (Turnstile does not move focus on render, so initial focus stays on
+    the question input).
+  */}
+  <div
+    id="turnstile-widget"
+    class="cf-turnstile mt-4 flex justify-center"
+    data-sitekey={turnstileSiteKey}
+    data-theme="auto"
+  >
+  </div>
 </form>
 
+<script is:inline async src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
 <script>
   import '../client';
 </script>

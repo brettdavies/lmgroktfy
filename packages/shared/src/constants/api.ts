@@ -40,7 +40,19 @@ export const HTTP_STATUS = {
   TOO_MANY_REQUESTS: 429,
   INTERNAL_SERVER_ERROR: 500,
   BAD_GATEWAY: 502,
+  SERVICE_UNAVAILABLE: 503,
   GATEWAY_TIMEOUT: 504,
+} as const;
+
+/**
+ * Turnstile token bounds enforced on the request schema before any siteverify
+ * call. `MAX_TOKEN_LENGTH` is Cloudflare's documented ceiling; `MIN_TOKEN_LENGTH`
+ * is a cheap floor that rejects an absent or obviously-empty token without a
+ * network round trip (siteverify remains the authoritative check).
+ */
+export const TURNSTILE = {
+  MIN_TOKEN_LENGTH: 10,
+  MAX_TOKEN_LENGTH: 2048,
 } as const;
 
 /**

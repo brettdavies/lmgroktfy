@@ -9,6 +9,7 @@ import type { APIRoute } from 'astro';
 import { getSecret } from 'astro:env/server';
 import { env } from 'cloudflare:workers';
 import { getCachedAnswer, putCachedAnswer } from '../../lib/cache';
+import { verifyTurnstileToken } from '../../lib/turnstile';
 import { callXai } from '../../lib/xai';
 
 export const prerender = false;
@@ -28,9 +29,22 @@ export const POST: APIRoute = async ({ request }) => {
 
   const validation = GrokRequestSchema.safeParse(payload);
   if (!validation.success) {
-    return errorResponse('Invalid request', HTTP_STATUS.BAD_REQUEST);
+    // A well-formed question submission whose only defect is a missing or empty
+    // Turnstile token is a challenge failure, not a malformed request: fail
+    // closed with 403 so a tokenless caller is treated identically to one that
+    // sent an invalid token. Any other defect stays a 400.
+    const issues = validation.error.issues;
+    const tokenOnly = issues.length > 0 && issues.every((issue) => issue.path[0] === 'turnstileToken');
+    return tokenOnly
+      ? errorResponse('Forbidden', HTTP_STATUS.FORBIDDEN)
+      : errorResponse('Invalid request', HTTP_STATUS.BAD_REQUEST);
   }
-  const { question } = validation.data;
+  const { question, turnstileToken } = validation.data;
+
+  const gate = await verifyChallenge(turnstileToken, request);
+  if (gate) {
+    return gate;
+  }
 
   const rateLimited = await enforceRateLimit(request);
   if (rateLimited) {
@@ -112,6 +126,35 @@ async function readCappedBody(request: Request): Promise<string | null> {
     offset += chunk.byteLength;
   }
   return new TextDecoder().decode(merged);
+}
+
+/**
+ * Verifies the Turnstile token before any rate-limit, cache, or upstream work
+ * and fails closed. A missing secret or any siteverify outage (timeout,
+ * transport, non-2xx, malformed) returns 503; a token Cloudflare positively
+ * rejects returns 403. Returns `null` only when the token verifies, so the
+ * endpoint never proceeds on an unverified token. Failure detail is logged
+ * server-side and never returned to the client.
+ */
+async function verifyChallenge(token: string, request: Request): Promise<Response | null> {
+  const secret = getSecret('TURNSTILE_SECRET_KEY');
+  if (!secret) {
+    console.error('grok: TURNSTILE_SECRET_KEY secret is not configured');
+    return errorResponse('Service unavailable', HTTP_STATUS.SERVICE_UNAVAILABLE);
+  }
+
+  const verdict = await verifyTurnstileToken(token, secret, {
+    remoteIp: request.headers.get('CF-Connecting-IP'),
+  });
+  if (verdict.ok) {
+    return null;
+  }
+
+  console.error(`grok: turnstile verification failed (${verdict.reason}): ${verdict.detail}`);
+  if (verdict.reason === 'rejected') {
+    return errorResponse('Forbidden', HTTP_STATUS.FORBIDDEN);
+  }
+  return errorResponse('Service unavailable', HTTP_STATUS.SERVICE_UNAVAILABLE);
 }
 
 /**

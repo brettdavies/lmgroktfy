@@ -1,16 +1,23 @@
 import { z } from 'zod';
-import { REQUEST_LIMITS } from '../constants/api';
+import { REQUEST_LIMITS, TURNSTILE } from '../constants/api';
 
 /**
- * Schema for Grok API request
+ * Schema for Grok API request.
+ *
+ * `turnstileToken` is required: the endpoint is a bot-gated proxy, so a request
+ * without a challenge token can never be served. The length floor rejects an
+ * absent or empty token cheaply; the endpoint still verifies the token against
+ * Cloudflare siteverify before doing any work.
  */
 export const GrokRequestSchema = z.object({
   question: z
     .string()
     .min(1, 'Question is required')
     .max(REQUEST_LIMITS.MAX_QUESTION_LENGTH, 'Question is too long'),
-  // Accepted but not yet enforced by the endpoint.
-  turnstileToken: z.string().optional(),
+  turnstileToken: z
+    .string()
+    .min(TURNSTILE.MIN_TOKEN_LENGTH, 'Turnstile token is required')
+    .max(TURNSTILE.MAX_TOKEN_LENGTH, 'Turnstile token is too long'),
 });
 
 /**
