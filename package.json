@@ -25,7 +25,8 @@
     "i18n:extract": "bun scripts/extract-i18n.ts",
     "i18n:validate": "bun scripts/validate-i18n.ts",
     "i18n:sync": "bun scripts/sync-translations.ts",
-    "i18n:status": "bun scripts/i18n-status.ts"
+    "i18n:status": "bun scripts/i18n-status.ts",
+    "canary": "bun run build:shared && bun run scripts/canary.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
