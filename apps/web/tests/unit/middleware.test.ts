@@ -61,6 +61,36 @@ describe('cors middleware', () => {
     expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://lmgroktfy.com');
   });
 
+  test('rejects a plaintext http Origin on an allowed domain with 403', async () => {
+    const context = makeContext('https://lmgroktfy.com/api/grok', {
+      method: 'POST',
+      origin: 'http://lmgroktfy.com',
+    });
+    const response = await asMiddleware(cors)(context, nextOk);
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
+  test('rejects a prefix-suffix lookalike Origin with 403', async () => {
+    const context = makeContext('https://lmgroktfy.com/api/grok', {
+      method: 'POST',
+      origin: 'https://evil-lmgroktfy.com',
+    });
+    const response = await asMiddleware(cors)(context, nextOk);
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
+  test('rejects a trailing-domain lookalike Origin with 403', async () => {
+    const context = makeContext('https://lmgroktfy.com/api/grok', {
+      method: 'POST',
+      origin: 'https://lmgroktfy.com.evil.com',
+    });
+    const response = await asMiddleware(cors)(context, nextOk);
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
   test('allows an approved subdomain Origin', async () => {
     const context = makeContext('https://lmgroktfy.com/api/grok', {
       method: 'POST',
@@ -69,6 +99,28 @@ describe('cors middleware', () => {
     const response = await asMiddleware(cors)(context, nextOk);
     expect(response.status).toBe(200);
     expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://www.lmgroktfy.com');
+  });
+
+  test('allows a same-origin request on a host outside ALLOWED_DOMAINS (staging)', async () => {
+    const context = makeContext('https://lmgroktfy-staging.workers.dev/api/grok', {
+      method: 'POST',
+      origin: 'https://lmgroktfy-staging.workers.dev',
+    });
+    const response = await asMiddleware(cors)(context, nextOk);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://lmgroktfy-staging.workers.dev'
+    );
+  });
+
+  test('still rejects a cross-origin caller on the staging host with 403', async () => {
+    const context = makeContext('https://lmgroktfy-staging.workers.dev/api/grok', {
+      method: 'POST',
+      origin: 'https://evil.com',
+    });
+    const response = await asMiddleware(cors)(context, nextOk);
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 
   test('answers a preflight for an allowed Origin with 204', async () => {

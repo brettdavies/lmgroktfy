@@ -31,17 +31,10 @@ export const POST: APIRoute = async ({ request }) => {
   }
   const { question } = validation.data;
 
-  // Ordering invariant: bot-token verification precedes rate limiting so an
-  // unauthenticated flood is rejected (fail-closed) before it can consume a
-  // limiter slot.
-
   const rateLimited = await enforceRateLimit(request);
   if (rateLimited) {
     return rateLimited;
   }
-
-  // Ordering invariant: the answer cache is consulted after rate limiting, so a
-  // cached hit still costs a limiter slot but never a billed upstream call.
 
   const apiKey = getSecret('API_KEY');
   if (!apiKey) {
@@ -66,8 +59,10 @@ export const POST: APIRoute = async ({ request }) => {
 
 /**
  * Reads the request body, rejecting anything past the byte cap. A declared
- * `Content-Length` over the cap is refused without buffering; the post-read
- * length check catches bodies that under-declare or omit the header.
+ * `Content-Length` over the cap is refused without reading. The body is then
+ * consumed as a stream with a running byte count so a chunked or
+ * under-declared payload is abandoned the moment it crosses the cap rather than
+ * fully buffered.
  */
 async function readCappedBody(request: Request): Promise<string | null> {
   const declared = request.headers.get('Content-Length');
@@ -78,17 +73,42 @@ async function readCappedBody(request: Request): Promise<string | null> {
     }
   }
 
-  const buffer = await request.arrayBuffer();
-  if (buffer.byteLength > REQUEST_LIMITS.MAX_BODY_BYTES) {
-    return null;
+  const body = request.body;
+  if (!body) {
+    return '';
   }
-  return new TextDecoder().decode(buffer);
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    total += value.byteLength;
+    if (total > REQUEST_LIMITS.MAX_BODY_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(merged);
 }
 
 /**
  * Rate-limits on the Cloudflare-trusted client IP only. A forged
  * `X-Forwarded-For` can never mint a key, and an absent `CF-Connecting-IP` under
- * an active limiter is denied rather than bucketed under a shared fallback.
+ * an active limiter is denied rather than bucketed under a shared fallback. The
+ * key is normalized so a routed IPv6 allocation collapses to its /64 prefix and
+ * cannot spread one client across 2^64 buckets.
  */
 async function enforceRateLimit(request: Request): Promise<Response | null> {
   const limiter = env.RATE_LIMITER;
@@ -101,11 +121,45 @@ async function enforceRateLimit(request: Request): Promise<Response | null> {
     return tooManyRequests();
   }
 
-  const { success } = await limiter.limit({ key: clientIp });
+  const { success } = await limiter.limit({ key: normalizeClientIp(clientIp) });
   if (!success) {
     return tooManyRequests();
   }
   return null;
+}
+
+/**
+ * Reduces an IPv6 address to its /64 routing prefix so a single client cannot
+ * mint a distinct limiter key per address in its allocation. IPv4 addresses key
+ * whole; an unparseable value keys as-is (still bucketed, never dropped).
+ */
+function normalizeClientIp(ip: string): string {
+  if (!ip.includes(':')) {
+    return ip;
+  }
+  const groups = expandIpv6(ip);
+  if (!groups) {
+    return ip;
+  }
+  return `${groups.slice(0, 4).join(':')}::/64`;
+}
+
+function expandIpv6(ip: string): string[] | null {
+  const bare = ip.replace(/^\[|\]$/g, '').split('%')[0];
+  const halves = bare.split('::');
+  if (halves.length > 2) {
+    return null;
+  }
+  const head = halves[0] ? halves[0].split(':') : [];
+  if (halves.length === 1) {
+    return head.length === 8 ? head : null;
+  }
+  const tail = halves[1] ? halves[1].split(':') : [];
+  const missing = 8 - head.length - tail.length;
+  if (missing < 0) {
+    return null;
+  }
+  return [...head, ...Array(missing).fill('0'), ...tail];
 }
 
 function tooManyRequests(): Response {

@@ -43,64 +43,72 @@ export async function callXai(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  let upstream: Response;
   try {
-    upstream = await fetchImpl(GROK_API.URL, {
-      method: 'POST',
-      headers: {
-        [HEADERS.CONTENT_TYPE]: HEADERS.JSON,
-        [HEADERS.AUTHORIZATION]: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: GROK_API.MODEL,
-        messages: [
-          { role: 'system', content: GROK_API.SYSTEM_PROMPT },
-          { role: 'user', content: question },
-        ],
-        stream: GROK_API.STREAM,
-        temperature: GROK_API.TEMPERATURE,
-      }),
-      signal: controller.signal,
-    });
-  } catch (error) {
-    const aborted = controller.signal.aborted || (error instanceof Error && error.name === 'AbortError');
-    if (aborted) {
-      return { ok: false, reason: 'timeout', detail: `xAI request aborted after ${timeoutMs}ms` };
+    let upstream: Response;
+    try {
+      upstream = await fetchImpl(GROK_API.URL, {
+        method: 'POST',
+        headers: {
+          [HEADERS.CONTENT_TYPE]: HEADERS.JSON,
+          [HEADERS.AUTHORIZATION]: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: GROK_API.MODEL,
+          messages: [
+            { role: 'system', content: GROK_API.SYSTEM_PROMPT },
+            { role: 'user', content: question },
+          ],
+          stream: GROK_API.STREAM,
+          temperature: GROK_API.TEMPERATURE,
+        }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (isAbort(controller, error)) {
+        return { ok: false, reason: 'timeout', detail: `xAI request aborted after ${timeoutMs}ms` };
+      }
+      const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      return { ok: false, reason: 'transport', detail };
     }
-    const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-    return { ok: false, reason: 'transport', detail };
+
+    if (!upstream.ok) {
+      return { ok: false, reason: 'upstream', detail: `xAI ${upstream.status}: ${await safeText(upstream)}` };
+    }
+
+    let payload: unknown;
+    try {
+      payload = await upstream.json();
+    } catch (error) {
+      if (isAbort(controller, error)) {
+        return { ok: false, reason: 'timeout', detail: `xAI request aborted after ${timeoutMs}ms` };
+      }
+      const detail = error instanceof Error ? error.message : String(error);
+      return { ok: false, reason: 'malformed', detail: `xAI body was not JSON: ${detail}` };
+    }
+
+    const parsed = XAICompletionResponseSchema.safeParse(payload);
+    if (!parsed.success) {
+      return { ok: false, reason: 'malformed', detail: 'xAI response failed schema validation' };
+    }
+
+    const response: GrokResponse = {
+      answer: parsed.data.choices[0]?.message?.content || 'No answer provided',
+      shareId: parsed.data.id,
+    };
+
+    const validated = GrokResponseSchema.safeParse(response);
+    if (!validated.success) {
+      return { ok: false, reason: 'malformed', detail: 'assembled response failed schema validation' };
+    }
+
+    return { ok: true, response: validated.data };
   } finally {
     clearTimeout(timer);
   }
+}
 
-  if (!upstream.ok) {
-    return { ok: false, reason: 'upstream', detail: `xAI ${upstream.status}: ${await safeText(upstream)}` };
-  }
-
-  let payload: unknown;
-  try {
-    payload = await upstream.json();
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
-    return { ok: false, reason: 'malformed', detail: `xAI body was not JSON: ${detail}` };
-  }
-
-  const parsed = XAICompletionResponseSchema.safeParse(payload);
-  if (!parsed.success) {
-    return { ok: false, reason: 'malformed', detail: 'xAI response failed schema validation' };
-  }
-
-  const response: GrokResponse = {
-    answer: parsed.data.choices[0]?.message?.content || 'No answer provided',
-    shareId: parsed.data.id,
-  };
-
-  const validated = GrokResponseSchema.safeParse(response);
-  if (!validated.success) {
-    return { ok: false, reason: 'malformed', detail: 'assembled response failed schema validation' };
-  }
-
-  return { ok: true, response: validated.data };
+function isAbort(controller: AbortController, error: unknown): boolean {
+  return controller.signal.aborted || (error instanceof Error && error.name === 'AbortError');
 }
 
 async function safeText(response: Response): Promise<string> {

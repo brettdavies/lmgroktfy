@@ -64,6 +64,42 @@ describe('callXai', () => {
     }
   });
 
+  test('aborts a response that returns headers but hangs the body read', async () => {
+    const start = Date.now();
+    const result = await callXai('slow-body', 'key', {
+      timeoutMs: 25,
+      fetchImpl: (_url, init) => {
+        const stream = new ReadableStream({
+          start(controller) {
+            init?.signal?.addEventListener('abort', () =>
+              controller.error(new DOMException('Aborted', 'AbortError'))
+            );
+          },
+        });
+        return Promise.resolve(
+          new Response(stream, { status: 200, headers: { 'Content-Type': 'application/json' } })
+        );
+      },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('timeout');
+    }
+    expect(Date.now() - start).toBeLessThan(2000);
+  });
+
+  test('reports a transport failure without exposing the cause', async () => {
+    const result = await callXai('q', 'key', {
+      fetchImpl: async () => {
+        throw new Error('ECONNREFUSED 10.0.0.1:443');
+      },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('transport');
+    }
+  });
+
   test('reports a malformed upstream payload', async () => {
     const result = await callXai('q', 'key', {
       fetchImpl: async () =>

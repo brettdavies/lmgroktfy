@@ -9,7 +9,7 @@ interface Props {
 
 const { lang = 'en', title = 'Let me Grok that for you' } = Astro.props;
 
-// RTL_LOCALES is the single source of truth for direction; U4 wires the real locale-routed value.
+// Text direction derives from the shared RTL_LOCALES set for the current lang.
 const dir = RTL_LOCALES.includes(lang as (typeof RTL_LOCALES)[number]) ? 'rtl' : 'ltr';
 ---
 

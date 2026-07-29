@@ -5,14 +5,22 @@ const API_PATH_PREFIX = '/api/';
 const TURNSTILE_HOST = 'https://challenges.cloudflare.com';
 const FONT_AWESOME_HOST = 'https://cdnjs.cloudflare.com';
 
+function matchesAllowedDomain(hostname: string): boolean {
+  return ALLOWED_DOMAINS.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+}
+
 function isAllowedOrigin(origin: string): boolean {
-  let hostname: string;
+  let url: URL;
   try {
-    hostname = new URL(origin).hostname;
+    url = new URL(origin);
   } catch {
     return false;
   }
-  return ALLOWED_DOMAINS.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhost)) {
+    return false;
+  }
+  return matchesAllowedDomain(url.hostname);
 }
 
 function corsHeaders(origin: string): Record<string, string> {
@@ -37,7 +45,10 @@ export const cors = defineMiddleware(async (context, next) => {
   }
 
   const origin = context.request.headers.get('Origin');
-  if (origin && !isAllowedOrigin(origin)) {
+  // A same-origin request (the site calling its own API, including on the
+  // staging workers.dev host that is not in ALLOWED_DOMAINS) is always allowed;
+  // ALLOWED_DOMAINS gates only cross-origin callers.
+  if (origin && origin !== url.origin && !isAllowedOrigin(origin)) {
     return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
       status: HTTP_STATUS.FORBIDDEN,
       headers: { [HEADERS.CONTENT_TYPE]: HEADERS.JSON },
@@ -45,10 +56,9 @@ export const cors = defineMiddleware(async (context, next) => {
   }
 
   if (context.request.method === 'OPTIONS') {
-    const headers: Record<string, string> = { 'Access-Control-Max-Age': '86400', Vary: 'Origin' };
-    if (origin) {
-      Object.assign(headers, corsHeaders(origin));
-    }
+    const headers = origin
+      ? corsHeaders(origin)
+      : { 'Access-Control-Max-Age': '86400', Vary: 'Origin' };
     return new Response(null, { status: HTTP_STATUS.NO_CONTENT, headers });
   }
 
@@ -119,9 +129,7 @@ function securityScope(hostname: string): { applyHeaders: boolean; applyHsts: bo
   const isLocalhost =
     hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost');
   const isWorkersDev = hostname === 'workers.dev' || hostname.endsWith('.workers.dev');
-  const isCustomDomain = ALLOWED_DOMAINS.some(
-    (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
-  );
+  const isCustomDomain = matchesAllowedDomain(hostname);
   return {
     applyHeaders: !isLocalhost,
     applyHsts: isCustomDomain && !isWorkersDev,

@@ -7,8 +7,10 @@ interface FakeLimiter {
 
 const workersEnv: { RATE_LIMITER?: FakeLimiter } = {};
 
+let apiKeyValue: string | undefined = 'test-api-key';
+
 mock.module('astro:env/server', () => ({
-  getSecret: (key: string) => (key === 'API_KEY' ? 'test-api-key' : undefined),
+  getSecret: (key: string) => (key === 'API_KEY' ? apiKeyValue : undefined),
 }));
 mock.module('cloudflare:workers', () => ({ env: workersEnv }));
 
@@ -19,6 +21,7 @@ const realFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = realFetch;
   workersEnv.RATE_LIMITER = undefined;
+  apiKeyValue = 'test-api-key';
 });
 
 function completionFetch(content: string, id = 'share-1'): typeof fetch {
@@ -39,6 +42,23 @@ function apiRequest(body: string, headers: Record<string, string> = {}): Request
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...headers },
     body,
+  });
+}
+
+function chunkedRequest(body: string): Request {
+  const bytes = new TextEncoder().encode(body);
+  const stream = new ReadableStream({
+    start(controller) {
+      for (let i = 0; i < bytes.byteLength; i += 1024) {
+        controller.enqueue(bytes.subarray(i, i + 1024));
+      }
+      controller.close();
+    },
+  });
+  return new Request('https://lmgroktfy.com/api/grok', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: stream,
   });
 }
 
@@ -151,5 +171,75 @@ describe('POST /api/grok', () => {
     globalThis.fetch = completionFetch('dev answer');
     const response = await invoke(apiRequest(JSON.stringify({ question: 'hi' })));
     expect(response.status).toBe(200);
+  });
+
+  test('rejects a chunked oversized body with no Content-Length before any upstream call', async () => {
+    let called = false;
+    globalThis.fetch = (async () => {
+      called = true;
+      return new Response('{}');
+    }) as unknown as typeof fetch;
+    const huge = JSON.stringify({ question: 'a'.repeat(REQUEST_LIMITS.MAX_BODY_BYTES + 1000) });
+    const request = chunkedRequest(huge);
+    expect(request.headers.get('Content-Length')).toBeNull();
+    const response = await invoke(request);
+    expect(response.status).toBe(413);
+    expect(called).toBe(false);
+  });
+
+  test('collapses two IPv6 addresses in the same /64 to one limiter bucket', async () => {
+    const keys: string[] = [];
+    workersEnv.RATE_LIMITER = {
+      limit: async ({ key }) => {
+        keys.push(key);
+        return { success: true };
+      },
+    };
+    globalThis.fetch = completionFetch('ok');
+    await invoke(
+      apiRequest(JSON.stringify({ question: 'hi' }), {
+        'CF-Connecting-IP': '2001:db8:1:2:aaaa:bbbb:cccc:dddd',
+      })
+    );
+    await invoke(
+      apiRequest(JSON.stringify({ question: 'hi' }), { 'CF-Connecting-IP': '2001:db8:1:2::1' })
+    );
+    expect(keys).toEqual(['2001:db8:1:2::/64', '2001:db8:1:2::/64']);
+  });
+
+  test('denies an absent CF-Connecting-IP under an active limiter with 429', async () => {
+    const keys: string[] = [];
+    workersEnv.RATE_LIMITER = {
+      limit: async ({ key }) => {
+        keys.push(key);
+        return { success: true };
+      },
+    };
+    const response = await invoke(apiRequest(JSON.stringify({ question: 'hi' })));
+    expect(response.status).toBe(429);
+    expect(keys).toEqual([]);
+  });
+
+  test('returns a generic 500 with no leaked detail when API_KEY is absent', async () => {
+    apiKeyValue = undefined;
+    globalThis.fetch = completionFetch('should not be reached');
+    const response = await invoke(apiRequest(JSON.stringify({ question: 'hi' })));
+    expect(response.status).toBe(500);
+    const raw = await response.text();
+    expect(raw).not.toContain('API_KEY');
+    const body = JSON.parse(raw) as { error: string };
+    expect(body.error).toBe('Service unavailable');
+  });
+
+  test('maps a transport error to a generic 502 without leaking the cause', async () => {
+    globalThis.fetch = (async () => {
+      throw new Error('ECONNREFUSED 10.0.0.1:443');
+    }) as unknown as typeof fetch;
+    const response = await invoke(apiRequest(JSON.stringify({ question: 'hi' })));
+    expect(response.status).toBe(502);
+    const raw = await response.text();
+    expect(raw).not.toContain('ECONNREFUSED');
+    const body = JSON.parse(raw) as { error: string };
+    expect(body.error).toBe('Upstream request failed');
   });
 });
