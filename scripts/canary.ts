@@ -6,17 +6,23 @@
  *
  * Two checks:
  *   1. the production site responds (the Worker is serving),
- *   2. a direct xAI call with the production key and the app's pinned model
- *      still returns a real answer (the key is valid and the model responds).
+ *   2. a direct xAI call with a copy of the production xAI key and the app's
+ *      pinned model still returns a real answer (the key is valid, the model
+ *      responds).
  *
- * The /api/grok endpoint itself is Turnstile-gated, so a bot cannot exercise it
- * end-to-end; the direct xAI call stands in for "the model still answers". It
- * reuses @lmgroktfy/shared, so it always tests whatever model the app ships.
+ * /api/grok is Turnstile-gated, so a bot cannot exercise it end-to-end; the
+ * direct xAI call stands in for "the model still answers". Because of that the
+ * canary reads CANARY_XAI_API_KEY, a separate secret holding a copy of the
+ * Worker's key: rotate the two together. It reuses @lmgroktfy/shared, so it
+ * always tests whatever model and timeout the app ships.
  */
 import { GROK_API, HEADERS } from '@lmgroktfy/shared';
 
 const SITE = process.env.CANARY_SITE_URL ?? 'https://lmgroktfy.com';
-const XAI_TIMEOUT_MS = 30_000;
+// Mirror the proxy's own upstream timeout so a response the Worker would abort
+// (504) fails the canary too instead of passing on a longer budget.
+const XAI_TIMEOUT_MS = GROK_API.TIMEOUT_MS;
+const SITE_TIMEOUT_MS = 15_000;
 
 // A pool of innocuous factual prompts; one is picked at random each run so the
 // canary is not a single memorizable request.
@@ -36,12 +42,22 @@ const ok = (m: string): void => console.log(`canary: ${m}`);
 const errMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
 async function checkSiteUp(): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SITE_TIMEOUT_MS);
   try {
-    const res = await fetch(SITE, { headers: { 'User-Agent': 'lmgroktfy-canary' } });
+    const res = await fetch(SITE, {
+      headers: { 'User-Agent': 'lmgroktfy-canary' },
+      signal: controller.signal,
+    });
     if (res.ok) ok(`site up (${res.status})`);
     else failures.push(`site GET ${SITE} -> HTTP ${res.status}`);
   } catch (e) {
-    failures.push(`site GET ${SITE} errored: ${errMessage(e)}`);
+    const reason = controller.signal.aborted
+      ? `timed out after ${SITE_TIMEOUT_MS}ms`
+      : `errored: ${errMessage(e)}`;
+    failures.push(`site GET ${SITE} ${reason}`);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -73,8 +89,9 @@ async function checkXai(): Promise<void> {
       signal: controller.signal,
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      failures.push(`xAI ${GROK_API.MODEL} -> HTTP ${res.status} ${body.slice(0, 200)}`);
+      // Status only: an upstream error body can carry a partial key or account
+      // fragment, and this log is public.
+      failures.push(`xAI ${GROK_API.MODEL} -> HTTP ${res.status}`);
       return;
     }
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
