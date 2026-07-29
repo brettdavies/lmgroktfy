@@ -1,10 +1,16 @@
 import { z } from 'zod';
+import { REQUEST_LIMITS } from '../constants/api';
 
 /**
  * Schema for Grok API request
  */
 export const GrokRequestSchema = z.object({
-  question: z.string().min(1, 'Question is required').max(10000, 'Question is too long'),
+  question: z
+    .string()
+    .min(1, 'Question is required')
+    .max(REQUEST_LIMITS.MAX_QUESTION_LENGTH, 'Question is too long'),
+  // Accepted but not yet enforced by the endpoint.
+  turnstileToken: z.string().optional(),
 });
 
 /**

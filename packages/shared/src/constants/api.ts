@@ -36,8 +36,24 @@ export const HTTP_STATUS = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   METHOD_NOT_ALLOWED: 405,
+  PAYLOAD_TOO_LARGE: 413,
   TOO_MANY_REQUESTS: 429,
   INTERNAL_SERVER_ERROR: 500,
+  BAD_GATEWAY: 502,
+  GATEWAY_TIMEOUT: 504,
+} as const;
+
+/**
+ * Request-hardening limits for the Grok proxy.
+ *
+ * `MAX_BODY_BYTES` sits above the worst-case serialized bytes of a
+ * `MAX_QUESTION_LENGTH`-code-unit question (6 bytes per unit under full
+ * `\uXXXX` escaping) plus a Turnstile token, so a schema-valid question is
+ * never rejected by the endpoint body cap.
+ */
+export const REQUEST_LIMITS = {
+  MAX_QUESTION_LENGTH: 2000,
+  MAX_BODY_BYTES: 16384,
 } as const;
 
 /**
