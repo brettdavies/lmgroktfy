@@ -16,6 +16,10 @@ packages/**/dist/
 # Remove from ignore if you want to check in static assets or if it's used in the deployment process
 packages/web/public/
 
+# Astro app build output and generated types
+apps/web/dist/
+apps/web/.astro/
+
 # Wrangler
 .wrangler/
 .dev.vars
