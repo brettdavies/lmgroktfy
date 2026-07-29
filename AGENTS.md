@@ -79,8 +79,9 @@ Keep every supported locale in sync; accessibility and i18n are product commitme
 
 ## Testing
 
-`bun test` runs the TypeScript tests under `packages/` (`bunfig.toml` scopes the test root to `./packages`). CI runs
-lint, typecheck, build, and `bun test --coverage`.
+`bun test` runs the TypeScript tests under `packages/` (`bunfig.toml` scopes the test root to `./packages`). The
+`apps/web` unit tests live outside that root, so `bun run test:app` runs them explicitly and `bun run test:all` runs the
+package suite followed by the app suite. CI runs lint, typecheck, build, and `bun test --coverage`.
 
 ## CI
 
