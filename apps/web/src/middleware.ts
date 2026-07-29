@@ -1,9 +1,69 @@
-import { HEADERS, HTTP_STATUS, PRODUCTION_DOMAINS } from '@lmgroktfy/shared';
+import {
+  DEFAULT_LOCALE,
+  HEADERS,
+  HTTP_STATUS,
+  PRODUCTION_DOMAINS,
+  SUPPORTED_LOCALES,
+} from '@lmgroktfy/shared';
 import { defineMiddleware, sequence } from 'astro:middleware';
 
 const API_PATH_PREFIX = '/api/';
+const WELL_KNOWN_PREFIX = '/.well-known/';
+const LANG_QUERY_PARAM = 'lang';
 const TURNSTILE_HOST = 'https://challenges.cloudflare.com';
 const FONT_AWESOME_HOST = 'https://cdnjs.cloudflare.com';
+
+function isSupportedLocale(value: string): boolean {
+  return (SUPPORTED_LOCALES as readonly string[]).includes(value);
+}
+
+/**
+ * Legacy `?lang=xx` shim: rewrites the old query-string language selector to the
+ * canonical locale-prefixed path (`/es/…`, and the unprefixed root for the
+ * default locale). Only page navigations are rewritten — API, `.well-known`,
+ * and file/endpoint routes are left untouched so a token-bearing POST or a
+ * markdown/xml twin is never redirected. A no-op target (the locale already
+ * matches the path) falls through instead of self-redirecting.
+ */
+export const langRedirect = defineMiddleware(async (context, next) => {
+  if (context.request.method !== 'GET') {
+    return next();
+  }
+
+  const { url } = context;
+  const requested = url.searchParams.get(LANG_QUERY_PARAM);
+  if (requested === null || !isSupportedLocale(requested)) {
+    return next();
+  }
+
+  if (url.pathname.startsWith(API_PATH_PREFIX) || url.pathname.startsWith(WELL_KNOWN_PREFIX)) {
+    return next();
+  }
+
+  const segments = url.pathname.split('/').filter(Boolean);
+  const lastSegment = segments[segments.length - 1] ?? '';
+  if (lastSegment.includes('.')) {
+    return next();
+  }
+
+  if (segments.length > 0 && isSupportedLocale(segments[0])) {
+    segments.shift();
+  }
+  const rest = segments.join('/');
+  const prefix = requested === DEFAULT_LOCALE ? '' : `/${requested}`;
+  const path = rest ? `${prefix}/${rest}` : `${prefix}/`;
+
+  const remaining = new URLSearchParams(url.search);
+  remaining.delete(LANG_QUERY_PARAM);
+  const query = remaining.toString();
+  const current = query ? `${url.pathname}?${query}` : url.pathname;
+  const target = query ? `${path}?${query}` : path;
+  if (target === current) {
+    return next();
+  }
+
+  return context.redirect(target);
+});
 
 function corsHeaders(origin: string): Record<string, string> {
   return {
@@ -82,7 +142,7 @@ export const securityHeaders = defineMiddleware(async (context, next) => {
   return response;
 });
 
-export const onRequest = sequence(cors, securityHeaders);
+export const onRequest = sequence(langRedirect, cors, securityHeaders);
 
 function buildCsp(nonce: string): string {
   return [

@@ -15,7 +15,7 @@ mock.module('astro:middleware', () => ({
     },
 }));
 
-const { cors, securityHeaders, onRequest } = await import('../../src/middleware.ts');
+const { cors, securityHeaders, onRequest, langRedirect } = await import('../../src/middleware.ts');
 
 type FakeContext = {
   request: Request;
@@ -199,5 +199,66 @@ describe('onRequest sequence', () => {
     expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://lmgroktfy.com');
     expect(response.headers.get('Content-Security-Policy')).toBeTruthy();
     expect(response.headers.get('Strict-Transport-Security')).toContain('max-age=');
+  });
+});
+
+function makeLangContext(urlStr: string, method = 'GET') {
+  return {
+    request: new Request(urlStr, { method }),
+    url: new URL(urlStr),
+    locals: {},
+    redirect: (location: string, status = 302) =>
+      new Response(null, { status, headers: { Location: location } }),
+  };
+}
+
+describe('langRedirect middleware', () => {
+  const passthrough = async () => new Response('passthrough', { status: 200 });
+
+  test('redirects ?lang=es on the root to /es/', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/?lang=es');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('/es/');
+  });
+
+  test('redirects ?lang=en on a locale path back to the unprefixed root', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/es/?lang=en');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('/');
+  });
+
+  test('preserves a deep-link question path when switching locale', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/what+is+grok?lang=es');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(302);
+    expect(response.headers.get('Location')).toBe('/es/what+is+grok');
+  });
+
+  test('ignores an unsupported lang value', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/?lang=zz');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('passthrough');
+  });
+
+  test('does not redirect when there is no lang query', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/es/');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(200);
+  });
+
+  test('falls through when the requested locale already matches the path', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/es/?lang=es');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(200);
+  });
+
+  test('leaves a POST to the API untouched', async () => {
+    const context = makeLangContext('https://lmgroktfy.com/api/grok?lang=es', 'POST');
+    const response = await asMiddleware(langRedirect)(context, passthrough);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('passthrough');
   });
 });

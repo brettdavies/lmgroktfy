@@ -1,20 +1,25 @@
 ---
 import '../styles/global.css';
-import { RTL_LOCALES } from '@lmgroktfy/shared';
+import { DEFAULT_LOCALE, RTL_LOCALES, SUPPORTED_LOCALES } from '@lmgroktfy/shared';
+import { getAbsoluteLocaleUrl } from 'astro:i18n';
 
 interface Props {
-  lang?: string;
+  locale?: string;
   title?: string;
 }
 
-const { lang = 'en', title = 'Let me Grok that for you' } = Astro.props;
+const { locale = DEFAULT_LOCALE, title = 'Let me Grok that for you' } = Astro.props;
 
-// Text direction derives from the shared RTL_LOCALES set for the current lang.
-const dir = RTL_LOCALES.includes(lang as (typeof RTL_LOCALES)[number]) ? 'rtl' : 'ltr';
+const dir = RTL_LOCALES.includes(locale as (typeof RTL_LOCALES)[number]) ? 'rtl' : 'ltr';
+
+const hreflangs = [
+  ...SUPPORTED_LOCALES.map((code) => ({ hreflang: code, href: getAbsoluteLocaleUrl(code) })),
+  { hreflang: 'x-default', href: getAbsoluteLocaleUrl(DEFAULT_LOCALE) },
+];
 ---
 
 <!doctype html>
-<html lang={lang} dir={dir} class="dark">
+<html lang={locale} dir={dir} class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,13 +33,7 @@ const dir = RTL_LOCALES.includes(lang as (typeof RTL_LOCALES)[number]) ? 'rtl' :
       referrerpolicy="no-referrer"
     />
 
-    <!-- SEO language meta tags -->
-    <link rel="alternate" hreflang="ar" href="https://lmgroktfy.com/" />
-    <link rel="alternate" hreflang="de" href="https://lmgroktfy.com/" />
-    <link rel="alternate" hreflang="en" href="https://lmgroktfy.com/" />
-    <link rel="alternate" hreflang="es" href="https://lmgroktfy.com/" />
-    <link rel="alternate" hreflang="fr" href="https://lmgroktfy.com/" />
-    <link rel="alternate" hreflang="ja" href="https://lmgroktfy.com/" />
+    {hreflangs.map((entry) => <link rel="alternate" hreflang={entry.hreflang} href={entry.href} />)}
   </head>
   <body
     class="bg-grok-bg-light dark:bg-grok-bg-dark flex min-h-screen flex-col text-gray-800 dark:text-gray-200"

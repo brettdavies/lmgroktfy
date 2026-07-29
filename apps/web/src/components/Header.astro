@@ -1,4 +1,7 @@
 ---
+import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
+
+const locale = Astro.currentLocale ?? DEFAULT_LOCALE;
 ---
 
 <header>
@@ -22,12 +25,12 @@
       class="cursor-pointer border-none bg-transparent p-2 text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
       aria-label="Select language"
     >
-      <option value="ar">🇪🇬 AR</option>
-      <option value="de">🇩🇪 DE</option>
-      <option value="en">🇺🇸 EN</option>
-      <option value="es">🇪🇸 ES</option>
-      <option value="fr">🇫🇷 FR</option>
-      <option value="ja">🇯🇵 JA</option>
+      <option value="ar" selected={locale === 'ar'}>🇪🇬 AR</option>
+      <option value="de" selected={locale === 'de'}>🇩🇪 DE</option>
+      <option value="en" selected={locale === 'en'}>🇺🇸 EN</option>
+      <option value="es" selected={locale === 'es'}>🇪🇸 ES</option>
+      <option value="fr" selected={locale === 'fr'}>🇫🇷 FR</option>
+      <option value="ja" selected={locale === 'ja'}>🇯🇵 JA</option>
     </select>
     <button
       id="theme-toggle"

@@ -1,4 +1,9 @@
 ---
+import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
+import { useTranslations } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale ?? DEFAULT_LOCALE);
+const placeholder = t('main.placeholder');
 ---
 
 <form id="question-form" class="mb-8 w-full max-w-3xl">
@@ -6,7 +11,7 @@
     <input
       type="text"
       id="question-input"
-      placeholder="grok the meaning of life for me..."
+      placeholder={placeholder}
       class="bg-grok-input-light dark:bg-grok-input-dark shadow-input placeholder-hidden w-full rounded-2xl border border-gray-200 px-6 py-5 pr-16 text-lg text-gray-900 placeholder-gray-400 focus:border-gray-300 focus:outline-none dark:border-gray-700/50 dark:text-white dark:focus:border-gray-600"
       required
     />
@@ -15,7 +20,7 @@
       class="placeholder-text animate visible absolute top-1/2 left-6 -translate-y-1/2 text-lg text-gray-600 opacity-100 dark:text-gray-300"
       aria-hidden="true"
     >
-      grok the meaning of life for me...
+      {placeholder}
     </div>
     <button
       type="submit"

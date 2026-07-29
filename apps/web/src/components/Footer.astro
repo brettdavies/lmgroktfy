@@ -1,12 +1,13 @@
 ---
+import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
+import { useTranslations } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale ?? DEFAULT_LOCALE);
 ---
 
 <footer class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-  <p class="mb-2">
-    Not affiliated with X™ or Grok™. X & Grok are trademarks of X Corp. Grok is a trademark of
-    xAI.
-  </p>
-  <p class="mb-2">© 2025 Brett Davies - Stay Curious, Understand the Universe!</p>
+  <p class="mb-2">{t('footer.disclaimer')}</p>
+  <p class="mb-2">{t('footer.copyright')}</p>
   <div class="flex items-center justify-center gap-4">
     <a
       href="https://x.com/brettdavies"
