@@ -10,7 +10,9 @@ export const API_ENDPOINTS = {
  */
 export const GROK_API = {
   URL: 'https://api.x.ai/v1/chat/completions',
-  MODEL: 'grok-4-1-fast-non-reasoning-latest',
+  // Pinned to the dated model id, not a -latest alias, so the model's behavior
+  // and pricing cannot drift under us between deploys.
+  MODEL: 'grok-4.20-0309-reasoning',
   SYSTEM_PROMPT:
     "You are Grok, created by xAI, providing concise, helpful, and accurate answers for the 'Let me Grok that for you' app.",
   TEMPERATURE: 0,
