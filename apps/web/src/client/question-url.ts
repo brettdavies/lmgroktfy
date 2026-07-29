@@ -38,6 +38,14 @@ export function hasUrlQuestion(): boolean {
   return decodeQuestionFromPath() !== '';
 }
 
+/** The leading locale segment of `pathname` as a path prefix (`''` for the
+ *  default, unprefixed locale). Lets a client-side URL rewrite keep the language
+ *  the user is viewing instead of collapsing to the default. */
+export function localePrefix(pathname: string = window.location.pathname): string {
+  const first = pathname.split('/').filter(Boolean)[0];
+  return first && isSupportedLocale(first) ? `/${first}` : '';
+}
+
 /** Maps a pathname onto `locale` (default locale unprefixed), preserving any
  *  trailing question segment as-is. */
 export function localizedPath(locale: string, pathname: string = window.location.pathname): string {

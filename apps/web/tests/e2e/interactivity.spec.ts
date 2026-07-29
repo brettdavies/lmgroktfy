@@ -102,6 +102,35 @@ test.describe('submit and share', () => {
   });
 });
 
+test.describe('locale persists through the question-URL rewrite', () => {
+  test('submitting from a non-default locale keeps the locale prefix in the URL', async ({
+    page,
+  }) => {
+    await mockGrok(page);
+    await page.goto('/de/');
+    await injectTurnstileToken(page);
+
+    await page.fill('#question-input', 'what is grok');
+    await page.locator('#submit-button').click();
+    await expect(page.locator('#answer')).toHaveText(MOCK_ANSWER);
+
+    // The success handler rewrites the address bar to the deep-link form. It must
+    // preserve the active locale, or the URL a user copies (or reloads) drops
+    // back to the default language while the page stays translated — the "/de/
+    // disappears but the language stays" symptom.
+    await expect(page).toHaveURL(/\/de\/what%20is%20grok$/);
+  });
+
+  test('a locale deep-link auto-submit keeps its locale prefix', async ({ page }) => {
+    await mockGrok(page);
+    await page.goto('/de/what+is+grok');
+    await injectTurnstileToken(page);
+
+    await expect(page.locator('#answer')).toHaveText(MOCK_ANSWER);
+    await expect(page).toHaveURL(/\/de\/what%20is%20grok$/);
+  });
+});
+
 test.describe('theme and placeholder', () => {
   test('the theme toggle drives class-based dark: utilities', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' });

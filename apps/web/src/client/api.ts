@@ -6,6 +6,7 @@ import {
   encodeQuestionForUrl,
 } from '@lmgroktfy/shared';
 import { elements } from './dom';
+import { localePrefix } from './question-url';
 import { hideLoading, showError, showLoading, showSuccess } from './transitions';
 import { awaitTurnstileToken, getTurnstileToken } from './turnstile';
 
@@ -60,7 +61,7 @@ export async function submitQuestion(question: string): Promise<void> {
     }
 
     showSuccess(validation.data.answer, question);
-    window.history.replaceState({}, '', `/${encodeQuestionForUrl(question)}`);
+    window.history.replaceState({}, '', `${localePrefix()}/${encodeQuestionForUrl(question)}`);
   } catch (error) {
     console.error('[api] request failed:', error);
     hideLoading();
