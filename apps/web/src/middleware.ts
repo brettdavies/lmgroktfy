@@ -1,27 +1,9 @@
-import { ALLOWED_DOMAINS, HEADERS, HTTP_STATUS } from '@lmgroktfy/shared';
+import { HEADERS, HTTP_STATUS, PRODUCTION_DOMAINS } from '@lmgroktfy/shared';
 import { defineMiddleware, sequence } from 'astro:middleware';
 
 const API_PATH_PREFIX = '/api/';
 const TURNSTILE_HOST = 'https://challenges.cloudflare.com';
 const FONT_AWESOME_HOST = 'https://cdnjs.cloudflare.com';
-
-function matchesAllowedDomain(hostname: string): boolean {
-  return ALLOWED_DOMAINS.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
-}
-
-function isAllowedOrigin(origin: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(origin);
-  } catch {
-    return false;
-  }
-  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLocalhost)) {
-    return false;
-  }
-  return matchesAllowedDomain(url.hostname);
-}
 
 function corsHeaders(origin: string): Record<string, string> {
   return {
@@ -34,9 +16,11 @@ function corsHeaders(origin: string): Record<string, string> {
 }
 
 /**
- * Restricts cross-origin access to `/api/*` to `ALLOWED_DOMAINS`: a disallowed
- * `Origin` is rejected server-side (not merely un-reflected), preflights answer
- * only allowed origins, and successful responses reflect the validated origin.
+ * The `/api/*` surface is first-party only: the client calls it same-origin (a
+ * relative fetch on whatever host serves the page), so any cross-origin browser
+ * caller is rejected server-side. A non-browser caller can forge or omit
+ * `Origin`, so Turnstile and the rate limit — not this check — are the real
+ * controls; this is defense-in-depth against browser-based cross-site use.
  */
 export const cors = defineMiddleware(async (context, next) => {
   const url = new URL(context.request.url);
@@ -45,10 +29,7 @@ export const cors = defineMiddleware(async (context, next) => {
   }
 
   const origin = context.request.headers.get('Origin');
-  // A same-origin request (the site calling its own API, including on the
-  // staging workers.dev host that is not in ALLOWED_DOMAINS) is always allowed;
-  // ALLOWED_DOMAINS gates only cross-origin callers.
-  if (origin && origin !== url.origin && !isAllowedOrigin(origin)) {
+  if (origin && origin !== url.origin) {
     return new Response(JSON.stringify({ error: 'Origin not allowed' }), {
       status: HTTP_STATUS.FORBIDDEN,
       headers: { [HEADERS.CONTENT_TYPE]: HEADERS.JSON },
@@ -72,10 +53,11 @@ export const cors = defineMiddleware(async (context, next) => {
 });
 
 /**
- * Emits prod-scoped security headers, including a concrete CSP whose script-src
- * carries a fresh per-request nonce (exposed on `locals.cspNonce` for the island
- * mount, so no `'unsafe-inline'`). HSTS is scoped to the custom domain and is
- * never sent on the shared `workers.dev` host.
+ * Emits security headers, including a concrete CSP whose script-src carries a
+ * fresh per-request nonce (exposed on `locals.cspNonce`) so a script tag is
+ * allowed without `'unsafe-inline'`. HSTS is sent only on the production custom
+ * domains, never on staging (`dev.lmgroktfy.com`) or the shared `workers.dev`
+ * host, so a browser is never pinned to https for a non-production host.
  */
 export const securityHeaders = defineMiddleware(async (context, next) => {
   const nonce = createNonce();
@@ -128,10 +110,8 @@ function createNonce(): string {
 function securityScope(hostname: string): { applyHeaders: boolean; applyHsts: boolean } {
   const isLocalhost =
     hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost');
-  const isWorkersDev = hostname === 'workers.dev' || hostname.endsWith('.workers.dev');
-  const isCustomDomain = matchesAllowedDomain(hostname);
   return {
     applyHeaders: !isLocalhost,
-    applyHsts: isCustomDomain && !isWorkersDev,
+    applyHsts: PRODUCTION_DOMAINS.includes(hostname as (typeof PRODUCTION_DOMAINS)[number]),
   };
 }

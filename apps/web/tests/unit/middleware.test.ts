@@ -91,14 +91,14 @@ describe('cors middleware', () => {
     expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 
-  test('allows an approved subdomain Origin', async () => {
+  test('rejects a cross-origin sibling subdomain with 403', async () => {
     const context = makeContext('https://lmgroktfy.com/api/grok', {
       method: 'POST',
       origin: 'https://www.lmgroktfy.com',
     });
     const response = await asMiddleware(cors)(context, nextOk);
-    expect(response.status).toBe(200);
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://www.lmgroktfy.com');
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 
   test('allows a same-origin request on a host outside ALLOWED_DOMAINS (staging)', async () => {
@@ -162,6 +162,13 @@ describe('securityHeaders middleware', () => {
     const response = await asMiddleware(securityHeaders)(context, nextHtml);
     expect(response.headers.get('Content-Security-Policy')).toBeTruthy();
     expect(response.headers.get('Strict-Transport-Security')).toContain('max-age=');
+  });
+
+  test('applies security headers but no HSTS on the dev.lmgroktfy.com staging domain', async () => {
+    const context = makeContext('https://dev.lmgroktfy.com/');
+    const response = await asMiddleware(securityHeaders)(context, nextHtml);
+    expect(response.headers.get('Content-Security-Policy')).toBeTruthy();
+    expect(response.headers.get('Strict-Transport-Security')).toBeNull();
   });
 
   test('mints a fresh nonce per request', async () => {

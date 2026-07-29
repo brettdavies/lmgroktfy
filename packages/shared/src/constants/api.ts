@@ -60,3 +60,10 @@ export const REQUEST_LIMITS = {
  * Allowed domains for security checks
  */
 export const ALLOWED_DOMAINS = ['lmgroktfy.com', 'dev.lmgroktfy.com'] as const;
+
+/**
+ * Production custom domains that receive HSTS. Staging (`dev.lmgroktfy.com` and
+ * the workers.dev host) is deliberately excluded so a browser is never pinned to
+ * https for a non-production host.
+ */
+export const PRODUCTION_DOMAINS = ['lmgroktfy.com', 'www.lmgroktfy.com'] as const;
