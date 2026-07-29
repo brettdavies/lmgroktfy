@@ -16,10 +16,12 @@ describe('shared security headers', () => {
     expect(CONTENT_SECURITY_POLICY).not.toContain('unsafe-inline');
   });
 
-  test('CSP admits the external Cloudflare Web Analytics beacon (script + POST target)', () => {
-    expect(CONTENT_SECURITY_POLICY).toContain('script-src');
+  test('CSP admits the auto-injected Cloudflare Web Analytics beacon script', () => {
     expect(CONTENT_SECURITY_POLICY).toContain('https://static.cloudflareinsights.com');
-    expect(CONTENT_SECURITY_POLICY).toContain("connect-src 'self' https://cloudflareinsights.com");
+    // Automatic injection reports to the same-origin /cdn-cgi/rum, so 'self' covers
+    // the POST; the manual-embed host (cloudflareinsights.com) must not be granted.
+    expect(CONTENT_SECURITY_POLICY).toContain("connect-src 'self'");
+    expect(CONTENT_SECURITY_POLICY).not.toContain('https://cloudflareinsights.com');
   });
 
   test('the header map embeds the CSP and the fixed defensive headers', () => {

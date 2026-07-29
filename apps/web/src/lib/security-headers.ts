@@ -9,17 +9,18 @@
  * for every response and can be emitted statically for pages that bypass the
  * Worker.
  */
-// `static.cloudflareinsights.com` (the beacon script) and `cloudflareinsights.com`
-// (its metrics POST target) admit the Cloudflare Web Analytics RUM beacon the zone
-// auto-injects into HTML responses. The beacon is an external script, so allowing
-// the two hosts is enough and the policy needs no `unsafe-inline`.
+// `static.cloudflareinsights.com` admits the Cloudflare Web Analytics RUM beacon
+// script the zone auto-injects. Under automatic injection the beacon reports to
+// the same-origin `/cdn-cgi/rum`, so `connect-src 'self'` already covers the POST
+// and no `cloudflareinsights.com` grant is needed. The beacon is an external
+// script, so the policy stays free of `unsafe-inline`.
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com",
   'frame-src https://challenges.cloudflare.com',
   "style-src 'self' https://cdnjs.cloudflare.com",
   'font-src https://cdnjs.cloudflare.com',
-  "connect-src 'self' https://cloudflareinsights.com",
+  "connect-src 'self'",
   "img-src 'self' data:",
   "base-uri 'none'",
   "object-src 'none'",
