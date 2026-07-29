@@ -7,7 +7,9 @@ import {
 
 describe('shared security headers', () => {
   test('CSP is static: allows self scripts + Turnstile, carries no nonce', () => {
-    expect(CONTENT_SECURITY_POLICY).toContain("script-src 'self' https://challenges.cloudflare.com");
+    expect(CONTENT_SECURITY_POLICY).toContain(
+      "script-src 'self' https://challenges.cloudflare.com"
+    );
     expect(CONTENT_SECURITY_POLICY).toContain('frame-src https://challenges.cloudflare.com');
     expect(CONTENT_SECURITY_POLICY).toContain("style-src 'self' https://cdnjs.cloudflare.com");
     expect(CONTENT_SECURITY_POLICY).toContain("frame-ancestors 'none'");

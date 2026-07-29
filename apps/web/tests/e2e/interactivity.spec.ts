@@ -39,8 +39,8 @@ test.describe('keyboard and focus', () => {
     for (let i = 0; i < 6; i++) {
       await page.keyboard.press('Tab');
     }
-    const trapped = await page.evaluate(() =>
-      document.getElementById('help_modal')?.contains(document.activeElement) ?? false
+    const trapped = await page.evaluate(
+      () => document.getElementById('help_modal')?.contains(document.activeElement) ?? false
     );
     expect(trapped).toBe(true);
   });
@@ -147,7 +147,9 @@ test.describe('theme and placeholder', () => {
     await page.locator('#theme-toggle').click();
 
     await expect(html).toHaveClass(/\bdark\b/);
-    expect(await body.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(35, 35, 37)');
+    expect(await body.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
+      'rgb(35, 35, 37)'
+    );
   });
 
   test('the rotating placeholder overlay shows a suggestion when the input is idle', async ({

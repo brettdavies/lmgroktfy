@@ -26,7 +26,9 @@ Bun.serve({
     // never fall back to HTML, or a missing script would be served as a page.
     if (extname(path) && !path.endsWith('.html')) {
       const asset = Bun.file(safeJoin(path));
-      return (await asset.exists()) ? new Response(asset) : new Response('Not found', { status: 404 });
+      return (await asset.exists())
+        ? new Response(asset)
+        : new Response('Not found', { status: 404 });
     }
 
     for (const candidate of [join(path, 'index.html'), `${path.replace(/\/$/, '')}.html`]) {

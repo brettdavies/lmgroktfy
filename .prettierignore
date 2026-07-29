@@ -1,4 +1,6 @@
-# apps/web is not governed by the root Prettier config. It self-governs: astro
-# check typechecks it today, and Biome formats/lints it once CI adopts the app.
-# Its env.d.ts (wrangler types) and .astro/ types are generated, not hand-edited.
-apps/web/
+# apps/web source is formatted by Prettier: prettier-plugin-astro handles .astro
+# files, prettier-plugin-tailwindcss sorts utility classes. Only its generated
+# artifacts are ignored, since they are emitted, not hand-edited.
+apps/web/src/env.d.ts
+apps/web/.astro/
+apps/web/dist/

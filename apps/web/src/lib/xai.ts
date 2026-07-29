@@ -70,7 +70,11 @@ export async function callXai(
     }
 
     if (!upstream.ok) {
-      return { ok: false, reason: 'upstream', detail: `xAI ${upstream.status}: ${await safeText(upstream)}` };
+      return {
+        ok: false,
+        reason: 'upstream',
+        detail: `xAI ${upstream.status}: ${await safeText(upstream)}`,
+      };
     }
 
     let payload: unknown;
@@ -105,7 +109,11 @@ export async function callXai(
 
     const validated = GrokResponseSchema.safeParse(response);
     if (!validated.success) {
-      return { ok: false, reason: 'malformed', detail: 'assembled response failed schema validation' };
+      return {
+        ok: false,
+        reason: 'malformed',
+        detail: 'assembled response failed schema validation',
+      };
     }
 
     return { ok: true, response: validated.data };

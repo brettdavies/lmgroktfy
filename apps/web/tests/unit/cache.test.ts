@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import type { GrokResponse } from '@lmgroktfy/shared';
-import { CACHE_TTL_SECONDS, getCachedAnswer, normalizeQuestionKey, putCachedAnswer } from '../../src/lib/cache';
+import {
+  CACHE_TTL_SECONDS,
+  getCachedAnswer,
+  normalizeQuestionKey,
+  putCachedAnswer,
+} from '../../src/lib/cache';
 
 interface StoredPut {
   key: string;

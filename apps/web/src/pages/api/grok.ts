@@ -35,7 +35,8 @@ export const POST: APIRoute = async ({ request }) => {
     // closed with 403 so a tokenless caller is treated identically to one that
     // sent an invalid token. Any other defect stays a 400.
     const issues = validation.error.issues;
-    const tokenOnly = issues.length > 0 && issues.every((issue) => issue.path[0] === 'turnstileToken');
+    const tokenOnly =
+      issues.length > 0 && issues.every((issue) => issue.path[0] === 'turnstileToken');
     return tokenOnly
       ? errorResponse('Forbidden', HTTP_STATUS.FORBIDDEN)
       : errorResponse('Invalid request', HTTP_STATUS.BAD_REQUEST);

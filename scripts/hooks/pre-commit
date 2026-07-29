@@ -39,11 +39,11 @@ if echo "$staged" | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc)$'; then
   fi
 fi
 
-# Prettier: format-check staged TS/CSS/HTML (matches the repo format script's
-# globs). Check only — never auto-format-and-restage inside a hook.
-if echo "$staged" | grep -qE '\.(ts|tsx|css|html)$'; then
+# Prettier: format-check staged TS/CSS/HTML/Astro (matches the repo format
+# script's globs). Check only — never auto-format-and-restage inside a hook.
+if echo "$staged" | grep -qE '\.(ts|tsx|css|html|astro)$'; then
   if command -v bunx >/dev/null 2>&1; then
-    mapfile -t fmt_files < <(echo "$staged" | grep -E '\.(ts|tsx|css|html)$')
+    mapfile -t fmt_files < <(echo "$staged" | grep -E '\.(ts|tsx|css|html|astro)$')
     bunx --bun prettier --check --no-error-on-unmatched-pattern "${fmt_files[@]}" || {
       echo "pre-commit: prettier --check failed (run \`bun run format\`)"
       exit 1

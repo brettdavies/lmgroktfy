@@ -81,7 +81,9 @@ function loadTheme(): void {
   } catch {
     saved = null;
   }
-  setTheme(saved && (Object.values(THEMES) as string[]).includes(saved) ? (saved as Theme) : THEMES.SYSTEM);
+  setTheme(
+    saved && (Object.values(THEMES) as string[]).includes(saved) ? (saved as Theme) : THEMES.SYSTEM
+  );
 }
 
 export function initializeTheme(): void {

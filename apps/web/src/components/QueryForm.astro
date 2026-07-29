@@ -47,7 +47,8 @@ const turnstileSiteKey = getTurnstileSiteKey();
     </button>
   </div>
 
-  {/*
+  {
+    /*
     Managed Turnstile widget: on success it populates the hidden
     `input[name="cf-turnstile-response"]` the client island reads. It sits
     outside the `#response`/`#loading` aria-live regions so a rendered challenge
@@ -55,7 +56,8 @@ const turnstileSiteKey = getTurnstileSiteKey();
     `tabindex`/`aria-hidden` override so its iframe stays in the natural tab
     order (Turnstile does not move focus on render, so initial focus stays on
     the question input).
-  */}
+  */
+  }
   <div
     id="turnstile-widget"
     class="cf-turnstile mt-4 flex justify-center"

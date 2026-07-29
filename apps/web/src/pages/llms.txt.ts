@@ -4,10 +4,10 @@ import { localeHomePath, localeTwinPath, resolveSite } from '../lib/site';
 
 function buildLlmsTxt(site: URL): string {
   const routeLines = SUPPORTED_LOCALES.map(
-    (locale) => `- ${new URL(localeHomePath(locale), site).toString()} (${locale})`,
+    (locale) => `- ${new URL(localeHomePath(locale), site).toString()} (${locale})`
   ).join('\n');
   const twinLines = SUPPORTED_LOCALES.map(
-    (locale) => `- ${new URL(localeTwinPath(locale), site).toString()} (${locale})`,
+    (locale) => `- ${new URL(localeTwinPath(locale), site).toString()} (${locale})`
   ).join('\n');
 
   return `# lmgroktfy

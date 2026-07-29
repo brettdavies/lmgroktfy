@@ -82,10 +82,13 @@ function routedSiteverify(siteverifyImpl: FetchImpl): typeof fetch {
   return (async (input: string | URL, init?: RequestInit) =>
     isSiteverify(input)
       ? siteverifyImpl(input, init)
-      : new Response(JSON.stringify({ id: 'x', choices: [{ message: { content: 'unreached' } }] }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })) as unknown as typeof fetch;
+      : new Response(
+          JSON.stringify({ id: 'x', choices: [{ message: { content: 'unreached' } }] }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )) as unknown as typeof fetch;
 }
 
 function completionFetch(content: string, id = 'share-1'): typeof fetch {

@@ -88,10 +88,18 @@ export async function verifyTurnstileToken(
     }
 
     if (!isSiteverifyShape(payload)) {
-      return { ok: false, reason: 'malformed', detail: 'siteverify response was not the expected shape' };
+      return {
+        ok: false,
+        reason: 'malformed',
+        detail: 'siteverify response was not the expected shape',
+      };
     }
     if (payload.success !== true) {
-      return { ok: false, reason: 'rejected', detail: `siteverify rejected: ${errorCodesOf(payload)}` };
+      return {
+        ok: false,
+        reason: 'rejected',
+        detail: `siteverify rejected: ${errorCodesOf(payload)}`,
+      };
     }
     return { ok: true };
   } finally {
@@ -103,7 +111,9 @@ export async function verifyTurnstileToken(
  * Anything but a strict `success === true` fails closed, so validation only has
  * to confirm the body is an object carrying a boolean `success`.
  */
-function isSiteverifyShape(payload: unknown): payload is { success: boolean; 'error-codes'?: unknown } {
+function isSiteverifyShape(
+  payload: unknown
+): payload is { success: boolean; 'error-codes'?: unknown } {
   return (
     typeof payload === 'object' &&
     payload !== null &&
@@ -116,5 +126,7 @@ function errorCodesOf(payload: { 'error-codes'?: unknown }): string {
   if (!Array.isArray(codes)) {
     return 'no-error-codes';
   }
-  return codes.filter((code): code is string => typeof code === 'string').join(',') || 'no-error-codes';
+  return (
+    codes.filter((code): code is string => typeof code === 'string').join(',') || 'no-error-codes'
+  );
 }

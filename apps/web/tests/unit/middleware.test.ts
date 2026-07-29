@@ -36,7 +36,8 @@ function makeContext(urlStr: string, opts: { method?: string; origin?: string } 
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: the fake context matches only the fields the middleware reads.
-const asMiddleware = (fn: unknown) => fn as (context: any, next: () => Promise<Response>) => Promise<Response>;
+const asMiddleware = (fn: unknown) =>
+  fn as (context: any, next: () => Promise<Response>) => Promise<Response>;
 
 describe('cors middleware', () => {
   const nextOk = async () => new Response('ok', { status: 200 });
