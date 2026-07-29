@@ -20,6 +20,10 @@ packages/web/public/
 apps/web/dist/
 apps/web/.astro/
 
+# Playwright e2e output
+apps/web/test-results/
+apps/web/playwright-report/
+
 # Wrangler
 .wrangler/
 .dev.vars

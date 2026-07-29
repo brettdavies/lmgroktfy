@@ -1,12 +1,22 @@
 ---
 import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
-import { useTranslations } from '../i18n';
+import { getPlaceholders, useTranslations } from '../i18n';
 
-const t = useTranslations(Astro.currentLocale ?? DEFAULT_LOCALE);
+const locale = Astro.currentLocale ?? DEFAULT_LOCALE;
+const t = useTranslations(locale);
 const placeholder = t('main.placeholder');
+const placeholders = getPlaceholders(locale);
 ---
 
-<form id="question-form" class="mb-8 w-full max-w-3xl">
+<form
+  id="question-form"
+  class="mb-8 w-full max-w-3xl"
+  data-placeholders={JSON.stringify(placeholders)}
+  data-toast-copy-qa={t('toast.copy_qa')}
+  data-toast-copy-answer={t('toast.copy_answer')}
+  data-toast-copy-link={t('toast.copy_link')}
+  data-toast-error={t('toast.error')}
+>
   <div class="relative flex w-full">
     <input
       type="text"
@@ -35,3 +45,7 @@ const placeholder = t('main.placeholder');
     </button>
   </div>
 </form>
+
+<script>
+  import '../client';
+</script>

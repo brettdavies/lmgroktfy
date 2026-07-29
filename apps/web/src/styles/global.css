@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @plugin 'daisyui';
 
+/* The JS theme toggle drives dark mode by adding `.dark` to <html>. Without this
+   override Tailwind v4 compiles `dark:` utilities to a `prefers-color-scheme`
+   media query, leaving the class toggle inert for Tailwind's own utilities. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Custom theme configuration */
 @theme {
   --color-grok-bg-light: #ffffff;

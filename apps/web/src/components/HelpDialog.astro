@@ -35,11 +35,11 @@ const t = useTranslations(Astro.currentLocale ?? DEFAULT_LOCALE);
         <ul class="space-y-2">
           <li class="flex items-center gap-2">
             <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">/</kbd>
-            or
-            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">?</kbd>
             <span>{t('help.shortcuts.focus')}</span>
           </li>
           <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">?</kbd>
+            or
             <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">h</kbd>
             <span>{t('help.shortcuts.help')}</span>
           </li>
