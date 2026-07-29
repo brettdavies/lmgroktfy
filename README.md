@@ -96,41 +96,43 @@ CI (`bun run lint`, `typecheck`, `build`, `bun test`). Verify with `git config -
 
 ### Commands
 
-| Command             | Description                          |
-| ------------------- | ------------------------------------ |
-| `bun run dev`       | Start local dev server with wrangler |
-| `bun run build`     | Build all packages                   |
-| `bun test`          | Run tests                            |
-| `bun run typecheck` | TypeScript type checking             |
-| `bun run lint`      | Run Biome linter                     |
-| `bun run lint:fix`  | Auto-fix lint issues                 |
-| `bun run deploy`    | Build and deploy to Cloudflare       |
+| Command                  | Description                        |
+| ------------------------ | ---------------------------------- |
+| `bun run dev`            | Start the Astro dev server         |
+| `bun run build`          | Build shared + the Astro app       |
+| `bun run test:all`       | Package + app unit tests           |
+| `bun run test:e2e`       | Playwright end-to-end tests        |
+| `bun run typecheck`      | tsc (shared) + astro check (app)   |
+| `bun run lint`           | Run Biome linter                   |
+| `bun run format`         | Format with Prettier               |
+| `bun run deploy:staging` | Build + deploy the staging Worker  |
+| `bun run deploy:prod`    | Build + deploy production in place |
 
 ### Project Structure
 
 ```plaintext
 lmgroktfy/
+├── apps/
+│   └── web/                  # Astro app on Cloudflare Workers (@astrojs/cloudflare)
+│       ├── src/
+│       │   ├── pages/        # Routes: prerendered shell, SSR /api/grok, agent-surface endpoints
+│       │   ├── components/   # .astro UI (Header, QueryForm, HelpDialog, ...)
+│       │   ├── layouts/      # Base.astro
+│       │   ├── client/       # Vanilla-TS interactive island
+│       │   ├── lib/          # xai, turnstile, cache, security headers, twin
+│       │   ├── i18n/         # Catalog loader/lookup
+│       │   └── middleware.ts # ?lang redirect, CORS, security headers
+│       └── wrangler.jsonc    # Staging + production Worker config
 ├── packages/
-│   ├── shared/           # @lmgroktfy/shared
-│   │   └── src/
-│   │       ├── schemas/  # Zod schemas (API types)
-│   │       ├── types/    # Inferred TypeScript types
-│   │       ├── constants/# Shared constants
-│   │       └── utils/    # Shared utilities
-│   ├── client/           # @lmgroktfy/client
-│   │   └── src/
-│   │       ├── ui/       # UI utilities (DOM, visibility, transitions, a11y, viewport)
-│   │       ├── managers/ # Feature managers (clipboard, theme, placeholder, focus, animation)
-│   │       ├── i18n/     # Internationalization
-│   │       └── api/      # API client
-│   └── web/              # @lmgroktfy/web
+│   └── shared/               # @lmgroktfy/shared
 │       └── src/
-│           ├── api/      # API route handlers
-│           ├── static/   # Static asset serving
-│           └── middleware/ # CORS, security
-├── locales/              # Translation files
-├── scripts/              # Build scripts
-└── package.json          # Workspace root
+│           ├── schemas/      # Zod schemas (API types)
+│           ├── types/        # Inferred TypeScript types
+│           ├── constants/    # Shared constants
+│           └── utils/        # Shared utilities
+├── locales/                  # Translation files
+├── scripts/                  # i18n + canary scripts
+└── package.json              # Workspace root
 ```
 
 ### Accessibility
@@ -190,8 +192,6 @@ Production is one Worker, so a bad release reverts by restoring the last-known-g
 - Confirm `lmgroktfy.com` serves the expected build before closing out the incident.
 
 Keep the last-known-good build deployable so a rollback never depends on recovering deleted source.
-
-The legacy worker under `packages/web` still deploys with `bun run deploy` until it is retired.
 
 ## Environment Variables
 
