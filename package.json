@@ -18,6 +18,8 @@
     "format:check": "prettier --check \"packages/*/src/**/*.{ts,tsx,css}\" \"packages/*/public/**/*.html\"",
     "typecheck": "tsc --noEmit -p packages/shared && tsc --noEmit -p packages/client && tsc --noEmit -p packages/web",
     "deploy": "bun run build && bun run --cwd packages/web deploy",
+    "deploy:staging": "cd apps/web && CLOUDFLARE_ENV=staging bunx astro build && bunx wrangler deploy --env staging",
+    "deploy:prod": "cd apps/web && CLOUDFLARE_ENV=production bunx astro build && bunx wrangler deploy --env production",
     "i18n:extract": "bun scripts/extract-i18n.ts",
     "i18n:validate": "bun scripts/validate-i18n.ts",
     "i18n:sync": "bun scripts/sync-translations.ts",

@@ -142,13 +142,56 @@ lmgroktfy/
 
 ### Deployment
 
-Deployed to Cloudflare Workers:
+The `apps/web` Astro app builds to a single Cloudflare Worker (via the `@astrojs/cloudflare` adapter) and deploys to one
+of two targets:
+
+| Target     | Worker name         | Address                              | Command                  |
+| ---------- | ------------------- | ------------------------------------ | ------------------------ |
+| Staging    | `lmgroktfy-staging` | `lmgroktfy-staging.workers.dev`      | `bun run deploy:staging` |
+| Production | `lmgroktfy`         | `lmgroktfy.com`, `www.lmgroktfy.com` | `bun run deploy:prod`    |
+
+Production promotes **in place**: `deploy:prod` targets the existing `lmgroktfy` Worker that already holds the live
+bindings and custom domains, so a release updates the running Worker instead of creating a second one that would collide
+on the `lmgroktfy.com` custom domain. The top-level Wrangler config carries a throwaway `lmgroktfy-dev` name, so a bare
+`wrangler deploy` with no environment can never land on production.
+
+The adapter fixes the environment at build time through `CLOUDFLARE_ENV`; the deploy scripts set it and pass a matching
+`--env`, so Wrangler refuses a build/deploy environment mismatch. Verify a target without publishing:
 
 ```bash
-bun run deploy
+cd apps/web
+CLOUDFLARE_ENV=staging bunx astro build && bunx wrangler deploy --env staging --dry-run
 ```
 
-This builds all packages and deploys the worker with static assets.
+#### Secrets
+
+Per-environment secrets are set out of band and never live in the config or in git:
+
+```bash
+wrangler secret put API_KEY --env staging
+wrangler secret put API_KEY --env production
+wrangler secret put TURNSTILE_SECRET_KEY --env staging
+wrangler secret put TURNSTILE_SECRET_KEY --env production
+```
+
+#### Release flow
+
+1. `bun run deploy:staging`, then verify `lmgroktfy-staging.workers.dev` (site renders, the API is gated, the cache
+   serves a repeat question).
+2. `bun run deploy:prod` promotes the verified build in place onto `lmgroktfy`.
+
+#### Rollback
+
+Production is one Worker, so a bad release reverts by restoring the last-known-good build:
+
+- Fast path: `wrangler rollback --env production --message "<reason>"` reverts the production Worker to its previous
+  version.
+- From source: check out the last-known-good commit and run `bun run deploy:prod`.
+- Confirm `lmgroktfy.com` serves the expected build before closing out the incident.
+
+Keep the last-known-good build deployable so a rollback never depends on recovering deleted source.
+
+The legacy worker under `packages/web` still deploys with `bun run deploy` until it is retired.
 
 ## Environment Variables
 

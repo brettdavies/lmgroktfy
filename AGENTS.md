@@ -40,6 +40,32 @@ lands, the stack described below is authoritative — do not assume an Astro lay
 - Typecheck: `bun run typecheck` runs `tsc --noEmit` across `shared`, `client`, and `web`.
 - Deploy: Wrangler (`bun run deploy`). Cloudflare Workers only, never Cloudflare Pages — a Pages reference is a bug.
 
+## Deploying the Astro app
+
+`apps/web` (the Astro app) builds to one Cloudflare Worker via the `@astrojs/cloudflare` adapter and targets two
+environments defined in `apps/web/wrangler.jsonc`:
+
+- **Staging** — Worker `lmgroktfy-staging` on `lmgroktfy-staging.workers.dev`. `bun run deploy:staging`.
+- **Production** — Worker `lmgroktfy` on the `lmgroktfy.com` / `www.lmgroktfy.com` custom domains. `bun run
+  deploy:prod`.
+
+`[env.production].name` is pinned to `lmgroktfy` so `--env production` promotes the existing Worker in place; a distinct
+`lmgroktfy-production` Worker would collide on the `lmgroktfy.com` custom domain. The top-level `name` is a throwaway
+`lmgroktfy-dev`, so a bare `wrangler deploy` with no `--env` cannot reach production — always select an environment.
+
+The adapter fixes the environment at build time via `CLOUDFLARE_ENV`, not the deploy-time `--env` flag; the deploy
+scripts set `CLOUDFLARE_ENV` and pass a matching `--env` so Wrangler rejects a build/deploy environment mismatch.
+Dry-run a target from `apps/web` with `CLOUDFLARE_ENV=<env> bunx astro build && bunx wrangler deploy --env <env>
+--dry-run`.
+
+Secrets (`API_KEY`, `TURNSTILE_SECRET_KEY`) are per-environment and set with `wrangler secret put <NAME> --env <env>` —
+never in `wrangler.jsonc` or git. Staging and production carry distinct rate-limit and KV namespace ids so the two
+Workers never share state while both exist.
+
+Rollback: `wrangler rollback --env production --message "<reason>"` reverts the production Worker to its previous
+version; alternatively redeploy the last-known-good build with `bun run deploy:prod`. Keep that build deployable so a
+rollback never waits on recovering deleted source.
+
 ## Internationalization
 
 Translations are managed by the `i18n:*` scripts:
