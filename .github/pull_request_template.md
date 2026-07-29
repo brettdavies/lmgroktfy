@@ -1,12 +1,59 @@
 ## Summary
 
-<!-- Provide a brief overview of the changes in this PR. What feature/fix/improvement does this introduce? -->
+<!-- Provide a brief overview of the changes in this PR. What feature/fix/improvement does this introduce?
 
-## Changes
+     SCOPE: Describe the net diff only — what the merged result looks
+     like compared to the base branch. NOT commit history, intermediate
+     state, or how the cherry-picks were assembled.
 
-## <!-- List the key changes made in this PR -->
+     EXCLUDE all verification artifacts:
+- Triple-diff output / stats (A, B, C blocks)
+- Leak-check output ("no guarded paths leaked", "guard-main-docs runs clean")
+- Patch-id cherry-check counts
+- Pre-push gate results, CI status, prose-scrub findings
+- Any "I ran X and it returned Y" narration
+
+     Anomalies get fixed before push, not audit-trailed in the body.
+-->
+
+## Changelog
+
+<!-- CRITICAL: This section is the source of truth for CHANGELOG.md.
+     generate-changelog.py extracts these categorized bullets verbatim
+     into the release changelog. Write carefully — this IS the changelog.
+
+     AUDIENCE: Users and operators. Write from their perspective.
+
+     INCLUDE: new features, changed behavior, breaking changes, fixed bugs,
+     new/removed config, new dependencies users need to know about.
+
+     EXCLUDE: internal refactors, test additions, code cleanup, CI changes,
+     regenerated files, implementation details (unreachable!() arms, import
+     reordering, cargo_bin migration, cfg gates, etc.). Document those in
+     the PR body text or Files Modified section — NOT here.
+
+     RULES:
+- 1-5 bullets per PR. Fewer is better. One-line fixes get one bullet.
+- Delete empty ### sections entirely — don't leave blank categories.
+- Each bullet starts with a verb: Add, Fix, Change, Remove, Deprecate.
+- Don't duplicate the PR title — expand on it or provide context.
+- If the PR has NO user-facing changes (pure refactor, test-only, CI), leave this section empty or omit it. The PR still
+  appears in git history; it just won't clutter the changelog. -->
+
+### Added
 
 -
+
+### Changed
+
+-
+
+### Fixed
+
+-
+
+### Documentation
+
 -
 
 ## Type of Change
@@ -53,21 +100,23 @@
 
 <!-- List the main files modified in this PR -->
 
-## **Modified:**
+**Modified:**
 
-## **Created:**
+**Created:**
 
-## **Deleted:**
+**Renamed:**
+
+**Deleted:**
 
 ## Key Features
 
-## <!-- Optional: Highlight key features or capabilities introduced -->
+<!-- Optional: Highlight key features or capabilities introduced -->
 
 -
 
 ## Benefits
 
-## <!-- Optional: Describe the benefits (performance, security, compliance, UX, etc.) -->
+<!-- Optional: Describe the benefits (performance, security, compliance, UX, etc.) -->
 
 -
 
@@ -94,11 +143,9 @@
 - [ ] Code follows project conventions and style guidelines
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
 - [ ] Self-review of code completed
-- [ ] Code is documented (comments, JSDoc, etc.)
 - [ ] Tests added/updated and passing
 - [ ] No new warnings or errors introduced
 - [ ] Changes are backward compatible (or breaking changes documented)
-- [ ] Related documentation updated
 
 ## Additional Context
 
