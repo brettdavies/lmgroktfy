@@ -1,0 +1,63 @@
+# Dependabot configuration.
+#
+# Two ecosystems: npm for the Bun/TypeScript toolchain, github-actions for
+# workflow actions. Both scan weekly on Monday mornings with a 7-day cooldown
+# so a just-published version has to survive a week before Dependabot proposes
+# it. npm minor + patch updates group into one PR per week.
+#
+# The `ignore` rule suppresses every major-version bump: no PR ever proposes a
+# breaking-version jump. Security updates are a separate path and still land
+# regardless, so a CVE fix that requires a major is not blocked. Bump majors
+# deliberately, by hand.
+#
+# Dependabot reads this file from the default branch (dev) and, with
+# `target-branch: dev`, opens its PRs against dev. This file is mirrored onto
+# main so both branches carry the same config. Do not flip `target-branch` to
+# main on a live config: retargeting orphans-and-closes any open PR.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    reviewers:
+      - brettdavies
+    labels:
+      - dependencies
+      - javascript
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Chicago
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    reviewers:
+      - brettdavies
+    labels:
+      - dependencies
+      - github-actions
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major

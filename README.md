@@ -6,7 +6,9 @@ A simple, accessible web application that lets you ask questions to Grok AI and 
 
 **Live site: [lmgroktfy.com](https://lmgroktfy.com)**
 
-🇺🇸 [English](https://lmgroktfy.com/?lang=en) · 🇪🇸 [Español](https://lmgroktfy.com/?lang=es) · 🇫🇷 [Français](https://lmgroktfy.com/?lang=fr) · 🇩🇪 [Deutsch](https://lmgroktfy.com/?lang=de) · 🇯🇵 [日本語](https://lmgroktfy.com/?lang=ja) · 🇸🇦 [العربية](https://lmgroktfy.com/?lang=ar)
+🇺🇸 [English](https://lmgroktfy.com/?lang=en) · 🇪🇸 [Español](https://lmgroktfy.com/?lang=es) · 🇫🇷
+[Français](https://lmgroktfy.com/?lang=fr) · 🇩🇪 [Deutsch](https://lmgroktfy.com/?lang=de) · 🇯🇵
+[日本語](https://lmgroktfy.com/?lang=ja) · 🇸🇦 [العربية](https://lmgroktfy.com/?lang=ar)
 
 ## How to Use
 
@@ -25,21 +27,21 @@ When someone opens a shared link, they'll see your question automatically submit
 
 ### Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `/` or `?` | Focus the search input |
-| `h` | Open help |
-| `t` | Toggle light/dark theme |
-| `Esc` | Close modal |
+| Key        | Action                  |
+| ---------- | ----------------------- |
+| `/` or `?` | Focus the search input  |
+| `h`        | Open help               |
+| `t`        | Toggle light/dark theme |
+| `Esc`      | Close modal             |
 
 **When an answer is displayed:**
 
-| Key | Action |
-|-----|--------|
-| `c` | Copy answer |
+| Key | Action                 |
+| --- | ---------------------- |
+| `c` | Copy answer            |
 | `q` | Copy question + answer |
-| `s` | Copy share link |
-| `g` | Continue on Grok |
+| `s` | Copy share link        |
+| `g` | Continue on Grok       |
 
 ---
 
@@ -80,17 +82,29 @@ bun install
 bun run dev
 ```
 
+### Local hooks
+
+Point git at the tracked hooks once per clone (machine-local config that does not travel with the checkout):
+
+```bash
+git config core.hooksPath scripts/hooks
+```
+
+`pre-commit` runs fast, staged-scoped checks (Biome lint, Prettier check, actionlint, markdownlint). `pre-push` mirrors
+CI (`bun run lint`, `typecheck`, `build`, `bun test`). Verify with `git config --get core.hooksPath` (expect
+`scripts/hooks`).
+
 ### Commands
 
-| Command | Description |
-|---------|-------------|
-| `bun run dev` | Start local dev server with wrangler |
-| `bun run build` | Build all packages |
-| `bun test` | Run tests |
-| `bun run typecheck` | TypeScript type checking |
-| `bun run lint` | Run Biome linter |
-| `bun run lint:fix` | Auto-fix lint issues |
-| `bun run deploy` | Build and deploy to Cloudflare |
+| Command             | Description                          |
+| ------------------- | ------------------------------------ |
+| `bun run dev`       | Start local dev server with wrangler |
+| `bun run build`     | Build all packages                   |
+| `bun test`          | Run tests                            |
+| `bun run typecheck` | TypeScript type checking             |
+| `bun run lint`      | Run Biome linter                     |
+| `bun run lint:fix`  | Auto-fix lint issues                 |
+| `bun run deploy`    | Build and deploy to Cloudflare       |
 
 ### Project Structure
 
@@ -140,8 +154,8 @@ This builds all packages and deploys the worker with static assets.
 
 Set these in Cloudflare Workers dashboard or `.dev.vars` for local development:
 
-| Variable | Description |
-|----------|-------------|
+| Variable      | Description          |
+| ------------- | -------------------- |
 | `XAI_API_KEY` | xAI API key for Grok |
 
 ## Testing
@@ -160,12 +174,12 @@ Tests use Bun's built-in test runner with coverage reporting.
 
 Translation files are in `locales/`. All 6 languages are at 100% completion.
 
-| Command | Description |
-|---------|-------------|
-| `bun run i18n:extract` | Extract translatable strings from source files |
+| Command                 | Description                                      |
+| ----------------------- | ------------------------------------------------ |
+| `bun run i18n:extract`  | Extract translatable strings from source files   |
 | `bun run i18n:validate` | Validate all translations against English source |
-| `bun run i18n:sync` | Sync structure across all locale files |
-| `bun run i18n:status` | Generate translation status report |
+| `bun run i18n:sync`     | Sync structure across all locale files           |
+| `bun run i18n:status`   | Generate translation status report               |
 
 ## License
 
