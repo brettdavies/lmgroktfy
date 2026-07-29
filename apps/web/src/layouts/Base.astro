@@ -1,0 +1,50 @@
+---
+import '../styles/global.css';
+import { DEFAULT_LOCALE, RTL_LOCALES, SUPPORTED_LOCALES } from '@lmgroktfy/shared';
+import { getAbsoluteLocaleUrl, getRelativeLocaleUrl } from 'astro:i18n';
+
+interface Props {
+  locale?: string;
+  title?: string;
+}
+
+const { locale = DEFAULT_LOCALE, title = 'Let me Grok that for you' } = Astro.props;
+
+const dir = RTL_LOCALES.includes(locale as (typeof RTL_LOCALES)[number]) ? 'rtl' : 'ltr';
+
+const hreflangs = [
+  ...SUPPORTED_LOCALES.map((code) => ({ hreflang: code, href: getAbsoluteLocaleUrl(code) })),
+  { hreflang: 'x-default', href: getAbsoluteLocaleUrl(DEFAULT_LOCALE) },
+];
+
+// `getRelativeLocaleUrl` appends a directory-style trailing slash regardless of
+// the path having a file extension, which would point this link at
+// `/index.md/`: a path the `[...q]` catch-all treats as a question and serves
+// as HTML instead of the twin.
+const twinHref = getRelativeLocaleUrl(locale, 'index.md').replace(/\/$/, '');
+---
+
+<!doctype html>
+<html lang={locale} dir={dir} class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    {hreflangs.map((entry) => <link rel="alternate" hreflang={entry.hreflang} href={entry.href} />)}
+    <link rel="alternate" type="text/markdown" href={twinHref} />
+  </head>
+  <body
+    class="bg-grok-bg-light dark:bg-grok-bg-dark flex min-h-screen flex-col text-gray-800 dark:text-gray-200"
+  >
+    <slot />
+  </body>
+</html>

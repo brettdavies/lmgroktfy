@@ -1,0 +1,6 @@
+# apps/web source is formatted by Prettier: prettier-plugin-astro handles .astro
+# files, prettier-plugin-tailwindcss sorts utility classes. Only its generated
+# artifacts are ignored, since they are emitted, not hand-edited.
+apps/web/src/env.d.ts
+apps/web/.astro/
+apps/web/dist/

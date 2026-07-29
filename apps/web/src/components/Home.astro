@@ -1,0 +1,33 @@
+---
+import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import Base from '../layouts/Base.astro';
+import { useTranslations } from '../i18n';
+import Footer from './Footer.astro';
+import Header from './Header.astro';
+import HelpDialog from './HelpDialog.astro';
+import QueryForm from './QueryForm.astro';
+import ResponseRegion from './ResponseRegion.astro';
+
+const locale = Astro.currentLocale ?? DEFAULT_LOCALE;
+const t = useTranslations(locale);
+const homeHref = getRelativeLocaleUrl(locale);
+---
+
+<Base locale={locale} title={t('page.title')}>
+  <Header />
+  <HelpDialog />
+  <main class="flex flex-1 flex-col items-center justify-center px-4 py-16">
+    <h1 class="mb-16 text-center text-[2.5rem] font-light tracking-tight">
+      <a
+        href={homeHref}
+        class="home-link transition-opacity hover:opacity-90"
+        set:html={t('main.title')}
+      />
+    </h1>
+
+    <QueryForm />
+    <ResponseRegion />
+  </main>
+  <Footer />
+</Base>
