@@ -16,6 +16,12 @@ describe('shared security headers', () => {
     expect(CONTENT_SECURITY_POLICY).not.toContain('unsafe-inline');
   });
 
+  test('CSP admits the external Cloudflare Web Analytics beacon (script + POST target)', () => {
+    expect(CONTENT_SECURITY_POLICY).toContain('script-src');
+    expect(CONTENT_SECURITY_POLICY).toContain('https://static.cloudflareinsights.com');
+    expect(CONTENT_SECURITY_POLICY).toContain("connect-src 'self' https://cloudflareinsights.com");
+  });
+
   test('the header map embeds the CSP and the fixed defensive headers', () => {
     expect(SECURITY_HEADERS['Content-Security-Policy']).toBe(CONTENT_SECURITY_POLICY);
     expect(SECURITY_HEADERS['X-Content-Type-Options']).toBe('nosniff');
