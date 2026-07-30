@@ -230,12 +230,13 @@ gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[].name'
 `guard-provenance:`, `guard-release:`) chosen specifically so their published context strings are `guard-docs /
 check-forbidden-docs`, `guard-provenance / check-provenance`, and `guard-release / check-release-branch-name`.
 
-### Why lmgroktfy's rulesets aren't committed in-repo
+### Why lmgroktfy's rulesets are committed in-repo
 
-`Protect dev` and `Protect main` are applied directly via the GitHub API/UI rather than vendored as JSON under
-`.github/rulesets/`. Committing the spec (the pattern some brettdavies repos use) adds a review trail for ruleset
-changes; applying directly is fewer moving parts for a single-maintainer repo. The same `gh api -X POST/PUT
-repos/<owner>/<repo>/rulesets` calls in RELEASES.md work identically against a committed file if that changes.
+`Protect dev` and `Protect main` are versioned as JSON under `.github/rulesets/` (`protect-dev.json`,
+`protect-main.json`) and applied to GitHub via the API, not edited only in the web UI. Committing the spec makes it the
+source of truth: ruleset changes get a diff and a review trail instead of living as invisible account state, and the `gh
+api -X PUT repos/<owner>/<repo>/rulesets/<id> --input .github/rulesets/protect-main.json` recipe in
+[`RELEASES.md`](./RELEASES.md) reapplies an edited file verbatim.
 
 ## Related docs
 
