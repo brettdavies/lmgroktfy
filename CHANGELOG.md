@@ -18,9 +18,24 @@ All notable changes to this project will be documented in this file.
 - Grok proxy pinned to `grok-4.20-0309-reasoning` with a 25s upstream timeout.
 - Legacy `packages/client` and `packages/web` removed; root scripts, Biome, Prettier (now with `prettier-plugin-astro` for `apps/web`), CI, and the pre-commit/pre-push hooks repointed at the Astro structure.
 
-## [1.0.0] - 2026-07-28
+## [1.1.0] - 2025-12-03
 
 ### Changed
 
-- Migrate the JavaScript codebase to a TypeScript monorepo on Bun workspaces (`shared` + `client` + `web`): replace npm/webpack with Bun's native bundler, swap ESLint for Biome, add Zod schemas for runtime validation, serve from a single Cloudflare Worker with SPA routing, and modularize large files into single-responsibility modules. ([#11](https://github.com/brettdavies/lmgroktfy/pull/11), [#12](https://github.com/brettdavies/lmgroktfy/pull/12))
-- Add a clickable home link, a reset that clears the form and state, History-API URL updates without a page reload, and consistent share/copy formatting (dropping the redundant "Question:" prefix). ([#4](https://github.com/brettdavies/lmgroktfy/pull/4))
+- Promote the TypeScript-monorepo build to `main` and configure the production Worker: attach the custom domains and disable the `workers.dev` dev/preview URLs so the app is served only from its own hostnames. ([#12](https://github.com/brettdavies/lmgroktfy/pull/12))
+
+## [1.0.0] - 2025-12-03
+
+### Changed
+
+- Migrate the codebase from JavaScript to TypeScript (strict) as a Bun-workspaces monorepo (`shared` + `client` + `web`): replace npm/webpack with Bun's native bundler, swap ESLint for Biome, add Zod schemas as the single source of truth for types and runtime validation, serve from a single Cloudflare Worker with SPA routing, and split large files into single-responsibility modules. ([#11](https://github.com/brettdavies/lmgroktfy/pull/11))
+
+## [0.1.0] - 2025-02-25
+
+### Added
+
+- Original LMGROKTFY single-page app: ask Grok a question and get a shareable answer via URL, with six-language i18n (including RTL), keyboard navigation, screen-reader semantics, and a Tailwind + DaisyUI interface.
+
+### Changed
+
+- Alphabetize the language-picker options for consistent ordering. ([#10](https://github.com/brettdavies/lmgroktfy/pull/10))
