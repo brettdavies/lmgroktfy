@@ -1,0 +1,82 @@
+---
+import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
+import { useTranslations } from '../i18n';
+
+const t = useTranslations(Astro.currentLocale ?? DEFAULT_LOCALE);
+---
+
+<dialog id="help_modal" class="modal invisible opacity-0 transition-opacity duration-200">
+  <div class="modal-box bg-white text-gray-800 dark:bg-[#1E1F23] dark:text-gray-200">
+    <div class="mb-6 flex items-start justify-between">
+      <h2 class="text-3xl font-semibold">{t('help.title')}</h2>
+      <form method="dialog">
+        <button class="btn btn-circle btn-ghost btn-sm" aria-label="Close help modal">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </form>
+    </div>
+    <p class="mb-8 text-lg">{t('help.description')}</p>
+    <h3 class="mb-4 text-2xl font-semibold">{t('help.protips.title')}</h3>
+    <ul class="space-y-4 text-lg">
+      <li class="flex items-start gap-2">
+        <span>{t('help.protips.url')}</span>
+        <code class="rounded bg-gray-100 px-3 py-0.5 font-mono text-base dark:bg-black/30"
+          >lmgroktfy.com/Your Question Here</code
+        >
+      </li>
+      <li>{t('help.protips.share')}</li>
+      <li>{t('help.protips.copy')}</li>
+    </ul>
+
+    <h3 class="mt-8 mb-4 text-2xl font-semibold">{t('help.shortcuts.title')}</h3>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <h4 class="mb-2 font-semibold">{t('help.shortcuts.general')}</h4>
+        <ul class="space-y-2">
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">/</kbd>
+            <span>{t('help.shortcuts.focus')}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">?</kbd>
+            or
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">h</kbd>
+            <span>{t('help.shortcuts.help')}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">t</kbd>
+            <span>{t('help.shortcuts.theme')}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">Esc</kbd>
+            <span>{t('help.shortcuts.close')}</span>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="mb-2 font-semibold">{t('help.shortcuts.answer')}</h4>
+        <ul class="space-y-2">
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">c</kbd>
+            <span>{t('help.shortcuts.copy_answer')}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">q</kbd>
+            <span>{t('help.shortcuts.copy_qa')}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">s</kbd>
+            <span>{t('help.shortcuts.copy_link')}</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <kbd class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-black/30">g</kbd>
+            <span>{t('help.shortcuts.continue')}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button aria-label="Close modal backdrop">close</button>
+  </form>
+</dialog>

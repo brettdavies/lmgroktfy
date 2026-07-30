@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
- * Extract translatable strings from HTML and TS files
- * Updates the source language file with any new keys found
+ * Extract translatable strings from the Astro app and shared package.
+ * Updates the source language file with any new keys found.
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { Glob } from 'bun';
 
 // Configuration
@@ -13,9 +13,14 @@ const SOURCE_LANGUAGE = 'en';
 const LOCALES_DIR = join(ROOT_DIR, 'locales');
 const OUTPUT_FILE = join(LOCALES_DIR, `${SOURCE_LANGUAGE}.json`);
 
-// File patterns to scan
-const HTML_PATTERNS = ['packages/client/public/**/*.html', 'packages/web/public/**/*.html'];
-const TS_PATTERNS = ['packages/client/src/**/*.ts', 'packages/shared/src/**/*.ts'];
+// File patterns to scan. The Astro app resolves translations at build time
+// through the `t('key')` helper, so there is no `data-i18n` HTML surface.
+const HTML_PATTERNS: string[] = [];
+const TS_PATTERNS = [
+  'apps/web/src/**/*.astro',
+  'apps/web/src/**/*.ts',
+  'packages/shared/src/**/*.ts',
+];
 
 // Load existing translations if available
 let existingTranslations: Record<string, unknown> = {};
@@ -39,11 +44,11 @@ for (const pattern of HTML_PATTERNS) {
   }
 }
 
-// Extract keys from TS files (i18n.t() calls)
+// Extract keys from source files (build-time t() calls)
 const tsKeys = new Set<string>();
 const i18nPatterns = [
-  /i18n\.t\(['"]([^'"]+)['"]\)/g, // i18n.t('key')
-  /i18n\.t\(`([^`]+)`\)/g, // i18n.t(`key`)
+  /(?<![\w.])t\(['"]([^'"]+)['"]\)/g, // t('key')
+  /(?<![\w.])t\(`([^`]+)`\)/g, // t(`key`)
 ];
 for (const pattern of TS_PATTERNS) {
   const glob = new Glob(pattern);

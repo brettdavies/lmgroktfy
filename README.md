@@ -96,41 +96,43 @@ CI (`bun run lint`, `typecheck`, `build`, `bun test`). Verify with `git config -
 
 ### Commands
 
-| Command             | Description                          |
-| ------------------- | ------------------------------------ |
-| `bun run dev`       | Start local dev server with wrangler |
-| `bun run build`     | Build all packages                   |
-| `bun test`          | Run tests                            |
-| `bun run typecheck` | TypeScript type checking             |
-| `bun run lint`      | Run Biome linter                     |
-| `bun run lint:fix`  | Auto-fix lint issues                 |
-| `bun run deploy`    | Build and deploy to Cloudflare       |
+| Command                  | Description                        |
+| ------------------------ | ---------------------------------- |
+| `bun run dev`            | Start the Astro dev server         |
+| `bun run build`          | Build shared + the Astro app       |
+| `bun run test:all`       | Package + app unit tests           |
+| `bun run test:e2e`       | Playwright end-to-end tests        |
+| `bun run typecheck`      | tsc (shared) + astro check (app)   |
+| `bun run lint`           | Run Biome linter                   |
+| `bun run format`         | Format with Prettier               |
+| `bun run deploy:staging` | Build + deploy the staging Worker  |
+| `bun run deploy:prod`    | Build + deploy production in place |
 
 ### Project Structure
 
 ```plaintext
 lmgroktfy/
+├── apps/
+│   └── web/                  # Astro app on Cloudflare Workers (@astrojs/cloudflare)
+│       ├── src/
+│       │   ├── pages/        # Routes: prerendered shell, SSR /api/grok, agent-surface endpoints
+│       │   ├── components/   # .astro UI (Header, QueryForm, HelpDialog, ...)
+│       │   ├── layouts/      # Base.astro
+│       │   ├── client/       # Vanilla-TS interactive island
+│       │   ├── lib/          # xai, turnstile, cache, security headers, twin
+│       │   ├── i18n/         # Catalog loader/lookup
+│       │   └── middleware.ts # ?lang redirect, CORS, security headers
+│       └── wrangler.jsonc    # Staging + production Worker config
 ├── packages/
-│   ├── shared/           # @lmgroktfy/shared
-│   │   └── src/
-│   │       ├── schemas/  # Zod schemas (API types)
-│   │       ├── types/    # Inferred TypeScript types
-│   │       ├── constants/# Shared constants
-│   │       └── utils/    # Shared utilities
-│   ├── client/           # @lmgroktfy/client
-│   │   └── src/
-│   │       ├── ui/       # UI utilities (DOM, visibility, transitions, a11y, viewport)
-│   │       ├── managers/ # Feature managers (clipboard, theme, placeholder, focus, animation)
-│   │       ├── i18n/     # Internationalization
-│   │       └── api/      # API client
-│   └── web/              # @lmgroktfy/web
+│   └── shared/               # @lmgroktfy/shared
 │       └── src/
-│           ├── api/      # API route handlers
-│           ├── static/   # Static asset serving
-│           └── middleware/ # CORS, security
-├── locales/              # Translation files
-├── scripts/              # Build scripts
-└── package.json          # Workspace root
+│           ├── schemas/      # Zod schemas (API types)
+│           ├── types/        # Inferred TypeScript types
+│           ├── constants/    # Shared constants
+│           └── utils/        # Shared utilities
+├── locales/                  # Translation files
+├── scripts/                  # i18n + canary scripts
+└── package.json              # Workspace root
 ```
 
 ### Accessibility
@@ -142,13 +144,54 @@ lmgroktfy/
 
 ### Deployment
 
-Deployed to Cloudflare Workers:
+The `apps/web` Astro app builds to a single Cloudflare Worker (via the `@astrojs/cloudflare` adapter) and deploys to one
+of two targets:
+
+| Target     | Worker name         | Address                              | Command                  |
+| ---------- | ------------------- | ------------------------------------ | ------------------------ |
+| Staging    | `lmgroktfy-staging` | `lmgroktfy-staging.workers.dev`      | `bun run deploy:staging` |
+| Production | `lmgroktfy`         | `lmgroktfy.com`, `www.lmgroktfy.com` | `bun run deploy:prod`    |
+
+Production promotes **in place**: `deploy:prod` targets the existing `lmgroktfy` Worker that already holds the live
+bindings and custom domains, so a release updates the running Worker instead of creating a second one that would collide
+on the `lmgroktfy.com` custom domain. The top-level Wrangler config carries a throwaway `lmgroktfy-dev` name, so a bare
+`wrangler deploy` with no environment can never land on production.
+
+The adapter fixes the environment at build time through `CLOUDFLARE_ENV`; the deploy scripts set it and pass a matching
+`--env`, so Wrangler refuses a build/deploy environment mismatch. Verify a target without publishing:
 
 ```bash
-bun run deploy
+cd apps/web
+CLOUDFLARE_ENV=staging bunx astro build && bunx wrangler deploy --env staging --dry-run
 ```
 
-This builds all packages and deploys the worker with static assets.
+#### Secrets
+
+Per-environment secrets are set out of band and never live in the config or in git:
+
+```bash
+wrangler secret put API_KEY --env staging
+wrangler secret put API_KEY --env production
+wrangler secret put TURNSTILE_SECRET_KEY --env staging
+wrangler secret put TURNSTILE_SECRET_KEY --env production
+```
+
+#### Release flow
+
+1. `bun run deploy:staging`, then verify `lmgroktfy-staging.workers.dev` (site renders, the API is gated, the cache
+   serves a repeat question).
+2. `bun run deploy:prod` promotes the verified build in place onto `lmgroktfy`.
+
+#### Rollback
+
+Production is one Worker, so a bad release reverts by restoring the last-known-good build:
+
+- Fast path: `wrangler rollback --env production --message "<reason>"` reverts the production Worker to its previous
+  version.
+- From source: check out the last-known-good commit and run `bun run deploy:prod`.
+- Confirm `lmgroktfy.com` serves the expected build before closing out the incident.
+
+Keep the last-known-good build deployable so a rollback never depends on recovering deleted source.
 
 ## Environment Variables
 

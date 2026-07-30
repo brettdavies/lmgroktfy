@@ -1,0 +1,73 @@
+---
+import { DEFAULT_LOCALE } from '@lmgroktfy/shared';
+import { getPlaceholders, useTranslations } from '../i18n';
+import { getTurnstileSiteKey } from '../lib/turnstile-sitekey';
+
+const locale = Astro.currentLocale ?? DEFAULT_LOCALE;
+const t = useTranslations(locale);
+const placeholder = t('main.placeholder');
+const placeholders = getPlaceholders(locale);
+const turnstileSiteKey = getTurnstileSiteKey();
+---
+
+<form
+  id="question-form"
+  class="mb-8 w-full max-w-3xl"
+  data-placeholders={JSON.stringify(placeholders)}
+  data-toast-copy-qa={t('toast.copy_qa')}
+  data-toast-copy-answer={t('toast.copy_answer')}
+  data-toast-copy-link={t('toast.copy_link')}
+  data-toast-error={t('toast.error')}
+>
+  <div class="relative flex w-full">
+    <input
+      type="text"
+      id="question-input"
+      placeholder={placeholder}
+      class="bg-grok-input-light dark:bg-grok-input-dark shadow-input placeholder-hidden w-full rounded-2xl border border-gray-200 px-6 py-5 pr-16 text-lg text-gray-900 placeholder-gray-400 focus:border-gray-300 focus:outline-none dark:border-gray-700/50 dark:text-white dark:focus:border-gray-600"
+      required
+    />
+    <div
+      id="custom-placeholder"
+      class="placeholder-text animate visible absolute top-1/2 left-6 -translate-y-1/2 text-lg text-gray-600 opacity-100 dark:text-gray-300"
+      aria-hidden="true"
+    >
+      {placeholder}
+    </div>
+    <button
+      type="submit"
+      disabled
+      class="group absolute top-1/2 right-2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full transition-colors duration-300 focus:ring-2 focus:ring-gray-300 focus:outline-none enabled:bg-white enabled:text-gray-900 disabled:cursor-not-allowed dark:focus:ring-gray-600 dark:enabled:bg-white"
+      id="submit-button"
+      aria-label="Submit question"
+    >
+      <i
+        class="fa-solid fa-arrow-up transform text-lg transition-all duration-300 group-hover:enabled:translate-y-[-2px]"
+      ></i>
+    </button>
+  </div>
+
+  {
+    /*
+    Managed Turnstile widget: on success it populates the hidden
+    `input[name="cf-turnstile-response"]` the client island reads. It sits
+    outside the `#response`/`#loading` aria-live regions so a rendered challenge
+    raises no stray screen-reader announcement, and carries no
+    `tabindex`/`aria-hidden` override so its iframe stays in the natural tab
+    order (Turnstile does not move focus on render, so initial focus stays on
+    the question input).
+  */
+  }
+  <div
+    id="turnstile-widget"
+    class="cf-turnstile mt-4 flex justify-center"
+    data-sitekey={turnstileSiteKey}
+    data-theme="auto"
+  >
+  </div>
+</form>
+
+<script is:inline async src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+<script>
+  import '../client';
+</script>
