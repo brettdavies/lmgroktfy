@@ -52,14 +52,15 @@ When someone opens a shared link, they'll see your question automatically submit
 This is a TypeScript monorepo using Bun workspaces:
 
 ```plaintext
+apps/
+└── web/        # Astro app on Cloudflare Workers (@astrojs/cloudflare)
 packages/
-├── shared/     # Shared types, schemas (Zod), constants, utilities
-├── client/     # Frontend application (TypeScript)
-└── web/        # Cloudflare Worker serving API + static assets
+└── shared/     # Shared types, schemas (Zod), constants, utilities
 ```
 
 ### Key Design Decisions
 
+- **Astro** - Site framework; the `@astrojs/cloudflare` adapter builds to a single Worker
 - **Bun** - Package manager and runtime
 - **TypeScript** - Strict mode enabled
 - **Zod** - Single source of truth for API types
@@ -149,7 +150,7 @@ of two targets:
 
 | Target     | Worker name         | Address                              | Command                  |
 | ---------- | ------------------- | ------------------------------------ | ------------------------ |
-| Staging    | `lmgroktfy-staging` | `lmgroktfy-staging.workers.dev`      | `bun run deploy:staging` |
+| Staging    | `lmgroktfy-staging` | `dev.lmgroktfy.com`                  | `bun run deploy:staging` |
 | Production | `lmgroktfy`         | `lmgroktfy.com`, `www.lmgroktfy.com` | `bun run deploy:prod`    |
 
 Production promotes **in place**: `deploy:prod` targets the existing `lmgroktfy` Worker that already holds the live
@@ -178,8 +179,8 @@ wrangler secret put TURNSTILE_SECRET_KEY --env production
 
 #### Release flow
 
-1. `bun run deploy:staging`, then verify `lmgroktfy-staging.workers.dev` (site renders, the API is gated, the cache
-   serves a repeat question).
+1. `bun run deploy:staging`, then verify `dev.lmgroktfy.com` (site renders, the API is gated, the cache serves a repeat
+   question).
 2. `bun run deploy:prod` promotes the verified build in place onto `lmgroktfy`.
 
 #### Rollback
@@ -197,9 +198,10 @@ Keep the last-known-good build deployable so a rollback never depends on recover
 
 Set these in Cloudflare Workers dashboard or `.dev.vars` for local development:
 
-| Variable      | Description          |
-| ------------- | -------------------- |
-| `XAI_API_KEY` | xAI API key for Grok |
+| Variable               | Description                     |
+| ---------------------- | ------------------------------- |
+| `API_KEY`              | xAI API key for Grok            |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key |
 
 ## Testing
 
