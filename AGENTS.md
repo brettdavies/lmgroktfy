@@ -43,7 +43,8 @@ A Bun workspaces monorepo:
 `apps/web` (the Astro app) builds to one Cloudflare Worker via the `@astrojs/cloudflare` adapter and targets two
 environments defined in `apps/web/wrangler.jsonc`:
 
-- **Staging** — Worker `lmgroktfy-staging` on `lmgroktfy-staging.workers.dev`. `bun run deploy:staging`.
+- **Staging** — Worker `lmgroktfy-staging` on the `dev.lmgroktfy.com` custom domain (workers.dev is disabled; Turnstile
+  refuses to issue a widget on the shared `*.workers.dev` zone). `bun run deploy:staging`.
 - **Production** — Worker `lmgroktfy` on the `lmgroktfy.com` / `www.lmgroktfy.com` custom domains. `bun run
   deploy:prod`.
 
