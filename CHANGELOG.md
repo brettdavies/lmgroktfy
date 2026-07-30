@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-07-30
+
+### Documentation
+
+- Correct stale references in `README.md`, `AGENTS.md`, the cutover runbook, and `RELEASES-RATIONALE.md` to match the current Astro/Cloudflare monorepo: staging domain, environment-variable names, monorepo layout, and committed rulesets. by @brettdavies in [#24](https://github.com/brettdavies/lmgroktfy/pull/24)
+
+**Full Changelog**: [v2.0.0...v2.0.1](https://github.com/brettdavies/lmgroktfy/compare/v2.0.0...v2.0.1)
+
 ## [2.0.0] - 2026-07-30
 
 ### Changed
