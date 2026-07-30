@@ -86,8 +86,8 @@ CANARY_XAI_API_KEY="$(op read 'op://secrets-dev/LM Grok TFY/API Key')" bun run s
 
 ## Bake window
 
-Leave the new build serving production for the agreed bake window before removing the legacy packages (U13). Watch the
-nightly canary and error rates across the window.
+Leave the new build serving production for the agreed bake window. Watch the nightly canary and error rates across the
+window.
 
 ## Rollback
 
