@@ -4,7 +4,7 @@
  * Compares all locale files against the source language (en)
  */
 import { readFileSync, readdirSync } from 'node:fs';
-import { join, basename, dirname } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 // Configuration
 const ROOT_DIR = dirname(dirname(import.meta.path));
@@ -96,7 +96,7 @@ function countKeys(obj: TranslationObject): number {
 
 // Get all locale files
 const localeFiles = readdirSync(LOCALES_DIR)
-  .filter((f) => f.endsWith('.json') && !f.startsWith('test-'))
+  .filter((f) => f.endsWith('.json'))
   .map((f) => join(LOCALES_DIR, f));
 
 // Validate all locale files

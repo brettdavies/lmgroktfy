@@ -3,8 +3,8 @@
  * Synchronize translation files to ensure consistent structure
  * Adds missing keys from source language to all other locale files
  */
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
-import { join, basename, dirname } from 'node:path';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 
 // Configuration
 const ROOT_DIR = dirname(dirname(import.meta.path));
@@ -26,9 +26,7 @@ function syncStructure(source: TranslationObject, target: TranslationObject): Tr
     if (typeof source[key] === 'object' && source[key] !== null) {
       result[key] = syncStructure(
         source[key] as TranslationObject,
-        target && typeof target[key] === 'object'
-          ? (target[key] as TranslationObject)
-          : {}
+        target && typeof target[key] === 'object' ? (target[key] as TranslationObject) : {}
       );
     } else {
       result[key] = target && target[key] !== undefined ? target[key] : '';
@@ -38,9 +36,9 @@ function syncStructure(source: TranslationObject, target: TranslationObject): Tr
   return result;
 }
 
-// Get all locale files (excluding test files)
+// Get all locale files
 const localeFiles = readdirSync(LOCALES_DIR)
-  .filter((f) => f.endsWith('.json') && !f.startsWith('test-'))
+  .filter((f) => f.endsWith('.json'))
   .map((f) => join(LOCALES_DIR, f));
 
 // Sync all locale files
