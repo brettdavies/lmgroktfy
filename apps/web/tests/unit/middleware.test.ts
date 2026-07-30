@@ -102,20 +102,18 @@ describe('cors middleware', () => {
     expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 
-  test('allows a same-origin request on a host outside ALLOWED_DOMAINS (staging)', async () => {
-    const context = makeContext('https://lmgroktfy-staging.workers.dev/api/grok', {
+  test('allows a same-origin request on the staging host (dev.lmgroktfy.com)', async () => {
+    const context = makeContext('https://dev.lmgroktfy.com/api/grok', {
       method: 'POST',
-      origin: 'https://lmgroktfy-staging.workers.dev',
+      origin: 'https://dev.lmgroktfy.com',
     });
     const response = await asMiddleware(cors)(context, nextOk);
     expect(response.status).toBe(200);
-    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
-      'https://lmgroktfy-staging.workers.dev'
-    );
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://dev.lmgroktfy.com');
   });
 
   test('still rejects a cross-origin caller on the staging host with 403', async () => {
-    const context = makeContext('https://lmgroktfy-staging.workers.dev/api/grok', {
+    const context = makeContext('https://dev.lmgroktfy.com/api/grok', {
       method: 'POST',
       origin: 'https://evil.com',
     });
@@ -145,8 +143,8 @@ describe('cors middleware', () => {
 describe('securityHeaders middleware', () => {
   const nextHtml = async () => new Response('<html></html>', { status: 200 });
 
-  test('sets the static CSP with no nonce and no HSTS on the workers.dev host', async () => {
-    const context = makeContext('https://lmgroktfy-staging.workers.dev/');
+  test('sets the static CSP with no nonce and no HSTS on the staging host', async () => {
+    const context = makeContext('https://dev.lmgroktfy.com/');
     const response = await asMiddleware(securityHeaders)(context, nextHtml);
     const csp = response.headers.get('Content-Security-Policy');
     expect(csp).toBeTruthy();
