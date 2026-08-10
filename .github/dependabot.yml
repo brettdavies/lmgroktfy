@@ -5,10 +5,18 @@
 # so a just-published version has to survive a week before Dependabot proposes
 # it. npm minor + patch updates group into one PR per week.
 #
-# The `ignore` rule suppresses every major-version bump: no PR ever proposes a
-# breaking-version jump. Security updates are a separate path and still land
-# regardless, so a CVE fix that requires a major is not blocked. Bump majors
-# deliberately, by hand.
+# The wildcard `ignore` rule suppresses every major-version bump: no PR ever
+# proposes a breaking-version jump. Security updates are a separate path and
+# still land regardless, so a CVE fix that requires a major is not blocked.
+# Bump majors deliberately, by hand.
+#
+# The Playwright family (@playwright/*, playwright, playwright-core) is
+# exact-pinned to the version dotfiles provisions into
+# $PLAYWRIGHT_BROWSERS_PATH, so bumping it is a dotfiles job, not a per-repo
+# one: a client newer than the provisioned browsers fails e2e locally. Those
+# entries carry no `update-types`, which suppresses every version update rather
+# than majors alone, since an exact pin has no "in range" update Dependabot
+# would otherwise leave alone.
 #
 # Dependabot reads this file from the default branch (dev) and, with
 # `target-branch: dev`, opens its PRs against dev. This file is mirrored onto
@@ -58,6 +66,9 @@ updates:
       - dependency-name: '*'
         update-types:
           - version-update:semver-major
+      - dependency-name: '@playwright/*'
+      - dependency-name: 'playwright'
+      - dependency-name: 'playwright-core'
   - package-ecosystem: github-actions
     directory: '/'
     target-branch: dev
