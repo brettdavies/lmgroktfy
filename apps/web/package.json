@@ -21,10 +21,10 @@
     "@astrojs/cloudflare": "14.2.1",
     "@playwright/test": "1.61.1",
     "@tailwindcss/vite": "4.3.3",
-    "astro": "7.2.2",
-    "daisyui": "5.7.17",
+    "astro": "7.2.4",
+    "daisyui": "5.7.22",
     "tailwindcss": "4.3.3",
     "typescript": "^5.7.0",
-    "vite": "8.2.1"
+    "vite": "8.2.2"
   }
 }
