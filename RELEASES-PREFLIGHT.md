@@ -101,8 +101,9 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 - [ ] `bun.lock` regenerated (`bun install`), committed.
 - [ ] Every PR merged since `$LAST_TAG` has a non-empty `## Changelog` section. Spot-check via `gh pr list --base dev
   --state merged --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"` then `gh pr view <num> --json body`.
-- [ ] Bun toolchain pin (`bun-version: 1.3.14` in `.github/workflows/test.yml` and `canary.yml`) last bumped ≥7 days ago
-  (supply-chain quarantine). If a bump landed inside the window, hold or revert it before tagging.
+- [ ] Bun toolchain pin (`bun-version: 1.4.0` in `.github/workflows/test.yml`, `canary.yml`, and
+  `dependabot-lockfile.yml`) last bumped ≥7 days ago (supply-chain quarantine). If a bump landed inside the window, hold
+  or revert it before tagging.
 - [ ] No open Dependabot security-advisory PRs against `dev` (`gh pr list --state open --label dependencies`, or `gh api
   repos/<owner>/<repo>/dependabot/alerts` if alerts are enabled).
 - [ ] Triple-diff verification before tag: `git diff origin/main..HEAD`, `git diff HEAD..origin/dev` (no non-doc paths),
