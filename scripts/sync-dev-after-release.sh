@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Backport release artifacts from main to dev after a release tag publishes.
 #
-# Pulls two files from main and lands them via a PR against dev (per this
-# repo's PR-only convention — direct commits to dev are not permitted):
-#   - package.json — root "version" field overwritten with the released
-#     version (no leading "v"). apps/web and packages/shared keep their own
-#     workspace-package versions untouched; they are private, unpublished
-#     packages that do not track the release number.
-#   - CHANGELOG.md — copied verbatim from origin/main. Main is fully
-#     authoritative for CHANGELOG; dev never edits it directly.
+# Writes the released version into every version carrier the repo has and
+# copies CHANGELOG.md from main, then lands them via a PR against dev (per
+# this repo's PR-only convention: direct commits to dev are not permitted).
+#   - Version carriers, each updated in place when present: Cargo.toml (and
+#     the crate's own entry in Cargo.lock), package.json, pyproject.toml,
+#     VERSION (plain text, no leading "v").
+#   - CHANGELOG.md, copied verbatim from origin/main when main carries one.
+#     Main is fully authoritative for CHANGELOG; dev never edits it directly.
 #
 # Run AFTER:
 #   1. The release/v* -> main PR has merged.
@@ -18,8 +18,8 @@
 # Usage:
 #   ./scripts/sync-dev-after-release.sh v0.2.0
 #
-# Idempotent: safe to re-run. If dev already matches main on these two
-# files, the script exits 0 without creating a branch or PR.
+# Idempotent: safe to re-run. If dev already matches main on every synced
+# file, the script exits 0 without creating a branch or PR.
 
 set -euo pipefail
 
@@ -87,7 +87,7 @@ fi
 git switch dev
 git pull --ff-only origin dev
 
-# Cut a branch -- the repo's AGENTS.md bans direct commits to dev.
+# Cut a branch -- the repo's RELEASES.md and AGENTS.md ban direct commits to dev.
 SYNC_BRANCH="chore/sync-dev-after-${VERSION}"
 
 if git rev-parse --verify --quiet "$SYNC_BRANCH" >/dev/null; then
@@ -101,37 +101,93 @@ fi
 
 git checkout -b "$SYNC_BRANCH"
 
-# Root package.json "version" -- the single release-version source of truth.
-# apps/web and packages/shared carry their own "version" fields for the Bun
-# workspace resolver; those are unpublished, workspace-internal packages and
-# are not bumped here.
-if ! command -v jq >/dev/null 2>&1; then
-  echo "error: jq not on PATH -- required to update package.json" >&2
-  exit 2
+# Writes VERSION_NO_V into the first `version = "..."` line of a TOML file,
+# or the first `"version": "..."` entry of a JSON file, in place and without
+# reformatting anything else.
+set_version_line() {
+  local file="$1" tmp
+  tmp="$(mktemp)"
+  awk -v v="$VERSION_NO_V" '
+    !done && /^version = "/ { sub(/^version = "[^"]*"/, "version = \"" v "\""); done = 1 }
+    !done && /"version": *"/ { sub(/"version": *"[^"]*"/, "\"version\": \"" v "\""); done = 1 }
+    { print }
+  ' "$file" >"$tmp"
+  mv "$tmp" "$file"
+}
+
+# Cargo.lock carries the crate's own version too; a stale entry fails
+# `cargo build --locked`. Update it for the crate named in Cargo.toml.
+set_cargo_lock_version() {
+  local crate tmp
+  crate="$(grep -m1 '^name = ' Cargo.toml | sed -E 's/^name = "(.*)"/\1/')"
+  [[ -n "$crate" && -f Cargo.lock ]] || return 0
+  tmp="$(mktemp)"
+  awk -v crate="$crate" -v v="$VERSION_NO_V" '
+    /^name = "/ { current = $0 }
+    /^version = "/ && current == "name = \"" crate "\"" { sub(/^version = "[^"]*"/, "version = \"" v "\""); current = "" }
+    { print }
+  ' Cargo.lock >"$tmp"
+  mv "$tmp" Cargo.lock
+}
+
+# Every version carrier present gets the released number; the release commit
+# on main bumped each of them.
+SYNC_PATHS=()
+if [[ -f Cargo.toml ]]; then
+  set_version_line Cargo.toml
+  SYNC_PATHS+=(Cargo.toml)
+  if [[ -f Cargo.lock ]]; then
+    set_cargo_lock_version
+    SYNC_PATHS+=(Cargo.lock)
+  fi
 fi
-tmp_pkg="$(mktemp)"
-jq --arg v "$VERSION_NO_V" '.version = $v' package.json >"$tmp_pkg"
-mv "$tmp_pkg" package.json
-if command -v bunx >/dev/null 2>&1; then
-  bunx prettier --write package.json >/dev/null 2>&1 || true
+if [[ -f package.json ]]; then
+  set_version_line package.json
+  SYNC_PATHS+=(package.json)
+fi
+if [[ -f pyproject.toml ]]; then
+  set_version_line pyproject.toml
+  SYNC_PATHS+=(pyproject.toml)
+fi
+if [[ -f VERSION || ${#SYNC_PATHS[@]} -eq 0 ]]; then
+  printf '%s\n' "$VERSION_NO_V" >VERSION
+  SYNC_PATHS+=(VERSION)
 fi
 
-# CHANGELOG.md from main (authoritative).
-git checkout origin/main -- CHANGELOG.md
+# CHANGELOG.md from main (authoritative), once the changelog machinery has
+# produced one there; until then the version carriers are the only synced
+# artifacts.
+if git cat-file -e origin/main:CHANGELOG.md 2>/dev/null; then
+  git checkout origin/main -- CHANGELOG.md
+  SYNC_PATHS+=(CHANGELOG.md)
+fi
 
-if git diff --quiet package.json CHANGELOG.md; then
+# `git checkout origin/main -- FILE` stages the file, so `git diff --quiet`
+# (worktree against index) never sees that change and would report "no
+# changes" with a differing CHANGELOG. `status --porcelain` sees staged,
+# unstaged, and untracked alike, including a VERSION created on the first
+# sync.
+if [[ -z "$(git status --porcelain -- "${SYNC_PATHS[@]}")" ]]; then
   echo "no changes -- dev already in sync with $VERSION"
   git switch dev
   git branch -D "$SYNC_BRANCH"
   exit 0
 fi
 
-git add package.json CHANGELOG.md
-git commit -m "chore(release): backport $VERSION artifacts to dev
+git add -- "${SYNC_PATHS[@]}"
 
-Brings dev's release-bookkeeping current with the $VERSION release on
-main: package.json version bumped to ${VERSION_NO_V} and CHANGELOG.md
-copied verbatim from origin/main."
+COMMIT_MSG_FILE="$(mktemp -t "sync-dev-after-${VERSION}-commit.XXXXXX")"
+cat >"$COMMIT_MSG_FILE" <<EOF
+chore(release): backport $VERSION artifacts to dev
+
+Brings dev's release bookkeeping current with the $VERSION release on
+main: version carriers set to ${VERSION_NO_V}, and CHANGELOG.md copied
+verbatim from origin/main when main carries one.
+
+Synced: ${SYNC_PATHS[*]}
+EOF
+git commit --file "$COMMIT_MSG_FILE"
+rm -f "$COMMIT_MSG_FILE"
 
 # Post-sync sanity check: re-running generate-changelog.py against the current
 # PR bodies should produce an identical CHANGELOG.md. Drift here means upstream
@@ -163,18 +219,26 @@ PR_BODY_FILE="$(mktemp -t "sync-dev-after-${VERSION}-pr-body.XXXXXX")"
 trap 'rm -f "$PR_BODY_FILE"' EXIT
 
 TAG_SHORT="$(git rev-parse --short "$TAG_SHA")"
+SYNC_LIST="$(printf '\`%s\`, ' "${SYNC_PATHS[@]}")"
+SYNC_LIST="${SYNC_LIST%, }"
+SYNC_BULLETS="$(for f in "${SYNC_PATHS[@]}"; do
+  if [[ "$f" == CHANGELOG.md ]]; then
+    printf -- '- `%s` (verbatim copy from `origin/main` at `%s`)\n' "$f" "$TAG_SHORT"
+  else
+    printf -- '- `%s` (version set to `%s`)\n' "$f" "$VERSION_NO_V"
+  fi
+done)"
 
 cat >"$PR_BODY_FILE" <<EOF
 ## Summary
 
-Backports the v${VERSION_NO_V} release-prep state from \`main\` so dev's root \`package.json\` version matches the
-released number and the v${VERSION_NO_V} CHANGELOG section sits at the top of dev's \`CHANGELOG.md\` going forward.
+Backports the v${VERSION_NO_V} release-prep state from \`main\` so dev's version carriers match the released
+number and the v${VERSION_NO_V} CHANGELOG section sits at the top of dev's \`CHANGELOG.md\` going forward.
 
-Source: tag \`${VERSION}\` at \`${TAG_SHORT}\` on \`main\`. Files synced verbatim from \`origin/main\`:
-\`CHANGELOG.md\`; \`package.json\` has only its \`version\` field bumped.
+Source: tag \`${VERSION}\` at \`${TAG_SHORT}\` on \`main\`. Files synced: ${SYNC_LIST}.
 
 Generated by \`scripts/sync-dev-after-release.sh\`. Run idempotently per release: if dev already matches main on
-these two files, the script exits 0 without creating this PR.
+these files, the script exits 0 without creating this PR.
 
 ## Changelog
 
@@ -184,6 +248,13 @@ extract.
 ## Type of Change
 
 - [x] \`chore\`: Maintenance tasks (release backport)
+
+## Related Issues/Stories
+
+- Story: n/a
+- Issue: n/a
+- Architecture: n/a
+- Related PRs: the release/${VERSION} PR into main
 
 ## Testing
 
@@ -197,8 +268,19 @@ against the backported CHANGELOG; see this PR's stderr for any drift warnings.
 
 **Modified:**
 
-- \`package.json\` (\`version\` set to \`${VERSION_NO_V}\`)
-- \`CHANGELOG.md\` (verbatim copy from \`origin/main\` at \`${TAG_SHORT}\`)
+${SYNC_BULLETS}
+
+**Created:**
+
+- None.
+
+**Renamed:**
+
+- None.
+
+**Deleted:**
+
+- None.
 
 ## Breaking Changes
 
