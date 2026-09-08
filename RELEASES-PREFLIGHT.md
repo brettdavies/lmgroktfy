@@ -73,12 +73,14 @@ Security PRs, hotfixes, and config edits land on `main` first. The release branc
 `dev`'s changes, so anything `main` holds that `dev` never received is reverted by the release or collides with it, and
 Dependabot raises the same fix again.
 
+- [ ] The previous release's bookkeeping (`package.json` version, `CHANGELOG.md` section) is on `dev` (gate 0 fails
+      when it never reached `dev`; run `scripts/sync-dev-after-release.sh v<previous>` and rerun).
 - [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
       `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
 - [ ] `.github/` is identical on both branches (gate 2). A difference either way is a config change that only reached
       one branch; a `dev`-only change (a Bun pin bump, a Dependabot edit) ships with this release and clears on merge.
-- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3). `drift.sh` reads `package-lock.json` and
-      `Cargo.lock` only, so `bun.lock` is not compared; check it by hand when a security PR merged into `main` first.
+- [ ] No `bun.lock` package resolves newer on `main` than on `dev` (gate 3). The one benign case is a version still
+      inside Bun's release-age window when the advisory is already patched at `dev`'s version.
 - [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
 
 ### Route and agent-surface contract
