@@ -28,13 +28,18 @@ scripts/release/preflight.sh all
 `scripts/release/preflight.sh` is project-authored: it wraps the commands below into gated, scriptable subcommands. The
 recipes in this checklist are the manual fallback and the contract each subcommand implements.
 
-| Sub-command     | What it checks                                                                                 | Source of truth                                   |
-| --------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `surface`       | Commits + diff vs last tag, route/endpoint surface, breaking markers                           | `git log`, `git diff`                             |
-| `mechanics`     | `bun run lint`, `format:check`, `typecheck`, `build`, `test:all` (unit)                        | `package.json` scripts                            |
-| `e2e`           | Playwright `test:e2e` against a local dev instance                                             | `apps/web/tests`, `apps/web/playwright.config.ts` |
-| `surface-smoke` | Delegates to `scripts/release/surface-smoke.sh --env staging` against the deployed staging URL | `scripts/release/surface-smoke.sh`                |
-| `all`           | Every above, in order                                                                          |                                                   |
+| Sub-command     | What it checks                                                                                                                                                                                            | Source of truth                                            |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `drift`         | What `main` carries that `dev` never received (delegates to `scripts/release/drift.sh`)                                                                                                                   | `git log`, `.github/`, lockfiles on both branches          |
+| `surface`       | Commits + diff vs last tag, breaking markers                                                                                                                                                              | `git log`, `git diff`                                      |
+| `mechanics`     | `bun run lint`, `format:check`, `typecheck`, `build`, `test:all`, `test:e2e`, then version and `CHANGELOG.md` sanity, the guarded-path leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | `package.json` scripts, `scripts/release/guarded-paths.sh` |
+| `surface-smoke` | Delegates to `scripts/release/surface-smoke.sh` against the deployed staging URL                                                                                                                          | `scripts/release/surface-smoke.sh`                         |
+| `all`           | Every above, in order; `drift` runs first, since nothing else matters while `main` holds changes `dev` never received                                                                                     |                                                            |
+
+Flags:
+
+- `--staging-url URL`: override `https://dev.lmgroktfy.com` for `surface-smoke`.
+- `--tag TAG`: override `LAST_TAG` resolution (default: `git tag --sort=-version:refname | head -n 1`).
 
 Unlike a CLI repo, lmgroktfy's "real-world smoke" and its "surface smoke" are the same exercise: staging is a live
 Cloudflare Worker sitting behind the real Turnstile widget and the real xAI API, so hitting `surface-smoke` against it
@@ -44,16 +49,37 @@ IS the live-dependency check, not a mock-bypassing stand-in for one.
 
 Everything below assumes you know what's changing. Run this first.
 
+Driven by `scripts/release/preflight.sh surface`.
+
 ```bash
 LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
 git log "$LAST_TAG..dev" --oneline                              # commits going out
 git diff "$LAST_TAG..dev" --stat                                # file-level scope
-git log "$LAST_TAG..dev" --grep '^[a-z]\+!:' --oneline          # Conventional-Commits breaking markers
+git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
 ```
+
+On a repo with no tags yet, or whose lineage is squash-only so no tag is an ancestor of `dev`, the surface is
+`origin/main..origin/dev` instead of `$LAST_TAG..dev`; `preflight.sh surface` SKIPs the tag counts in that case.
 
 Every `!:` commit drives the major-version decision and gets a row in the release's `### Breaking changes` section.
 
 ## Checklist
+
+### Branch drift (main ahead of dev)
+
+Driven by `scripts/release/preflight.sh drift` (delegates to `scripts/release/drift.sh`).
+
+Security PRs, hotfixes, and config edits land on `main` first. The release branch is cut from `main` and then takes
+`dev`'s changes, so anything `main` holds that `dev` never received is reverted by the release or collides with it, and
+Dependabot raises the same fix again.
+
+- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
+      `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
+- [ ] `.github/` is identical on both branches (gate 2). A difference either way is a config change that only reached
+      one branch; a `dev`-only change (a Bun pin bump, a Dependabot edit) ships with this release and clears on merge.
+- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3). `drift.sh` reads `package-lock.json` and
+      `Cargo.lock` only, so `bun.lock` is not compared; check it by hand when a security PR merged into `main` first.
+- [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
 
 ### Route and agent-surface contract
 
@@ -106,12 +132,23 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   or revert it before tagging.
 - [ ] No open Dependabot security-advisory PRs against `dev` (`gh pr list --state open --label dependencies`, or `gh api
   repos/<owner>/<repo>/dependabot/alerts` if alerts are enabled).
-- [ ] Triple-diff verification before tag: `git diff origin/main..HEAD`, `git diff HEAD..origin/dev` (no non-doc paths),
+- [ ] Triple-diff verification before tag: `git diff origin/main..HEAD`, `git diff HEAD..origin/dev` filtered by the
+  guarded set (not all of `docs/`, since `docs/runbooks/` ships to `main` and would hide a missed pick),
   `git diff origin/dev..origin/main` (sanity): all three agree on intended scope.
-- [ ] Leak check: `git diff origin/main..HEAD --name-only | grep -E
-  '^(docs/architecture|docs/brainstorms|docs/ideation|docs/plans|docs/research|docs/reviews|docs/solutions|\.context)'`
-  returns nothing. If cherry-picks pulled in guarded paths via rename detection, resolve per `RELEASES.md` § Cherry-pick
+- [ ] **Leak check before pushing the release branch.** No guarded path may surface in the diff vs `origin/main`. The
+  set resolves from `.github/workflows/guard-main-docs.yml` via `scripts/release/guarded-paths.sh`; never restate the
+  pattern inline. If cherry-picks pulled in guarded paths via rename detection, resolve per `RELEASES.md` § Cherry-pick
   conflicts on guarded paths.
+
+  ```bash
+  GUARDED="$(scripts/release/guarded-paths.sh)"
+  git diff origin/main..HEAD --name-only | grep -E "$GUARDED" && echo "LEAKED: reset and redo" || echo "(clean)"
+  ```
+
+- [ ] **Every doc this release adds to `main` is meant to ship.** The leak check is blind to a category nobody
+  registered. `git diff origin/main..HEAD --diff-filter=A --name-only | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED"`
+  lists the unguarded additions; each one needs a reason to ship (`docs/runbooks/` does by design), or it gets
+  registered in the workflow's `extra_paths` and removed from the branch.
 - [ ] `CHANGELOG.md` versioned section has no `[Unreleased]` placeholder and matches the bumped version.
 
 ### Post-tag verification

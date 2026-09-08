@@ -106,8 +106,8 @@ actionlint, shellcheck). Keep the pre-push checks in lockstep with `test.yml`.
 
 - `dev` is the default branch and the forever integration branch; it is never a PR head. Feature branches (`feat/*`,
   `fix/*`) cut from `dev` and squash-merge back into `dev`.
-- `main` is the production/release branch. Releases cut a `release/*` branch from `origin/main`, cherry-pick the
-  non-docs commits from `dev`, and PR to `main`.
+- `main` is the production/release branch. Releases cut a `release/*` branch from `origin/main`, overlay `dev`'s
+  tree onto it minus the guarded docs (`RELEASES.md` § Releasing dev to main), and PR to `main`.
 - Conventional Commits. No AI attribution in commit messages or PR bodies.
 
 ## Dependencies

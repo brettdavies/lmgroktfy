@@ -6,7 +6,7 @@ lives in [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md). Post-tag verificati
 
 ```text
 feature branch → PR to dev (squash merge)
-              → cherry-pick to release/* branch
+              → release/* branch cut from main with dev's tree overlaid
               → PR to main (squash merge)
               → tag push creates the GitHub Release (a record, not a deploy trigger)
 ```
@@ -100,11 +100,83 @@ isn't `release/*`.
 **Branch naming**: `release/v<version>` or `release/v<version>-<slug>`. `scripts/generate-changelog.py` extracts the
 version from the branch name, so the `v<version>` prefix is required.
 
+`main` and `dev` share only an ancient merge-base: every release squash-merges into `main`, so the two branches diverge
+in history even as their content converges. Reconciling that with a merge, or a branch cut from `dev`, produces a pile
+of rename/delete and lockfile conflicts that are artifacts of the lineage, not of the content shipping. The release
+branch is therefore built as a **clean descendant of `main`** with `dev`'s tree overlaid on top, asserting the desired
+end-state directly:
+
 ```bash
+# 0. Nothing on main that dev never received (security PRs, hotfixes, config). Exits 1 while drift exists.
+scripts/release/drift.sh
+
 # 1. Branch from main, NOT dev.
 git fetch origin
-git checkout -b release/v<version> origin/main
+git checkout -B release/v<version> origin/main
 
+# 2. Overlay dev's entire tracked tree onto the main base. `checkout -- .` writes dev's
+#    paths but does not delete files that exist on main and are absent on dev, so remove
+#    those next (the 'D' rows are main-only files dev deleted).
+git checkout origin/dev -- .
+git diff --name-status origin/main origin/dev | grep '^D'
+trash <each main-only file listed above>
+
+# 3. Strip the paths guard-main-docs forbids on main. The set resolves from the workflow;
+#    never restate it inline, because every hand-kept copy drifted from what CI enforces.
+GUARDED="$(scripts/release/guarded-paths.sh)"
+git ls-files | grep -E "$GUARDED" | xargs -r trash
+git add -A                                                      # stages adds, mods, AND deletions
+
+# 4. Version bump, then the changelog from the PRs merged into dev since the previous
+#    release. The overlay commit carries no per-PR history, so the section is built from
+#    dev's PRs, not from this branch's commits.
+#    - Bump "version" in the root package.json to <version> (release.yml's integrity gate
+#      requires tag == package.json version). apps/web and packages/shared keep their own
+#      workspace-package versions.
+#    - bun install (re-resolves bun.lock against the bump).
+scripts/generate-changelog.py --from-dev-prs
+git add -A
+
+# 5. Verify before committing.
+#    A: staged tree equals dev's minus the version files and the stripped guarded paths.
+#       Anything else printed here is a mistake.
+git diff --cached --name-only origin/dev | grep -Ev "$GUARDED" \
+  | grep -Ev '^(package\.json|bun\.lock|CHANGELOG\.md)$' \
+  && echo "unexpected delta above; investigate" || echo "(clean: only intended deltas)"
+#    B: no guarded path in the release tree.
+git diff --cached --name-only origin/main | grep -E "$GUARDED" \
+  && echo "LEAKED a guarded path: reset and redo" || echo "(no guarded paths)"
+#    D: what this release ADDS to main. The leak check screens against the registered
+#       set, so it is blind to a category nobody registered yet. Every docs/ entry and
+#       every added markdown file needs a reason to ship, or it needs registering in the
+#       workflow's extra_paths and removing from the branch. docs/runbooks/ ships by design.
+git diff --cached --diff-filter=A --name-only origin/main | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || echo "(none unguarded)"
+
+# 6. Commit the overlay as one commit sitting directly on top of main, then run the
+#    preflight gates against it.
+git commit
+scripts/release/preflight.sh all
+
+# 7. Push and open the PR. Scrub body in /tmp/ first.
+git push -u origin release/v<version>
+gh pr create --base main --head release/v<version> --title "release: v<version>" --body-file /tmp/body.md
+```
+
+The result is a single commit whose diff against `main` is the release, with `main` as an ancestor, so the PR merges
+with zero conflicts. When it merges, `dev` is untouched and `release/v<version>` auto-deletes.
+
+→ Rationale (why overlay, not merge; why cut from `main`):
+[`RELEASES-RATIONALE.md` § Branching model](./RELEASES-RATIONALE.md#branching-model). CHANGELOG mechanics:
+[`RELEASES-RATIONALE.md` § CHANGELOG generation](./RELEASES-RATIONALE.md#changelog-generation).
+
+### Exception: cherry-pick
+
+The overlay is the release construction for this repo. Cherry-picking the dev squash-commits onto the `origin/main`
+base is the exception, kept for a release that has a stated reason it cannot overlay (record it under
+[Project specifics](#project-specifics)); the per-PR changelog is not such a reason, since `--from-dev-prs` builds it
+from `dev` either way. When cherry-picking, run the triple-diff verification:
+
+```bash
 # 2. List the dev commits not yet on main.
 git log --oneline dev --not origin/main
 
@@ -112,34 +184,30 @@ git log --oneline dev --not origin/main
 git cherry-pick <sha1> <sha2> ...
 
 # 4. Triple-diff verification.
+GUARDED="$(scripts/release/guarded-paths.sh)"
+
 git diff origin/main..HEAD --stat                                              # A: ship surface
-git diff HEAD..origin/dev --name-only | grep -v '^docs/' || echo "(none)"      # B: no missed picks
+git diff HEAD..origin/dev --name-only | grep -Ev "$GUARDED" || echo "(none)"   # B: no missed picks
 git diff origin/dev..origin/main --stat | tail -5                              # C: phantom-commits sanity
 
 # Re-confirm no guarded paths leaked.
 git diff origin/main..HEAD --name-only \
-  | grep -E '^(docs/architecture|docs/brainstorms|docs/ideation|docs/plans|docs/research|docs/reviews|docs/solutions|\.context)' \
+  | grep -E "$GUARDED" \
   && echo "LEAKED: reset and redo" || echo "(clean)"
+
+# D: what this release ADDS to main (see step 5 above for why).
+git diff origin/main..HEAD --diff-filter=A --name-only | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED" || echo "(none unguarded)"
 
 # Patch-id cherry check (noisy in squash-merge workflow; triage per-line).
 git cherry HEAD origin/dev | grep '^+' || echo "(none)"
-
-# 5. Version bump and changelog regeneration.
-#    - Bump "version" in the root package.json to <version>.
-#    - bun install (regenerates bun.lock against the bump).
-#    - scripts/generate-changelog.py (git-cliff + repo cliff.toml) to prepend the
-#      versioned CHANGELOG.md section from merged PR bodies since the last tag.
-
-# 6. Push and open the PR. Scrub body in /tmp/ first.
-git push -u origin release/v<version>
-gh pr create --base main --head release/v<version> --title "release: v<version>" --body-file /tmp/body.md
 ```
 
-When the PR merges, `dev` is untouched and `release/v<version>` auto-deletes.
+Cherry-picks of PRs that touched guarded paths hit modify/delete or rename/delete conflicts, since those paths live on
+`dev` but are blocked from `main`; resolve them per the next section. Steps 4 to 7 of the overlay recipe then apply
+unchanged.
 
-→ Rationale + triple-diff false-positive triage:
-[`RELEASES-RATIONALE.md` § Triple-diff verification](./RELEASES-RATIONALE.md#triple-diff-verification). CHANGELOG
-mechanics: [`RELEASES-RATIONALE.md` § CHANGELOG generation](./RELEASES-RATIONALE.md#changelog-generation).
+→ Triple-diff false-positive triage:
+[`RELEASES-RATIONALE.md` § Triple-diff verification](./RELEASES-RATIONALE.md#triple-diff-verification).
 
 ### Cherry-pick conflicts on guarded paths
 
@@ -195,16 +263,42 @@ step on a tag or merge event.
 
 ### After publish: sync `dev` with the release
 
-Once `release.yml` completes and the GitHub Release exists, merge `main` back into `dev` so the release bookkeeping
-(version bump, lockfile, `CHANGELOG.md`) lands on the integration branch:
+Once `release.yml` completes and the GitHub Release exists, bring the release bookkeeping (the root `package.json`
+version, `CHANGELOG.md`) back to `dev` so the integration branch starts from the released baseline:
 
 ```bash
-git checkout dev && git pull
-git merge --no-ff origin/main -m "Merge remote-tracking branch 'origin/main' into dev"
-git push origin dev
+scripts/sync-dev-after-release.sh v<version>
 ```
 
+The script opens a PR against `dev`; merge it once CI is green. The postflight backport gate looks for that merged PR.
+Never merge `main` into `dev` or push to `dev` directly: the squash-merged histories share no recent ancestry, so the
+merge conflicts on every file both sides touched, and a direct push bypasses `dev`'s required checks.
+
 → Rationale: [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
+
+## Rollback
+
+A bad release is rolled back at the deploy surface first, then repaired in git. Rollback re-points what users get; it
+does not revert history. After rolling back, land a `fix/*` or `revert` through the normal `dev` to `release/*` to
+`main` flow so `main` matches what is live. Knowing the last-good identifier before the release goes out is a
+[`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) gate.
+
+Production is one Cloudflare Worker (`lmgroktfy`), so rollback is a Worker version re-point, per
+[`docs/runbooks/astro-cloudflare-cutover.md` § Rollback](docs/runbooks/astro-cloudflare-cutover.md#rollback):
+
+```bash
+# Before the cutover: capture the active production Version ID (the last-good identifier).
+bunx wrangler deployments list --env production
+
+# Roll back: interactive pick of the previous version, or target the captured Version ID.
+bunx wrangler rollback --env production
+bunx wrangler versions deploy <VERSION_ID> --env production
+```
+
+Rollback restores the Worker code only; DNS and the custom-domain bindings stay attached to the `lmgroktfy` Worker
+throughout. Staging (`lmgroktfy-staging`) rolls back the same way with `--env staging`.
+
+→ Rationale: [`RELEASES-RATIONALE.md` § Rollback](./RELEASES-RATIONALE.md#rollback).
 
 ## Prose scrubbing
 
@@ -293,6 +387,12 @@ repo secret for its nightly production health probe against the real xAI API.
 | Production Worker (`lmgroktfy`)      | `bun run deploy:prod`    | Manual, human-gated, after `RELEASES-POSTFLIGHT.md` passes; see [`docs/runbooks/astro-cloudflare-cutover.md`](docs/runbooks/astro-cloudflare-cutover.md). |
 
 **No cross-compile matrix.** lmgroktfy builds one Cloudflare Worker bundle (`bun run build`), not per-platform binaries.
+
+**Rollback:** `bunx wrangler rollback --env production` (or `bunx wrangler versions deploy <VERSION_ID> --env
+production` against the Version ID captured before cutover). See [§ Rollback](#rollback).
+
+**Release construction:** the overlay recipe in [§ Releasing dev to main](#releasing-dev-to-main). No standing reason
+to cherry-pick; the cherry-pick exception is unused.
 
 ## Related docs
 
