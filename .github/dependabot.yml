@@ -3,7 +3,7 @@
 # Two ecosystems: npm for the Bun/TypeScript toolchain, github-actions for
 # workflow actions. Both scan weekly on Monday mornings with a 7-day cooldown
 # so a just-published version has to survive a week before Dependabot proposes
-# it. npm minor + patch updates group into one PR per week.
+# it. Minor + patch updates group into one PR per week per group.
 #
 # The wildcard `ignore` rule suppresses every major-version bump: no PR ever
 # proposes a breaking-version jump. Security updates are a separate path and
@@ -18,15 +18,19 @@
 # than majors alone, since an exact pin has no "in range" update Dependabot
 # would otherwise leave alone.
 #
-# Dependabot reads this file from the default branch (dev) and, with
-# `target-branch: dev`, opens its PRs against dev. This file is mirrored onto
-# main so both branches carry the same config. Do not flip `target-branch` to
-# main on a live config: retargeting orphans-and-closes any open PR.
+# `dev` is the default branch, so Dependabot reads this file from `dev` and
+# opens every PR against it with no `target-branch` set. A block that names a
+# target branch, even the default one, is detached from security updates, so
+# the `npm-security-minor-patch` group (`applies-to: security-updates`) sits on
+# the same npm block as the version group: advisory fixes batch minor and patch
+# bumps per run, and a fix that needs a major stays its own PR. Cooldown and
+# the majors ignore do not apply to security updates. This file is mirrored
+# onto `main` so both branches carry the same config (`scripts/release/drift.sh`
+# checks `.github/` parity).
 version: 2
 updates:
   - package-ecosystem: npm
     directory: '/'
-    target-branch: dev
     schedule:
       interval: weekly
       day: monday
@@ -34,15 +38,16 @@ updates:
       timezone: America/Chicago
     cooldown:
       default-days: 7
-    open-pull-requests-limit: 5
+    # One slot per version-update group below; security PRs are not counted.
+    open-pull-requests-limit: 2
     reviewers:
       - brettdavies
     labels:
       - dependencies
       - javascript
     groups:
-      # Keep the Astro 7.1.x / Cloudflare adapter / wrangler / Vite stack moving
-      # as one PR so no single package drifts out of the locked, mutually
+      # Keep the Astro / Cloudflare adapter / wrangler / Vite stack moving as
+      # one PR so no single package drifts out of the locked, mutually
       # compatible set. Listed first: Dependabot assigns a dependency to the
       # first matching group in file order.
       astro-cloudflare:
@@ -62,6 +67,11 @@ updates:
         update-types:
           - minor
           - patch
+      npm-security-minor-patch:
+        applies-to: security-updates
+        update-types:
+          - minor
+          - patch
     ignore:
       - dependency-name: '*'
         update-types:
@@ -71,7 +81,6 @@ updates:
       - dependency-name: 'playwright-core'
   - package-ecosystem: github-actions
     directory: '/'
-    target-branch: dev
     schedule:
       interval: weekly
       day: monday
@@ -85,6 +94,13 @@ updates:
     labels:
       - dependencies
       - github-actions
+    groups:
+      # `patterns` rather than `update-types`: a SHA pin's SemVer level comes
+      # from a trailing comment, and an unclassifiable action would otherwise
+      # fall out of the group and open alone.
+      actions-minor-patch:
+        patterns:
+          - '*'
     ignore:
       - dependency-name: '*'
         update-types:

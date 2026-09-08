@@ -28,6 +28,7 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
 
 # Argument parsing -----------------------------------------------------------

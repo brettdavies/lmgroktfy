@@ -22,11 +22,27 @@ Engineering docs (`docs/plans/` today, plus six more guarded prefixes reserved f
 never reach `main`. `guard-main-docs.yml` blocks them from PRs targeting `main`, and `guard-release-branch.yml` rejects
 any PR to main whose head isn't `release/*`.
 
-### Why cherry-pick from `main`, not branch from `dev`
+### Why the release branch is cut from `main`, never from `dev`
 
-Branching from `dev` and then trashing the guarded paths seems simpler but produces `add/add` merge conflicts whenever
-`dev` and `main` have diverged (which they always do after the first squash merge). The file appears as "added" on both
-sides with different content. Always branch from `origin/main` and cherry-pick the dev commits onto it.
+Every release squash-merges into `main`, so `dev` and `main` diverge in history even as their content converges: after
+the first release they share only an ancient merge-base. Cutting the release branch from `dev` (or merging `dev` into
+`main`) forces a 3-way merge across that divergence: `add/add` collisions on files both sides changed, plus
+rename/delete pairs git cannot auto-resolve. The conflict pile is an artifact of the lineage, not of the content
+shipping.
+
+Always cut the release branch from `origin/main` and bring `dev`'s content onto it as a forward diff, never by
+reconciling histories. The default is the whole-tree overlay (`git checkout origin/dev -- .`, then strip the guarded
+set): `main` ships `dev`'s tree minus a small, known exclusion set, so asserting that end-state directly is simpler and
+safer than hand-resolving a merge. The overlay commit carries no per-PR history, so the changelog is built from the
+PRs merged into `dev` since the previous release (`generate-changelog.py --from-dev-prs`) rather than from the
+branch's commits; the result is the same per-PR section a cherry-picked branch would yield. Cherry-picking the dev
+squash-commits is kept only as an exception for a release with a stated reason it cannot overlay, at the cost of
+guarded-path conflict handling.
+
+Either way, the release must start from a `main` that `dev` fully contains. Security PRs, hotfixes, and config edits
+land on `main` first, and both constructions take `dev`'s content for the files they touch, so anything `main` holds
+that `dev` never received is reverted by the release. `scripts/release/drift.sh` lists that set and the cut waits
+until it is empty.
 
 ### Version branch naming
 
@@ -94,6 +110,26 @@ The release-PR procedure runs three diffs (A: main→release, B: release→dev f
 patch-id cherry check. This is belt-and-suspenders because missed cherry-picks have shipped to `main` on sibling repos
 before, and the file-level diff in B alone doesn't catch the patch-id false-negative class.
 
+### Why the guarded set resolves from the workflow
+
+`guard-main-docs` is what CI enforces on a PR to `main`: the reusable workflow's hardcoded base list plus this repo's
+`extra_paths`. Every hand-kept copy of that union (runbook, checklist, preflight script) drifted from it, and a copy
+that omits a guarded path reports a real leak as clean while CI turns red after the push.
+`scripts/release/guarded-paths.sh` reads `extra_paths` out of the caller workflow and adds the base list, so
+registering a path in the workflow is the only edit a new guarded path needs. The base list is the one copy that still
+needs a manual edit when the reusable changes, because it lives in another repo. Entries are globs with one rule set
+shared by the reusable and the script (`**/` any depth, `*` and `?` within a segment, trailing slash guards the
+subtree), so `**/.agent/` guards that directory wherever it appears and the two never disagree about what is guarded.
+
+### Why the release enumerates what it adds
+
+The leak check screens the diff against the registered set, so it says nothing about a category nobody registered. A
+new engineering directory or a stray note under `docs/` passes the local check and `guard-main-docs` alike. Step D
+lists every `docs/` file and every markdown file the release adds to `main` outside the guarded set and puts them in
+front of a human; each one needs a reason to ship (`docs/runbooks/` has one: it is operator-facing), or it gets
+registered in `extra_paths` and dropped from the branch. Root-level markdown is in scope because an agent-facing
+glossary at the repo root is exactly the kind of addition a `docs/`-only listing misses.
+
 ### Why patch-id cherry-check output is noisy
 
 In a squash-merge workflow, `git cherry HEAD origin/dev` produces many `+` lines that need human triage. They do NOT
@@ -122,17 +158,19 @@ action). Otherwise cherry-pick the commit and re-run the triple-diff.
 ### Generated, never hand-written
 
 `scripts/generate-changelog.py` (vendored from the `github-repo-setup` skill, with the repo-local `cliff.toml`) is the
-only sanctioned way to update `CHANGELOG.md`. The script runs `git-cliff` to prepend a versioned entry for commits since
-the last tag, then walks each squash-merged PR's body to extract the `## Changelog → ### Added / Changed / Fixed /
-Documentation` subsections, replacing the auto-generated bullets with the curated PR-body content (with author and
-PR-link attribution).
+only sanctioned way to update `CHANGELOG.md`. On an overlay-built release branch it runs as `--from-dev-prs`: the PRs
+merged into `dev` since the previous release are the entries, and each PR's body supplies its `## Changelog → ###
+Breaking changes / Added / Changed / Fixed / Documentation` subsections (with author and PR-link attribution). On a
+cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's commits, then expands
+the same way.
 
-If a PR's `## Changelog` section is empty, that PR's entry is omitted from the changelog (empty section = no user-facing
-change). To fix a wrong CHANGELOG entry, fix the input: edit the squash-merged PR body, then re-run the script. Do
-**not** edit `CHANGELOG.md` directly.
+If a PR's body carries no changelog content, its title becomes a `Changed` bullet, except for `chore`, `ci`, `build`,
+`style`, and `test` PRs, which stay out unless they carry a `## Changelog` of their own. To fix a wrong CHANGELOG entry,
+fix the input: edit the squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
 
-CI enforces that `CHANGELOG.md` is modified in every PR to main and that it contains a versioned section, not
-`[Unreleased]`. The release workflow extracts the latest section for the GitHub Release body.
+`scripts/release/preflight.sh mechanics` checks that the top `CHANGELOG.md` section matches the bumped `package.json`
+version and carries no `[Unreleased]` placeholder. `release.yml` extracts the tagged version's section, matched by
+version string rather than by position, for the GitHub Release body.
 
 ### Why `cliff.toml` skips chore/style/test/ci/build
 
@@ -159,19 +197,15 @@ published and the pipeline stops.
 
 ### Why backport `main` → `dev` after publish
 
-Once `release.yml` has run and the GitHub Release exists, the release-bookkeeping files on `main` (version bump,
-lockfile, `CHANGELOG.md`) need to reach `dev` so future builds from `dev` report the released version and so the next
-dev work starts from the released baseline.
+Once `release.yml` has run and the GitHub Release exists, the release-bookkeeping files on `main` (the root
+`package.json` version, `CHANGELOG.md`) need to reach `dev` so future builds from `dev` report the released version and
+so the next dev work starts from the released baseline.
 
-This pattern backports with a `git merge` from `main` into `dev`. The merge preserves full history on both branches,
-lands the release commits on dev as expected, and is signed via the normal commit-signing path. No surgical script is
-needed; the squash-merge structure on both sides means the merge is effectively trivial.
-
-```bash
-git checkout dev && git pull
-git merge --no-ff origin/main -m "Merge remote-tracking branch 'origin/main' into dev"
-git push origin dev
-```
+The backport is a PR opened by `scripts/sync-dev-after-release.sh`, never a merge of `main` into `dev` and never a
+direct push. The squash-merged branches share no recent history, so a merge conflicts on every file both sides
+touched, and a direct push to `dev` bypasses its required status checks. The script writes the released version into
+`package.json` in place, copies `CHANGELOG.md` from `main`, and opens the PR; the postflight backport gate treats that
+merged PR as the durable signal that the backport ran.
 
 ### Why the deploy step is not in `release.yml`
 
@@ -182,6 +216,15 @@ visitor." Keeping `bun run deploy:prod` a separate, manual command (documented i
 [`docs/runbooks/astro-cloudflare-cutover.md`](docs/runbooks/astro-cloudflare-cutover.md)) means a bad build can be
 caught between tag and cutover, and rollback is a `wrangler rollback` away from the last known-good Version ID rather
 than a second automated pipeline run.
+
+### Rollback
+
+Rollback happens at the surface users consume, the production Worker, not in git. Re-pointing the Worker to a previous
+Version ID (`bunx wrangler rollback --env production`) is fast and reversible; rewriting `main` is neither, and the
+release flow exists so that `main` only ever moves forward through a PR. After the rollback, the fix or revert lands
+through `dev`, a release branch, and `main` like any other change, so the branch reconverges with what is live.
+Recording the last-good Version ID before the cutover is what makes the rollback a single command under incident
+pressure.
 
 ### No cross-compile matrix
 

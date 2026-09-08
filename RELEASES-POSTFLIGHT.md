@@ -31,19 +31,18 @@ production build is still healthy, not that this release shipped.
 
 Sub-commands let you re-run one verification in isolation:
 
-| Sub-command         | What it checks                                                                                         | Source of truth                                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| `tag`               | `vX.Y.Z` tag exists, is reachable from `main`, and equals the root `package.json` version              | `git tag --merged main`, `package.json`            |
-| `release`           | `release.yml` on the tag push concluded `"success"`                                                    | `gh run view`                                      |
-| `release-published` | GitHub Release `vX.Y.Z` exists, is not a draft, and its body matches the tagged `CHANGELOG.md` section | `gh api repos/<owner>/<repo>/releases/tags/vX.Y.Z` |
-| `backport`          | a merged PR to `dev` with the version in its title                                                     | `gh pr list --base dev --state merged`             |
-| `surface-smoke`     | Delegates to `scripts/release/surface-smoke.sh` against the env's deployed URL                         | `scripts/release/surface-smoke.sh`                 |
-| `all`               | every above except `surface-smoke`, which needs an explicit `--env`                                    | all of the above                                   |
+| Sub-command      | What it checks                                                                                                   | Source of truth                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `release`        | `release.yml` on the tag push concluded `"success"`                                                              | `gh run list`, `gh run view`           |
+| `github-release` | GitHub Release `vX.Y.Z` exists and is published: not a draft, not a prerelease                                   | `gh release view`                      |
+| `backport`       | a merged PR to `dev` with the version in its title                                                               | `gh pr list --base dev --state merged` |
+| `surface-smoke`  | Delegates to `scripts/release/surface-smoke.sh` against the env's deployed URL                                   | `scripts/release/surface-smoke.sh`     |
+| `all`            | every above, in order; `surface-smoke` targets the `--env` URL (default `prod`) and SKIPs when it is unreachable | all of the above                       |
 
 Flags:
 
-- `--env staging|prod`: target environment for `surface-smoke` (default: `staging`, since `prod` requires the manual
-  cutover to have already happened).
+- `--env staging|prod`: which deployed URL `surface-smoke` targets (default: `prod`). Pass `--env staging` before the
+  manual cutover, since `prod` only reflects this release after `bun run deploy:prod`.
 - `--repo OWNER/REPO`: override the auto-detected nameWithOwner.
 - `--tag vX.Y.Z`: override auto-detection (default: derived from the root `package.json` version, falls back to the
   latest git tag).
@@ -60,18 +59,23 @@ Run immediately after the tag push triggers `release.yml`.
   creates the GitHub Release. Run `scripts/release/postflight.sh release` for the automated check.
 - [ ] **GitHub Release exists and is published (not draft).** `gh api repos/<owner>/<repo>/releases/tags/vX.Y.Z --jq
   '{draft, tag_name}'`, expect `draft: false`. Single-channel: there is no `make_latest: false → true` flip to wait for,
-  since nothing attaches assets after creation. Run `scripts/release/postflight.sh release-published` for the automated
+  since nothing attaches assets after creation. Run `scripts/release/postflight.sh github-release` for the automated
   check.
 - [ ] **Release notes match the tagged version.** The Release body is extracted from the `CHANGELOG.md` section whose
   heading contains the tag's version string, not the first `## [` heading in the file. Confirm they match verbatim.
+- [ ] **Last-good identifier recorded.** Before `bun run deploy:prod`, note the active production Version ID
+  (`bunx wrangler deployments list --env production`) somewhere reachable under incident pressure, so a rollback is a
+  single command. See [`RELEASES.md` § Rollback](./RELEASES.md#rollback).
+- [ ] **Rollback path confirmed.** If this release is bad, roll back at the Worker first (`bunx wrangler rollback --env
+  production`, or `bunx wrangler versions deploy <VERSION_ID> --env production`), then land a `fix` or `revert` through
+  the normal `dev` to `release/*` to `main` flow so `main` reconverges with what is live.
 - [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Bring the release-only
-  changes (`CHANGELOG.md`, the version bump, `bun.lock`) across to `dev` so the next release's `RELEASES-PREFLIGHT.md`
-  triple-diff stays quiet.
+  changes (`CHANGELOG.md`, the root `package.json` version) across to `dev` so the next release's `RELEASES-PREFLIGHT.md`
+  drift and diff-B gates stay quiet. `scripts/release/postflight.sh backport` looks for the merged PR alone; the only
+  requirement is the version string in the PR title.
 
   ```bash
-  git switch -c backport/v<X.Y.Z> origin/main
-  # ...any other release-only edits you want to backport...
-  gh pr create --base dev --title "backport v<X.Y.Z> release-only files from main"
+  scripts/sync-dev-after-release.sh v<X.Y.Z>     # opens the PR against dev; merge once CI is green
   ```
 
 - [ ] **Staging surface smoke.** `scripts/release/postflight.sh --env staging surface-smoke` (or the manual recipes in
