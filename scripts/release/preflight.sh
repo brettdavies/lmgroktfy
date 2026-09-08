@@ -42,6 +42,7 @@ readonly STAGING_URL_DEFAULT="https://dev.lmgroktfy.com"
 
 # Shared output helpers, gate counters, dependency checks. Same _lib.sh as
 # postflight.sh and surface-smoke.sh.
+# shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
 
 # Gate: drift (delegated to drift.sh) ----------------------------------------
@@ -122,12 +123,16 @@ gate_mechanics() {
 
   if [[ -f "$REPO_ROOT/CHANGELOG.md" ]]; then
     changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$REPO_ROOT/CHANGELOG.md" | tr -d '[]## ')
-    [[ "$changelog_version" == "$project_version" ]] \
-      && gate_pass "CHANGELOG top section = [$changelog_version] (matches project version)" \
-      || gate_fail "CHANGELOG mismatch" "changelog=$changelog_version project=$project_version"
-    grep -q '\[Unreleased\]' "$REPO_ROOT/CHANGELOG.md" \
-      && gate_fail "CHANGELOG" "has [Unreleased] placeholder" \
-      || gate_pass "CHANGELOG has no [Unreleased] placeholder"
+    if [[ "$changelog_version" == "$project_version" ]]; then
+      gate_pass "CHANGELOG top section = [$changelog_version] (matches project version)"
+    else
+      gate_fail "CHANGELOG mismatch" "changelog=$changelog_version project=$project_version"
+    fi
+    if grep -q '\[Unreleased\]' "$REPO_ROOT/CHANGELOG.md"; then
+      gate_fail "CHANGELOG" "has [Unreleased] placeholder"
+    else
+      gate_pass "CHANGELOG has no [Unreleased] placeholder"
+    fi
   else
     gate_fail "CHANGELOG.md" "missing"
   fi

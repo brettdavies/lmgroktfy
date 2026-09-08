@@ -46,6 +46,7 @@ readonly PROD_URL_DEFAULT="https://lmgroktfy.com"
 
 # Shared output helpers, gate counters, dependency checks, 1Password helper.
 # Same _lib.sh as preflight.sh and surface-smoke.sh.
+# shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
 
 # Argument parsing -----------------------------------------------------------
@@ -178,9 +179,11 @@ gate_release() {
     gate_skip "release.yml run $run_id" "status=$status (still running; re-run after watcher exits)"
     return
   fi
-  [[ "$conclusion" == "success" ]] \
-    && gate_pass "release.yml run $run_id conclusion=success" \
-    || gate_fail "release.yml run $run_id" "conclusion=$conclusion (see gh run view $run_id --log-failed)"
+  if [[ "$conclusion" == "success" ]]; then
+    gate_pass "release.yml run $run_id conclusion=success"
+  else
+    gate_fail "release.yml run $run_id" "conclusion=$conclusion (see gh run view $run_id --log-failed)"
+  fi
 }
 
 # Gate: GitHub Release published ----------------------------------------------
