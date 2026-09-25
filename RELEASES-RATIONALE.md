@@ -164,9 +164,10 @@ Breaking changes / Added / Changed / Fixed / Documentation` subsections (with au
 cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's commits, then expands
 the same way.
 
-If a PR's body carries no changelog content, its title becomes a `Changed` bullet, except for `chore`, `ci`, `build`,
-`style`, and `test` PRs, which stay out unless they carry a `## Changelog` of their own. To fix a wrong CHANGELOG entry,
-fix the input: edit the squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
+If a PR's body has no `## Changelog` section at all, its title becomes a `Changed` bullet, except for `chore`, `ci`,
+`build`, `style`, and `test` PRs, which stay out unless they carry a `## Changelog` of their own. A PR that keeps the
+`## Changelog` heading and leaves it empty has declared nothing user-facing and adds nothing. To fix a wrong CHANGELOG
+entry, fix the input: edit the squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
 
 `scripts/release/preflight.sh mechanics` checks that the top `CHANGELOG.md` section matches the bumped `package.json`
 version and carries no `[Unreleased]` placeholder. `release.yml` extracts the tagged version's section, matched by
@@ -206,6 +207,15 @@ direct push. The squash-merged branches share no recent history, so a merge conf
 touched, and a direct push to `dev` bypasses its required status checks. The script writes the released version into
 `package.json` in place, copies `CHANGELOG.md` from `main`, and opens the PR; the postflight backport gate treats that
 merged PR as the durable signal that the backport ran.
+
+A release branch also takes edits nobody predicts (a doc fix, a reverted payload, a deleted config). Each is made
+against `main`'s base, so it reaches `dev` only through the backport; left behind, the next release's overlay restores
+`dev`'s copy over it and silently undoes the edit. A fixed list of files misses these, so the script discovers every
+path the two branches disagree about. The previous release tag bounds that discovery, because it is the last point the
+branches agreed: a path `dev` has not touched since the tag is release-prep and is adopted, while a path `dev` also
+changed is contested and is only reported, so widening the copy cannot revert `dev`'s unreleased work. The operator
+adopts contested paths by name (`--only`) or all at once (`--include-contested`). Guarded paths (the engineering docs)
+never enter discovery, so the backport cannot remove them.
 
 ### Why the deploy step is not in `release.yml`
 
