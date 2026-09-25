@@ -70,12 +70,17 @@ Run immediately after the tag push triggers `release.yml`.
   production`, or `bunx wrangler versions deploy <VERSION_ID> --env production`), then land a `fix` or `revert` through
   the normal `dev` to `release/*` to `main` flow so `main` reconverges with what is live.
 - [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Bring the release-only
-  changes (`CHANGELOG.md`, the root `package.json` version) across to `dev` so the next release's `RELEASES-PREFLIGHT.md`
-  drift and diff-B gates stay quiet. `scripts/release/postflight.sh backport` looks for the merged PR alone; the only
-  requirement is the version string in the PR title.
+  changes (`CHANGELOG.md`, the root `package.json` version, and any edit made on the release branch) across to `dev` so
+  the next release's `RELEASES-PREFLIGHT.md` drift and diff-B gates stay quiet. The script adopts the release-prep edits
+  it discovers since the previous tag and lists contested paths (ones `dev` also changed) without taking them: run it
+  with `--dry-run` first to see both lists without creating a branch, then name the contested paths to take with
+  `--only PATH` (see [`RELEASES.md` § After publish](./RELEASES.md#after-publish-sync-dev-with-the-release)).
+  `scripts/release/postflight.sh backport` looks for the merged PR alone; the only requirement is the version string in
+  the PR title.
 
   ```bash
-  scripts/sync-dev-after-release.sh v<X.Y.Z>     # opens the PR against dev; merge once CI is green
+  scripts/sync-dev-after-release.sh v<X.Y.Z> --dry-run   # previews the sync; no branch, clean tree
+  scripts/sync-dev-after-release.sh v<X.Y.Z>             # opens the PR against dev; merge once CI is green
   ```
 
 - [ ] **Staging surface smoke.** `scripts/release/postflight.sh --env staging surface-smoke` (or the manual recipes in

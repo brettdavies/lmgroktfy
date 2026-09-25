@@ -264,13 +264,33 @@ step on a tag or merge event.
 ### After publish: sync `dev` with the release
 
 Once `release.yml` completes and the GitHub Release exists, bring the release bookkeeping (the root `package.json`
-version, `CHANGELOG.md`) back to `dev` so the integration branch starts from the released baseline:
+version, `CHANGELOG.md`) and any edit made on the release branch back to `dev` so the integration branch starts from
+the released baseline. Preview it first: `--dry-run` prints what the sync would carry, creates no branch, and leaves the
+tree clean.
 
 ```bash
+scripts/sync-dev-after-release.sh v<version> --dry-run
 scripts/sync-dev-after-release.sh v<version>
 ```
 
-The script opens a PR against `dev`; merge it once CI is green. The postflight backport gate looks for that merged PR.
+The script cuts a `chore/sync-dev-after-v<version>` branch, writes the released version into the root `package.json`
+in place, copies `CHANGELOG.md` from `main`, and opens a PR against `dev`; merge it once CI is green. The postflight
+backport gate looks for that merged PR.
+
+Every other path `main` and `dev` disagree about is discovered, bounded by the previous release tag, the last point the
+two branches agreed:
+
+- **release-prep**: `dev`'s copy is unchanged since the previous tag, so the difference is `main`'s alone. Adopted
+  automatically, including a deletion.
+- **contested**: `dev` also changed the path since the previous tag, so `main`'s copy could revert `dev`'s unreleased
+  work. Listed and withheld. `--only PATH` (repeatable) adopts the paths it names; `--include-contested` takes `main`'s
+  copy of every one, which also deletes each file `dev` added that `main` lacks.
+
+Guarded paths (the engineering docs `scripts/release/guarded-paths.sh` resolves) never enter discovery, so the sync
+cannot remove them. After the commit, when the sync carried `CHANGELOG.md` and `git-cliff` is installed, the script
+runs `scripts/generate-changelog.py --dry-run` and, on a mismatch, prints the generator's reason (a PR body edited after
+generation, or line wrapping only); that warning does not fail the sync.
+
 Never merge `main` into `dev` or push to `dev` directly: the squash-merged histories share no recent ancestry, so the
 merge conflicts on every file both sides touched, and a direct push bypasses `dev`'s required checks.
 
