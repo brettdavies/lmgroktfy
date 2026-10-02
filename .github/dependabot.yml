@@ -10,9 +10,10 @@
 # The wildcard `ignore` rule suppresses every major-version bump: no PR ever
 # proposes a breaking-version jump. Bump majors deliberately, by hand.
 #
-# Dependabot opens no security updates for Bun. Advisories still raise
-# Dependabot alerts, since the dependency graph reads bun.lock; fix one by
-# bumping the dependency by hand and running `bun install`.
+# Dependabot opens no security updates for Bun, and its alerts cover only the
+# direct dependencies in package.json: the dependency graph does not read
+# bun.lock. `bun audit` checks the whole lockfile. Fix an advisory by bumping
+# the dependency by hand and running `bun install`.
 # https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories#bun
 #
 # The Playwright family (@playwright/*, playwright, playwright-core) is

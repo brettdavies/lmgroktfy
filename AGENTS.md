@@ -111,5 +111,6 @@ Dependabot (`.github/dependabot.yml`) scans the `bun` and `github-actions` ecosy
 targets `dev`. It never proposes major-version bumps; bump majors deliberately, by hand. The `bun` ecosystem regenerates
 `bun.lock` inside each update PR, so the frozen install in `test` passes on the PR as opened.
 
-Dependabot opens no security updates for Bun. Advisories still raise Dependabot alerts, since the dependency graph reads
-`bun.lock`; fix one by bumping the dependency by hand and running `bun install`.
+Dependabot opens no security updates for Bun, and its alerts cover only the direct dependencies in `package.json`: the
+dependency graph does not read `bun.lock`. `bun audit` checks the whole lockfile. Fix an advisory by bumping the
+dependency by hand and running `bun install`.
