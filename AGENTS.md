@@ -90,11 +90,6 @@ lint, Prettier format check, typecheck, build, unit tests, and Playwright end-to
 Actions are SHA-pinned with a `# vX.Y.Z` trailing comment; keep them pinned. There is no `push` trigger — under squash
 merges the merge commit's tree equals the PR head CI already verified.
 
-`.github/workflows/dependabot-lockfile.yml` (workflow `Dependabot lockfile sync`) runs only on Dependabot PRs (`if:
-github.actor == 'dependabot[bot]'`). It regenerates `bun.lock` against the bumped `package.json` and commits it back via
-the shared `brettdavies/.github/actions/reconcile-lockfile` composite action, so the `test` check passes without a
-hand-reconciled lockfile. See Dependencies for the token it pushes with.
-
 ## Local hooks
 
 Hooks live at `scripts/hooks/`, activated per clone with `git config core.hooksPath scripts/hooks` (machine-local; does
@@ -112,12 +107,9 @@ actionlint, shellcheck). Keep the pre-push checks in lockstep with `test.yml`.
 
 ## Dependencies
 
-Dependabot (`.github/dependabot.yml`) scans npm and github-actions weekly with a 7-day cooldown and targets `dev`. It
-never proposes major-version bumps; security updates are a separate path and still land. Bump majors deliberately, by
-hand.
+Dependabot (`.github/dependabot.yml`) scans the `bun` and `github-actions` ecosystems weekly with a 7-day cooldown and
+targets `dev`. It never proposes major-version bumps; bump majors deliberately, by hand. The `bun` ecosystem regenerates
+`bun.lock` inside each update PR, so the frozen install in `test` passes on the PR as opened.
 
-Dependabot bumps `package.json` but does not reconcile `bun.lock`, so a plain `bun install --frozen-lockfile` fails on
-every Dependabot PR. `dependabot-lockfile.yml` (see CI) regenerates and commits the lockfile automatically. The
-reconcile push needs a fine-grained PAT with `Contents: write`, stored as the `DEPENDABOT_RECONCILE_TOKEN` Dependabot
-secret (`gh secret set DEPENDABOT_RECONCILE_TOKEN --app dependabot`), because Dependabot-triggered runs cannot read
-Actions secrets and a `GITHUB_TOKEN` push would not re-trigger the required `test` check.
+Dependabot opens no security updates for Bun. Advisories still raise Dependabot alerts, since the dependency graph reads
+`bun.lock`; fix one by bumping the dependency by hand and running `bun install`.

@@ -1,14 +1,19 @@
 # Dependabot configuration.
 #
-# Two ecosystems: npm for the Bun/TypeScript toolchain, github-actions for
-# workflow actions. Both scan weekly on Monday mornings with a 7-day cooldown
-# so a just-published version has to survive a week before Dependabot proposes
-# it. Minor + patch updates group into one PR per week per group.
+# Two ecosystems: bun for the Bun/TypeScript toolchain, github-actions for
+# workflow actions. The `bun` ecosystem regenerates bun.lock inside each update
+# PR; the `npm` ecosystem refuses a project that carries bun.lock. Both scan
+# weekly on Monday mornings with a 7-day cooldown so a just-published version
+# has to survive a week before Dependabot proposes it. Minor + patch updates
+# group into one PR per week per group.
 #
 # The wildcard `ignore` rule suppresses every major-version bump: no PR ever
-# proposes a breaking-version jump. Security updates are a separate path and
-# still land regardless, so a CVE fix that requires a major is not blocked.
-# Bump majors deliberately, by hand.
+# proposes a breaking-version jump. Bump majors deliberately, by hand.
+#
+# Dependabot opens no security updates for Bun. Advisories still raise
+# Dependabot alerts, since the dependency graph reads bun.lock; fix one by
+# bumping the dependency by hand and running `bun install`.
+# https://docs.github.com/en/code-security/dependabot/ecosystems-supported-by-dependabot/supported-ecosystems-and-repositories#bun
 #
 # The Playwright family (@playwright/*, playwright, playwright-core) is
 # exact-pinned to the version dotfiles provisions into
@@ -19,17 +24,12 @@
 # would otherwise leave alone.
 #
 # `dev` is the default branch, so Dependabot reads this file from `dev` and
-# opens every PR against it with no `target-branch` set. A block that names a
-# target branch, even the default one, is detached from security updates, so
-# the `npm-security-minor-patch` group (`applies-to: security-updates`) sits on
-# the same npm block as the version group: advisory fixes batch minor and patch
-# bumps per run, and a fix that needs a major stays its own PR. Cooldown and
-# the majors ignore do not apply to security updates. This file is mirrored
+# opens every PR against it with no `target-branch` set. This file is mirrored
 # onto `main` so both branches carry the same config (`scripts/release/drift.sh`
 # checks `.github/` parity).
 version: 2
 updates:
-  - package-ecosystem: npm
+  - package-ecosystem: bun
     directory: '/'
     schedule:
       interval: weekly
@@ -38,10 +38,8 @@ updates:
       timezone: America/Chicago
     cooldown:
       default-days: 7
-    # One slot per version-update group below; security PRs are not counted.
+    # One slot per group below.
     open-pull-requests-limit: 2
-    reviewers:
-      - brettdavies
     labels:
       - dependencies
       - javascript
@@ -67,11 +65,6 @@ updates:
         update-types:
           - minor
           - patch
-      npm-security-minor-patch:
-        applies-to: security-updates
-        update-types:
-          - minor
-          - patch
     ignore:
       - dependency-name: '*'
         update-types:
@@ -89,8 +82,6 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 3
-    reviewers:
-      - brettdavies
     labels:
       - dependencies
       - github-actions
