@@ -54,8 +54,7 @@ updates:
     groups:
       # Keep the Astro / Cloudflare adapter / wrangler / Vite stack moving as
       # one PR so no single package drifts out of the locked, mutually
-      # compatible set. Listed first: Dependabot assigns a dependency to the
-      # first matching group in file order.
+      # compatible set.
       astro-cloudflare:
         patterns:
           - 'astro'
@@ -69,7 +68,20 @@ updates:
         update-types:
           - minor
           - patch
+      # Dependabot gives a package that matches several groups to the most
+      # specific one, and a group without `patterns` outranks a wildcard
+      # match such as `@astrojs/*`. Excluding the stack's patterns here keeps
+      # every stack package in astro-cloudflare; keep the two lists identical.
       npm-minor-patch:
+        exclude-patterns:
+          - 'astro'
+          - '@astrojs/*'
+          - '@cloudflare/*'
+          - 'wrangler'
+          - 'vite'
+          - '@tailwindcss/*'
+          - 'tailwindcss'
+          - 'daisyui'
         update-types:
           - minor
           - patch
