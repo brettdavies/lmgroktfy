@@ -129,11 +129,11 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 - [ ] `bun.lock` regenerated (`bun install`), committed.
 - [ ] Every PR merged since `$LAST_TAG` has a non-empty `## Changelog` section. Spot-check via `gh pr list --base dev
   --state merged --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"` then `gh pr view <num> --json body`.
-- [ ] Bun toolchain pin (`bun-version: 1.4.0` in `.github/workflows/test.yml`, `canary.yml`, and
-  `dependabot-lockfile.yml`) last bumped ≥7 days ago (supply-chain quarantine). If a bump landed inside the window, hold
-  or revert it before tagging.
-- [ ] No open Dependabot security-advisory PRs against `dev` (`gh pr list --state open --label dependencies`, or `gh api
-  repos/<owner>/<repo>/dependabot/alerts` if alerts are enabled).
+- [ ] Bun toolchain pin (`bun-version: 1.4.0` in `.github/workflows/test.yml` and `canary.yml`) last bumped ≥7 days ago
+  (supply-chain quarantine). If a bump landed inside the window, hold or revert it before tagging.
+- [ ] No advisory this release should fix: `bun audit` reads every package in `bun.lock`, and open Dependabot alerts
+  (`gh api repos/<owner>/<repo>/dependabot/alerts`) cover only the direct dependencies in `package.json`. Dependabot
+  opens no security updates for Bun, so each fix is a manual bump.
 - [ ] Triple-diff verification before tag: `git diff origin/main..HEAD`, `git diff HEAD..origin/dev` filtered by the
   guarded set (not all of `docs/`, since `docs/runbooks/` ships to `main` and would hide a missed pick),
   `git diff origin/dev..origin/main` (sanity): all three agree on intended scope.
