@@ -34,7 +34,7 @@
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "0.8.1",
     "typescript": "^5.7.0",
-    "wrangler": "^4.83.0",
+    "wrangler": "^4.141.0",
     "zod": "^3.23.0"
   }
 }
