@@ -28,7 +28,8 @@
         "ENVIRONMENT": "staging"
         // TURNSTILE_SITE_KEY (public) is baked at build time by the Turnstile unit, not a
         // runtime var (the widget renders on prerendered pages). Staging widget sitekey
-        // 0x4AAAAAAEAmF7QdqUEQKt7L (1Password: "lmgroktfy Turnstile (staging)").
+        // 0x4AAAAAAEAmF7QdqUEQKt7L (1Password item sprcogx5csmp6pzfpajlb6poi4,
+        // CF Turnstile - lmgroktfy (staging)).
       },
       "ratelimits": [
         {
@@ -56,7 +57,7 @@
         "ENVIRONMENT": "production"
         // TURNSTILE_SITE_KEY (public) is baked at build time by the Turnstile unit, not a
         // runtime var. Production widget sitekey 0x4AAAAAAEAmHJj54x5mc02v
-        // (1Password: "lmgroktfy Turnstile (production)").
+        // (1Password item ktdjsjjbkxcnrhbom3yfu3hr74, CF Turnstile - lmgroktfy (production)).
       },
       "ratelimits": [
         {

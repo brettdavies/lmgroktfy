@@ -22,16 +22,17 @@ prerendered HTML and the `_headers` file (HSTS is emitted only when `CLOUDFLARE_
 
 Each Worker holds two secrets, set with `wrangler secret put <NAME> --env <env>`:
 
-| Secret                 | 1Password item                     | Field     |
-| ---------------------- | ---------------------------------- | --------- |
-| `API_KEY`              | `LM Grok TFY`                      | `API Key` |
-| `TURNSTILE_SECRET_KEY` | `lmgroktfy Turnstile (production)` | `secret`  |
+| Secret                 | 1Password item                                                       | Field     |
+| ---------------------- | -------------------------------------------------------------------- | --------- |
+| `API_KEY`              | `LM Grok TFY`                                                        | `API Key` |
+| `TURNSTILE_SECRET_KEY` | `ktdjsjjbkxcnrhbom3yfu3hr74` (CF Turnstile - lmgroktfy (production)) | `secret`  |
 
 Pipe the value straight from 1Password into `wrangler` so it never lands on a shell argv or in the environment:
 
 ```bash
 op read "op://secrets-dev/LM Grok TFY/API Key" | bunx wrangler secret put API_KEY --env production
-op read "op://secrets-dev/lmgroktfy Turnstile (production)/secret" | bunx wrangler secret put TURNSTILE_SECRET_KEY --env production
+# CF Turnstile - lmgroktfy (production)
+op read "op://secrets-dev/ktdjsjjbkxcnrhbom3yfu3hr74/secret" | bunx wrangler secret put TURNSTILE_SECRET_KEY --env production
 ```
 
 `API_KEY` and `TURNSTILE_SECRET_KEY` are a matched pair with the values baked at build time: the production site key is
