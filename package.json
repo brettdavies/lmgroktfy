@@ -30,7 +30,7 @@
     "@biomejs/biome": "^1.9.0",
     "@cloudflare/workers-types": "^4.20260702.1",
     "@types/bun": "latest",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "0.8.1",
     "typescript": "^5.7.0",
