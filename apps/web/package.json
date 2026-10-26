@@ -17,14 +17,14 @@
     "@lmgroktfy/shared": "workspace:*"
   },
   "devDependencies": {
-    "@astrojs/check": "0.9.10",
-    "@astrojs/cloudflare": "14.3.4",
+    "@astrojs/check": "0.9.11",
+    "@astrojs/cloudflare": "14.4.0",
     "@playwright/test": "1.61.1",
     "@tailwindcss/vite": "4.3.3",
-    "astro": "7.3.6",
-    "daisyui": "5.7.47",
+    "astro": "7.4.0",
+    "daisyui": "5.7.50",
     "tailwindcss": "4.3.3",
     "typescript": "^5.7.0",
-    "vite": "8.3.3"
+    "vite": "8.3.4"
   }
 }
