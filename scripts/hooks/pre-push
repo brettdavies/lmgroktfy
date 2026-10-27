@@ -35,31 +35,37 @@ fail() {
   exit 1
 }
 
-# Git writes one line per pushed ref on stdin,
-# `<local ref> <local sha> <remote ref> <remote sha>`, with an all-zero local
-# sha for a delete. A push that only deletes delivers no commit, so none of the
-# checks below has anything to verify. Git closes stdin once the lines are
-# written, but a wrapper can hold it open, so each read is bounded. A terminal
-# (the hook run by hand), no ref lines, or a timeout runs every check.
-PRE_PUSH_STDIN_TIMEOUT="${PRE_PUSH_STDIN_TIMEOUT:-5}"
-
+# push_only_deletes: true when every ref line git hands pre-push on stdin,
+# `<local ref> <local sha> <remote ref> <remote sha>`, deletes a remote ref.
+# A delete carries an all-zero local sha (40 zeros, or 64 in a SHA-256
+# repository) and delivers no commit for any check to read.
+#
+# False, so the checks run, when stdin is a terminal (the hook run by hand),
+# when it carries no ref lines, and when it stays open for
+# HOOK_STDIN_WAIT_SECONDS (default 5) with no next line. Git writes its lines
+# and closes stdin at once, so a real push never waits.
+#
+# The same function github-repo-setup's hooks library ships, inline because
+# this hook sources no library.
 push_only_deletes() {
-  local line local_sha status saw_delete=false saw_content=false
+  local wait_s="${HOOK_STDIN_WAIT_SECONDS:-5}" line local_ref local_sha rc deletes=0 others=0
+  HOOK_PUSH_REFS=''
   [ -t 0 ] && return 1
-  while true; do
-    status=0
-    IFS= read -r -t "$PRE_PUSH_STDIN_TIMEOUT" line || status=$?
-    # read exits above 128 when it times out.
-    [ "$status" -gt 128 ] && return 1
-    read -r _ local_sha _ <<<"$line"
-    if [[ $local_sha =~ ^0+$ ]]; then
-      saw_delete=true
-    elif [ -n "$local_sha" ]; then
-      saw_content=true
+  while :; do
+    rc=0
+    IFS= read -r -t "$wait_s" line || rc=$?
+    [ "$rc" -eq 0 ] || break
+    HOOK_PUSH_REFS+="$line"$'\n'
+    read -r local_ref local_sha _ <<<"$line"
+    [ -n "$local_ref" ] || continue
+    if [[ "$local_sha" =~ ^0+$ ]]; then
+      deletes=$((deletes + 1))
+    else
+      others=$((others + 1))
     fi
-    [ "$status" -eq 0 ] || break
   done
-  [ "$saw_delete" = true ] && [ "$saw_content" = false ]
+  # read returns above 128 on a timeout and 1 at end of input.
+  [ "$rc" -le 128 ] && [ "$deletes" -gt 0 ] && [ "$others" -eq 0 ]
 }
 
 if push_only_deletes; then
