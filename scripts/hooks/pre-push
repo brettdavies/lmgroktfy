@@ -19,7 +19,8 @@
 # skip-with-hint when absent, so the hook never blocks a push on an
 # under-provisioned machine — but every skip echoes what it skipped and why.
 #
-# Exit codes: 0 = all pass, 1 = failure.
+# Exit codes: 0 = all pass or nothing to check (the push only deletes),
+# 1 = failure.
 # Requires bash >= 4.4 (mapfile).
 set -euo pipefail
 
@@ -33,6 +34,38 @@ fail() {
   echo -e "  ${RED}✗${RESET} $1"
   exit 1
 }
+
+# Git writes one line per pushed ref on stdin,
+# `<local ref> <local sha> <remote ref> <remote sha>`, with an all-zero local
+# sha for a delete. A push that only deletes delivers no commit, so none of the
+# checks below has anything to verify. Git closes stdin once the lines are
+# written, but a wrapper can hold it open, so each read is bounded. A terminal
+# (the hook run by hand), no ref lines, or a timeout runs every check.
+PRE_PUSH_STDIN_TIMEOUT="${PRE_PUSH_STDIN_TIMEOUT:-5}"
+
+push_only_deletes() {
+  local line local_sha status saw_delete=false saw_content=false
+  [ -t 0 ] && return 1
+  while true; do
+    status=0
+    IFS= read -r -t "$PRE_PUSH_STDIN_TIMEOUT" line || status=$?
+    # read exits above 128 when it times out.
+    [ "$status" -gt 128 ] && return 1
+    read -r _ local_sha _ <<<"$line"
+    if [[ $local_sha =~ ^0+$ ]]; then
+      saw_delete=true
+    elif [ -n "$local_sha" ]; then
+      saw_content=true
+    fi
+    [ "$status" -eq 0 ] || break
+  done
+  [ "$saw_delete" = true ] && [ "$saw_content" = false ]
+}
+
+if push_only_deletes; then
+  echo "Nothing to check: the push only deletes."
+  exit 0
+fi
 
 echo -e "${BOLD}Running local CI checks...${RESET}"
 
