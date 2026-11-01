@@ -73,14 +73,16 @@ Security PRs, hotfixes, and config edits land on `main` first. The release branc
 `dev`'s changes, so anything `main` holds that `dev` never received is reverted by the release or collides with it, and
 Dependabot raises the same fix again.
 
-- [ ] The previous release's bookkeeping (`package.json` version, `CHANGELOG.md` section) is on `dev` (gate 0 fails
-      when it never reached `dev`; run `scripts/sync-dev-after-release.sh v<previous>` and rerun).
+- [ ] The previous release's bookkeeping (`package.json` version, `CHANGELOG.md` section) is on `dev` (gate 0 fails when
+  it never reached `dev`; run `scripts/sync-dev-after-release.sh v<previous>` and rerun).
 - [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
-      `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
-- [ ] `.github/` is identical on both branches (gate 2). A difference either way is a config change that only reached
-      one branch; a `dev`-only change (a Bun pin bump, a Dependabot edit) ships with this release and clears on merge.
+  `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
+- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2). `.github/` reaches `main` through the release,
+  so config that has reached `dev` and not `main` (a Bun pin bump, a Dependabot edit) is what this release delivers, and
+  the gate counts it. The gate fails on the other direction, where `main` holds workflow or ruleset config `dev` never
+  received, and names each path as `missing` or `differs`.
 - [ ] No `bun.lock` package resolves newer on `main` than on `dev` (gate 3). The one benign case is a version still
-      inside Bun's release-age window when the advisory is already patched at `dev`'s version.
+  inside Bun's release-age window when the advisory is already patched at `dev`'s version.
 - [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
 
 ### Route and agent-surface contract
@@ -107,8 +109,8 @@ staging first if it hasn't already been deployed (`bun run deploy:staging`).
   locale's `index.md` twin all return `200` with the expected content type.
 - [ ] Manual real-challenge check: in a browser at `https://dev.lmgroktfy.com`, solve the live Turnstile challenge,
   submit a question, confirm an answer renders. Cannot be automated: a managed challenge has no headless solve path.
-- [ ] Second identical question on staging serves the cached answer (KV `ANSWER_CACHE` hit). Already asserted by `bun
-  run test:e2e`; re-confirm manually if the cache layer changed this release.
+- [ ] Second identical question on staging serves the cached answer (KV `ANSWER_CACHE` hit). Already asserted by
+  `bun run test:e2e`; re-confirm manually if the cache layer changed this release.
 - [ ] Security headers present with no HSTS on staging (`CLOUDFLARE_ENV=staging` never emits it):
 
   ```bash
@@ -127,8 +129,9 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 - [ ] Version bumped to the new tag value in the root `package.json` (`release.yml`'s integrity gate enforces this;
   catch early).
 - [ ] `bun.lock` regenerated (`bun install`), committed.
-- [ ] Every PR merged since `$LAST_TAG` has a non-empty `## Changelog` section. Spot-check via `gh pr list --base dev
-  --state merged --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"` then `gh pr view <num> --json body`.
+- [ ] Every PR merged since `$LAST_TAG` has a non-empty `## Changelog` section. Spot-check via
+  `gh pr list --base dev --state merged --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"` then
+  `gh pr view <num> --json body`.
 - [ ] Bun toolchain pin (`bun-version: 1.4.0` in `.github/workflows/test.yml` and `canary.yml`) last bumped ≥7 days ago
   (supply-chain quarantine). If a bump landed inside the window, hold or revert it before tagging.
 - [ ] No advisory this release should fix: `bun audit` reads every package in `bun.lock`, and open Dependabot alerts
@@ -157,8 +160,8 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 
 Moved to [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) because tagging happens **after** the release-branch cut
 and PR-to-main merge, so verification of the tag-triggered pipeline (`release.yml` → GitHub Release) and the manual
-production cutover are post-flight, not pre-flight. Run `scripts/release/postflight.sh all` immediately after `git push
-origin vX.Y.Z`.
+production cutover are post-flight, not pre-flight. Run `scripts/release/postflight.sh all` immediately after
+`git push origin vX.Y.Z`.
 
 ## Related docs
 
