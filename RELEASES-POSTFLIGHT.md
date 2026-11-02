@@ -1,8 +1,8 @@
 # Post-release verification: `lmgroktfy`
 
-Operational post-flight checklist. Runs **after** the `release/v<version> → main` PR merges and you push the tag (`git
-push origin vX.Y.Z`) per [`RELEASES.md` § Tagging and publishing](./RELEASES.md#tagging-and-publishing). Verifies that
-`release.yml` landed cleanly and that the GitHub Release is the record it should be. Production deployment is a
+Operational post-flight checklist. Runs **after** the `release/v<version> → main` PR merges and you push the tag
+(`git push origin vX.Y.Z`) per [`RELEASES.md` § Tagging and publishing](./RELEASES.md#tagging-and-publishing). Verifies
+that `release.yml` landed cleanly and that the GitHub Release is the record it should be. Production deployment is a
 separate, human-gated step covered in [§ Production cutover](#production-cutover-manual-human-gated) below; it is not
 part of the automated tag-triggered pipeline.
 
@@ -19,19 +19,19 @@ scripts/release/postflight.sh --env prod surface-smoke    # only after bun run d
 
 `scripts/release/postflight.sh` is vendored verbatim from the github-repo-setup template and covers the automatable
 post-tag gates: `release.yml`'s conclusion, the GitHub Release's state and `releases/latest`, the `main → dev` backport
-check, and an optional surface-smoke against a deployed env. The template also carries Homebrew-tap, finalize, crates.io,
-and workspace-tag gates for Rust CLIs. lmgroktfy has no Homebrew tap and no package registry. `crates` and `tags` SKIP
-here (no `Cargo.toml`), and so does `finalize` (no `finalize-release.yml` run). `tap` does not: it matches runs on the
-shared `brettdavies/homebrew-tap` by name and start time only, so once any other CLI's formula bump runs after this
-release, `tap` passes on that run. A `tap` pass here always describes another repository's release; ignore it.
+check, and an optional surface-smoke against a deployed env. The template also carries Homebrew-tap, finalize,
+crates.io, and workspace-tag gates for Rust CLIs. lmgroktfy has no Homebrew tap and no package registry. `crates` and
+`tags` SKIP here (no `Cargo.toml`), and so does `finalize` (no `finalize-release.yml` run). `tap` does not: it matches
+runs on the shared `brettdavies/homebrew-tap` by name and start time only, so once any other CLI's formula bump runs
+after this release, `tap` passes on that run. A `tap` pass here always describes another repository's release; ignore
+it.
 
 **`--env staging|prod` selects which deployed URL `surface-smoke` targets, and whether `backport` runs.** The
 release-pipeline gates are single-environment (they check `main`, the tag, and the Release once); `backport` is
-prod-only and SKIPs under `--env staging`. `--env staging`
-runs any time staging needs re-verification (typically right before cutting `release/*`, per `RELEASES-PREFLIGHT.md`).
-`--env prod` runs only after a human has actually executed `bun run deploy:prod`. The release/* → main merge does
-**not** trigger a production deploy, so running `--env prod` before that manual step just confirms the previous
-production build is still healthy, not that this release shipped.
+prod-only and SKIPs under `--env staging`. `--env staging` runs any time staging needs re-verification (typically right
+before cutting `release/*`, per `RELEASES-PREFLIGHT.md`). `--env prod` runs only after a human has actually executed
+`bun run deploy:prod`. The release/* → main merge does **not** trigger a production deploy, so running `--env prod`
+before that manual step just confirms the previous production build is still healthy, not that this release shipped.
 
 Sub-commands let you re-run one verification in isolation:
 
@@ -64,12 +64,13 @@ Flags:
 
 Run immediately after the tag push triggers `release.yml`.
 
-- [ ] **`release.yml` green end-to-end.** `gh run watch <id> --exit-status` then verify with `gh run view <id> --json
-  conclusion --jq .conclusion` because the watcher exit code alone is not authoritative (a completed watcher is not a
-  green watcher). Runs the integrity gate (tag format, reachable from `main`, matches `package.json` version), then
-  creates the GitHub Release. Run `scripts/release/postflight.sh release` for the automated check.
-- [ ] **GitHub Release exists, is published (not draft), and is latest.** `gh api
-  repos/<owner>/<repo>/releases/tags/vX.Y.Z --jq '{draft, tag_name}'`, expect `draft: false`. Single-channel:
+- [ ] **`release.yml` green end-to-end.** `gh run watch <id> --exit-status` then verify with
+  `gh run view <id> --json conclusion --jq .conclusion` because the watcher exit code alone is not authoritative (a
+  completed watcher is not a green watcher). Runs the integrity gate (tag format, reachable from `main`, matches
+  `package.json` version), then creates the GitHub Release. Run `scripts/release/postflight.sh release` for the
+  automated check.
+- [ ] **GitHub Release exists, is published (not draft), and is latest.**
+  `gh api repos/<owner>/<repo>/releases/tags/vX.Y.Z --jq '{draft, tag_name}'`, expect `draft: false`. Single-channel:
   `release.yml` publishes the Release directly, so there is no `make_latest: false → true` flip to wait for and
   `releases/latest` resolves to the tag at once. Run `scripts/release/postflight.sh make-latest` for the automated
   check.
@@ -78,9 +79,10 @@ Run immediately after the tag push triggers `release.yml`.
 - [ ] **Last-good identifier recorded.** Before `bun run deploy:prod`, note the active production Version ID
   (`bunx wrangler deployments list --env production`) somewhere reachable under incident pressure, so a rollback is a
   single command. See [`RELEASES.md` § Rollback](./RELEASES.md#rollback).
-- [ ] **Rollback path confirmed.** If this release is bad, roll back at the Worker first (`bunx wrangler rollback --env
-  production`, or `bunx wrangler versions deploy <VERSION_ID> --env production`), then land a `fix` or `revert` through
-  the normal `dev` to `release/*` to `main` flow so `main` reconverges with what is live.
+- [ ] **Rollback path confirmed.** If this release is bad, roll back at the Worker first
+  (`bunx wrangler rollback --env production`, or `bunx wrangler versions deploy <VERSION_ID> --env production`), then
+  land a `fix` or `revert` through the normal `dev` to `release/*` to `main` flow so `main` reconverges with what is
+  live.
 - [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Bring the release-only
   changes (`CHANGELOG.md`, the root `package.json` version, and any edit made on the release branch) across to `dev` so
   the next release's `RELEASES-PREFLIGHT.md` drift and diff-B gates stay quiet. The script adopts the release-prep edits
@@ -94,6 +96,10 @@ Run immediately after the tag push triggers `release.yml`.
   scripts/sync-dev-after-release.sh v<X.Y.Z> --dry-run   # previews the sync; no branch, clean tree
   scripts/sync-dev-after-release.sh v<X.Y.Z>             # opens the PR against dev; merge once CI is green
   ```
+
+  When `dev` already holds the release, the dry run prints `no changes -- dev already in sync with v<X.Y.Z>` and the
+  script opens no PR, so `backport` SKIPs. That SKIP is accurate, not a missed step. v2.0.2 is such a release: `dev`
+  contains its release commit through a merge of `main`.
 
 - [ ] **Staging surface smoke.** `scripts/release/postflight.sh --env staging surface-smoke` (or the manual recipes in
   `RELEASES-PREFLIGHT.md` § Real-world smoke) against `https://dev.lmgroktfy.com`, to confirm staging still reflects a
@@ -109,8 +115,8 @@ operator runs it, following [`docs/runbooks/astro-cloudflare-cutover.md`](docs/r
 - [ ] `bun run deploy:prod` run.
 - [ ] Post-cutover verification in the runbook passes: `https://lmgroktfy.com/` returns `200` with the production
   Turnstile site key, tokenless `POST /api/grok` returns `403`, HSTS is present.
-- [ ] Manual real-challenge check against `https://lmgroktfy.com` and one canary run (`CANARY_XAI_API_KEY=... bun run
-  scripts/canary.ts`) as an end-to-end probe.
+- [ ] Manual real-challenge check against `https://lmgroktfy.com` and one canary run
+  (`CANARY_XAI_API_KEY=... bun run scripts/canary.ts`) as an end-to-end probe.
 - [ ] `scripts/release/postflight.sh --env prod surface-smoke` run against `https://lmgroktfy.com` once the cutover is
   live.
 
