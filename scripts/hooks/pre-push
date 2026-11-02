@@ -1,135 +1,139 @@
 #!/usr/bin/env bash
-# Local CI mirror — the whole-repo pre-push gate. Runs the same checks as
-# .github/workflows/test.yml (lint, typecheck, build, tests), so a push that
-# survives the hook passes CI and a push that fails it would have failed CI
-# anyway, just slower. This is the compensating control for CI running one
-# pull_request check per change; it reproduces CI's verdict before the network
-# round-trip and is the only remote-equivalent check for code that never opens
-# a PR. Its fast, staged-scoped companion is scripts/hooks/pre-commit.
+# Canonical version: 2026.11.02 (generic)
+#
+# Local CI mirror: the whole-repo pre-push gate. Runs the same checks as
+# .github/workflows/test.yml (lint, format, typecheck, build, unit and e2e
+# tests), so a push that survives the hook passes CI and a push that fails it
+# would have failed CI anyway, just slower. This is the compensating control
+# for CI running one pull_request check per change; it reproduces CI's verdict
+# before the network round-trip and is the only remote-equivalent check for
+# code that never opens a PR. Its fast, staged-file-scoped companion is
+# scripts/hooks/pre-commit.
+#
+# Every shared check comes from scripts/hooks/_lib.sh, which both hooks source.
+# The two hooks differ in scope, not in what a check means: pre-push passes the
+# tracked set, pre-commit passes the staged set.
 #
 # Activate per clone via: git config core.hooksPath scripts/hooks
-# core.hooksPath is machine-local git config: it does not travel with the clone
-# and is not enforced by cloning. An unset core.hooksPath is the most common
-# reason a tracked hook never fires. Run the command above once per fresh clone
-# (see README "Local hooks").
+# core.hooksPath is machine-local git config: it does NOT travel with the
+# clone and is not enforced by cloning. An unset core.hooksPath is the most
+# common reason a tracked hook never fires. Run the command above once per
+# fresh clone (see README "Local hooks").
 #
-# Assumes dependencies are installed (bun install). The lint/typecheck/build/
-# test steps do not skip: their tools ship with the repo toolchain, and a
-# missing one means the toolchain itself is broken. actionlint and shellcheck
-# skip-with-hint when absent, so the hook never blocks a push on an
-# under-provisioned machine — but every skip echoes what it skipped and why.
+# Assumes dependencies are installed (bun install). The lint/format/typecheck/
+# build/test steps do not skip: their tools ship with the repo toolchain, and a
+# missing one means the toolchain itself is broken. shellcheck, actionlint and
+# the concurrency check skip-with-hint when absent, so the hook never blocks a
+# push on an under-provisioned machine. The library announces every such skip,
+# and a skipped check never prints a pass line: a silent skip is
+# indistinguishable from a passing check.
 #
-# Exit codes: 0 = all pass or nothing to check (the push only deletes),
-# 1 = failure.
-# Requires bash >= 4.4 (mapfile).
-set -euo pipefail
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BOLD='\033[1m'
-RESET='\033[0m'
-
-pass() { echo -e "  ${GREEN}✓${RESET} $1"; }
-fail() {
-  echo -e "  ${RED}✗${RESET} $1"
-  exit 1
-}
-
-# push_only_deletes: true when every ref line git hands pre-push on stdin,
-# `<local ref> <local sha> <remote ref> <remote sha>`, deletes a remote ref.
-# A delete carries an all-zero local sha (40 zeros, or 64 in a SHA-256
-# repository) and delivers no commit for any check to read.
+# Failures aggregate. One run reports every failing step rather than stopping
+# at the first, so a push is fixed in one pass instead of one step at a time.
 #
-# False, so the checks run, when stdin is a terminal (the hook run by hand),
-# when it carries no ref lines, and when it stays open for
-# HOOK_STDIN_WAIT_SECONDS (default 5) with no next line. Git writes its lines
-# and closes stdin at once, so a real push never waits.
+# Exit codes: 0 = all pass or nothing to check (the push only deletes, or
+# updates no ref), 1 = failure
 #
-# The same function github-repo-setup's hooks library ships, inline because
-# this hook sources no library.
-push_only_deletes() {
-  local wait_s="${HOOK_STDIN_WAIT_SECONDS:-5}" line local_ref local_sha rc deletes=0 others=0
-  HOOK_PUSH_REFS=''
-  [ -t 0 ] && return 1
-  while :; do
-    rc=0
-    IFS= read -r -t "$wait_s" line || rc=$?
-    # At end of input read returns 1 but still fills line with a last line
-    # that has no newline, which counts like any other.
-    [ "$rc" -eq 0 ] || { [ "$rc" -le 128 ] && [ -n "$line" ]; } || break
-    HOOK_PUSH_REFS+="$line"$'\n'
-    read -r local_ref local_sha _ <<<"$line"
-    [ -n "$local_ref" ] || continue
-    if [[ "$local_sha" =~ ^0+$ ]]; then
-      deletes=$((deletes + 1))
-    else
-      others=$((others + 1))
-    fi
+# Requires bash >= 4.4 (mapfile, and empty-array expansion under `set -u`). The
+# guard re-execs under Homebrew's bash when `#!/usr/bin/env bash` found an older
+# one, such as the macOS /bin/bash 3.2, and otherwise stops with the install hint.
+if ((BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 4))); then
+  for b in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    [ -x "$b" ] && exec "$b" "$0" "$@"
   done
-  # read returns above 128 on a timeout and 1 at end of input.
-  [ "$rc" -le 128 ] && [ "$deletes" -gt 0 ] && [ "$others" -eq 0 ]
-}
+  echo "ERROR: needs bash >= 4.4 (running $BASH_VERSION); install it with: brew install bash" >&2
+  exit 1
+fi
+
+# A linked worktree can find core.hooksPath set to the main checkout's
+# absolute path (worktree tooling writes it), and git then runs the main
+# checkout's copy of this hook with the worktree as its working directory.
+# Hand off to the copy that worktree has checked out, so a push or commit is
+# gated by the hook its own branch carries.
+hook_self_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+hook_worktree_root=$(pwd -P)
+hook_own_copy="$hook_worktree_root/scripts/hooks/$(basename "${BASH_SOURCE[0]}")"
+if [[ "$hook_worktree_root" != "$hook_self_root" && -x "$hook_own_copy" ]]; then
+  exec "$hook_own_copy" "$@"
+fi
+
+# From a linked worktree git exports GIT_DIR, which sends a tool's git calls in
+# any directory to this repository. Pre-push has no temporary index, and
+# discovery from the hook's cwd (the worktree root) finds the same repository.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY \
+  GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX GIT_NAMESPACE
+
+set -uo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root" || exit 1
+# shellcheck source=scripts/hooks/_lib.sh
+. ./scripts/hooks/_lib.sh || exit 1
 
 if push_only_deletes; then
   echo "Nothing to check: the push only deletes."
   exit 0
 fi
 
-echo -e "${BOLD}Running local CI checks...${RESET}"
+# A real push passes the remote's name and URL. With no ref lines after them,
+# no ref would update, so there is nothing to check. A hand run passes neither
+# and checks everything.
+if [ "$#" -ge 2 ] && [ -z "${HOOK_PUSH_REFS:-}" ]; then
+  echo "pre-push: nothing to push"
+  exit 0
+fi
 
-command -v bun >/dev/null 2>&1 || fail "bun not installed (https://bun.sh)"
+fail=0
+
+banner "Running local CI checks..."
+
+have bun || {
+  step_failed "bun not installed (https://bun.sh)"
+  exit 1
+}
 pass "bun ($(bun --version))"
 
-# 1. Lint (Biome). CI mirror: test.yml "Lint" step (bun run lint).
-bun run lint || fail "bun run lint"
-pass "lint"
+# Steps 1-6 stay serial: build writes the dist the e2e harness serves, and the
+# suites contend for CPU, so running them together only interleaves output.
+
+# 1. Lint (Biome). CI mirror: test.yml "Lint" step.
+step "lint" "bun run lint" bun run lint || fail=1
 
 # 2. Format check (Prettier, incl. .astro via prettier-plugin-astro). apps/web
 # is excluded from Biome, so Prettier owns its formatting. CI mirror: test.yml
 # "Format check" step.
-bun run format:check || fail "bun run format:check"
-pass "format"
+step "format" "bun run format:check" bun run format:check || fail=1
 
 # 3. Type check: tsc over packages/shared, astro check over apps/web. CI mirror:
 # test.yml "Type check" step.
-bun run typecheck || fail "bun run typecheck"
-pass "typecheck"
+step "typecheck" "bun run typecheck" bun run typecheck || fail=1
 
 # 4. Build shared + the Astro app. CI mirror: test.yml "Build" step.
-bun run build || fail "bun run build"
-pass "build"
+step "build" "bun run build" bun run build || fail=1
 
 # 5. Unit tests (packages + app). CI mirror: test.yml "Unit tests" step.
-bun run test:all || fail "bun run test:all"
-pass "test"
+step "test" "bun run test:all" bun run test:all || fail=1
 
 # 6. End-to-end (Playwright). CI mirror: test.yml "End-to-end tests" step. The
 # build above produced the dist the harness serves; browsers are system-provided
 # (never run `playwright install` locally).
-bun run test:e2e || fail "bun run test:e2e"
-pass "e2e"
+step "e2e" "bun run test:e2e" bun run test:e2e || fail=1
 
-# 7. Workflow lint — actionlint over .github/workflows. Skip-with-hint.
-if command -v actionlint >/dev/null 2>&1; then
-  actionlint || fail "actionlint"
-  pass "actionlint"
-else
-  echo "  - actionlint (skipped: install via \`brew install actionlint\`)"
-fi
+# Steps 7 and 8 take no lock and only read files, so they run together and the
+# slowest sets their wall-clock.
 
-# 8. Shell lint — shellcheck over tracked shell scripts and the hooks
-# themselves. Severity "warning" catches real bugs while ignoring style noise.
-if command -v shellcheck >/dev/null 2>&1; then
-  mapfile -t shell_files < <({
-    git ls-files '*.sh' 2>/dev/null
-    git ls-files 'scripts/hooks/*' 2>/dev/null
-  } | sort -u)
-  if [ ${#shell_files[@]} -gt 0 ]; then
-    shellcheck --severity=warning "${shell_files[@]}" || fail "shellcheck --severity=warning"
-  fi
-  pass "shellcheck"
-else
-  echo "  - shellcheck (skipped: install via \`brew install shellcheck\`)"
-fi
+# 7. Shell correctness over every tracked script, the hooks included.
+step_bg "shellcheck" "shellcheck --severity=warning" check_shell_all
 
-echo -e "${BOLD}${GREEN}All checks passed.${RESET}"
+# 8. Workflow lint over every tracked workflow file.
+step_bg "actionlint" "actionlint" check_actionlint_all
+step_bg "concurrency namespacing" "scripts/check-workflow-concurrency.sh" check_workflow_concurrency_all
+
+step_wait || fail=1
+
+[ "$fail" -eq 0 ] || {
+  echo "pre-push checks failed (see README \"Local hooks\")." >&2
+  exit 1
+}
+
+banner "All checks passed."

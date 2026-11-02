@@ -93,9 +93,11 @@ merges the merge commit's tree equals the PR head CI already verified.
 ## Local hooks
 
 Hooks live at `scripts/hooks/`, activated per clone with `git config core.hooksPath scripts/hooks` (machine-local; does
-not travel with the checkout). `pre-commit` runs fast staged-scoped checks (Biome, Prettier incl. `.astro`, actionlint,
-markdownlint); `pre-push` mirrors CI (`lint`, `format:check`, `typecheck`, `build`, `test:all`, Playwright e2e,
-actionlint, shellcheck). Keep the pre-push checks in lockstep with `test.yml`.
+not travel with the checkout). Both source `scripts/hooks/_lib.sh`, vendored from the github-repo-setup template.
+`pre-commit` runs fast staged-scoped checks (Biome, Prettier incl. `.astro`, actionlint, workflow concurrency
+namespacing, markdownlint, which skips while `.markdownlint-cli2.yaml` sets `fix: true`); `pre-push` mirrors CI (`lint`,
+`format:check`, `typecheck`, `build`, `test:all`, Playwright e2e) plus actionlint, shellcheck, and the concurrency check.
+Keep the pre-push checks in lockstep with `test.yml`.
 
 ## Branch and release model
 
