@@ -129,6 +129,21 @@ Driven by `scripts/release/preflight.sh surface-smoke` against `https://dev.lmgr
 staging first if it hasn't already been deployed (`bun run deploy:staging`): an unreachable staging Worker fails the
 gate.
 
+Cloudflare Access gates staging: a request without credentials gets `302` to the Access login, which the transport gate
+fails, and every other gate reads that redirect too. `surface-smoke.sh` sends the staging service token's
+`CF-Access-Client-Id` and `CF-Access-Client-Secret` headers when `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` are
+both set, through a mode-600 curl config rather than argv. Set them for the one command, so the values never stay in the
+shell:
+
+```bash
+# <item-uuid>: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
+CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/<item-uuid>/client_id")" \
+  CF_ACCESS_CLIENT_SECRET="$(op read "op://secrets-dev/<item-uuid>/client_secret")" \
+  scripts/release/preflight.sh surface-smoke
+```
+
+A browser passes Access by signing in. The manual `curl` checks below need the same two headers.
+
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
   baked in.
 - [ ] Tokenless `POST https://dev.lmgroktfy.com/api/grok` returns `403` (fail-closed; matches the production contract).

@@ -103,7 +103,9 @@ Run immediately after the tag push triggers `release.yml`.
 
 - [ ] **Staging surface smoke.** `scripts/release/postflight.sh --env staging surface-smoke` (or the manual recipes in
   `RELEASES-PREFLIGHT.md` § Real-world smoke) against `https://dev.lmgroktfy.com`, to confirm staging still reflects a
-  healthy build. This does not depend on today's tag having deployed anywhere; it is a standing health check.
+  healthy build. This does not depend on today's tag having deployed anywhere; it is a standing health check. Staging
+  sits behind Cloudflare Access, so set `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` for the command as that
+  section shows.
 
 ## Production cutover (manual, human-gated)
 

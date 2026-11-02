@@ -18,8 +18,13 @@
 #                          via _lib.sh's delegate_to_subscript helper. Without
 #                          this flag, prints a colored summary line instead.
 #
-# Both environments are public; no auth headers are staged. Turnstile gates
-# POST /api/grok itself (see gate_live), not the transport.
+# Auth (env-driven):
+#   Cloudflare Access gates staging (dev.lmgroktfy.com); production is public.
+#   CF_ACCESS_CLIENT_ID + CF_ACCESS_CLIENT_SECRET, when both are set, attach
+#   the Access service-token headers to every request. Unset, no headers are
+#   sent, and a gated deployment answers its Access login redirect, which the
+#   transport gate fails. Turnstile gates POST /api/grok itself (see
+#   gate_live), not the transport.
 #
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
@@ -70,9 +75,17 @@ done
 }
 require_bin curl
 
-# Both lmgroktfy environments are public (dev.lmgroktfy.com, lmgroktfy.com);
-# no CF Access or bearer auth gates the transport.
+# The headers go through a mode-600 curl config file, so the secret never
+# reaches curl's argv.
 CURL_AUTH=()
+if [[ -n "${CF_ACCESS_CLIENT_ID:-}" && -n "${CF_ACCESS_CLIENT_SECRET:-}" ]]; then
+  CURL_CONFIG=$(mktemp)
+  chmod 600 "$CURL_CONFIG"
+  trap 'rm -f "$CURL_CONFIG"' EXIT
+  printf -- '-H "CF-Access-Client-Id: %s"\n' "$CF_ACCESS_CLIENT_ID" >>"$CURL_CONFIG"
+  printf -- '-H "CF-Access-Client-Secret: %s"\n' "$CF_ACCESS_CLIENT_SECRET" >>"$CURL_CONFIG"
+  CURL_AUTH=(-K "$CURL_CONFIG")
+fi
 
 # Gate: transport reachable --------------------------------------------------
 #
