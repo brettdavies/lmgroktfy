@@ -20,10 +20,10 @@ scripts/release/postflight.sh --env prod surface-smoke    # only after bun run d
 `scripts/release/postflight.sh` is vendored verbatim from the github-repo-setup template and covers the automatable
 post-tag gates: `release.yml`'s conclusion, the GitHub Release's state and `releases/latest`, the `main → dev` backport
 check, and an optional surface-smoke against a deployed env. The template also carries Homebrew-tap, finalize, crates.io,
-and workspace-tag gates for Rust CLIs. lmgroktfy has no Homebrew tap and no package registry, so those gates SKIP here:
-`crates` and `tags` find no `Cargo.toml`, `finalize` finds no `finalize-release.yml` run, and `tap` finds no
-`update-formula` dispatch. `tap` matches runs on the shared `brettdavies/homebrew-tap` by name and start time only, so a
-`tap` line that names a run belongs to another repository's release, not to this one.
+and workspace-tag gates for Rust CLIs. lmgroktfy has no Homebrew tap and no package registry. `crates` and `tags` SKIP
+here (no `Cargo.toml`), and so does `finalize` (no `finalize-release.yml` run). `tap` does not: it matches runs on the
+shared `brettdavies/homebrew-tap` by name and start time only, so once any other CLI's formula bump runs after this
+release, `tap` passes on that run. A `tap` pass here always describes another repository's release; ignore it.
 
 **`--env staging|prod` selects which deployed URL `surface-smoke` targets, and whether `backport` runs.** The
 release-pipeline gates are single-environment (they check `main`, the tag, and the Release once); `backport` is
@@ -35,17 +35,17 @@ production build is still healthy, not that this release shipped.
 
 Sub-commands let you re-run one verification in isolation:
 
-| Sub-command     | What it checks                                                                                                          | Source of truth                           |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `release`       | `release.yml` on the tag push concluded `"success"`                                                                     | `gh run list`, `gh run view`              |
-| `tap`           | Homebrew-tap `update-formula` and `Publish formula` runs since `release.yml` started (SKIPs here: no Homebrew dispatch) | `gh run list -R brettdavies/homebrew-tap` |
-| `finalize`      | `finalize-release.yml` callback ran (SKIPs here: lmgroktfy has no finalize workflow)                                    | `gh run list`                             |
-| `make-latest`   | GitHub Release `vX.Y.Z` is published (not a draft, not a prerelease) and `releases/latest` resolves to it               | `gh release view`, `gh api`               |
-| `crates`        | crates.io shows the crate at the tag's version (SKIPs here: no `Cargo.toml`)                                            | `cargo search`                            |
-| `tags`          | every workspace member the release moved is tagged on the release commit (SKIPs here: no `Cargo.toml`)                  | `git tag`, `cargo metadata`               |
-| `backport`      | a merged PR to `dev` with the tag in its title (prod only; SKIPs under `--env staging`)                                 | `gh pr list --base dev --state merged`    |
-| `surface-smoke` | Delegates to `scripts/release/surface-smoke.sh` against the env's deployed URL                                          | `scripts/release/surface-smoke.sh`        |
-| `all`           | every above, in order; `surface-smoke` targets the `--env` URL (default `prod`) and SKIPs when it is unreachable        | all of the above                          |
+| Sub-command     | What it checks                                                                                                           | Source of truth                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| `release`       | `release.yml` on the tag push concluded `"success"`                                                                      | `gh run list`, `gh run view`              |
+| `tap`           | Homebrew-tap `update-formula` and `Publish formula` runs since `release.yml` started (a pass here is another repo's run) | `gh run list -R brettdavies/homebrew-tap` |
+| `finalize`      | `finalize-release.yml` callback ran (SKIPs here: lmgroktfy has no finalize workflow)                                     | `gh run list`                             |
+| `make-latest`   | GitHub Release `vX.Y.Z` is published (not a draft, not a prerelease) and `releases/latest` resolves to it                | `gh release view`, `gh api`               |
+| `crates`        | crates.io shows the crate at the tag's version (SKIPs here: no `Cargo.toml`)                                             | `cargo search`                            |
+| `tags`          | every workspace member the release moved is tagged on the release commit (SKIPs here: no `Cargo.toml`)                   | `git tag`, `cargo metadata`               |
+| `backport`      | a merged PR to `dev` with the tag in its title (prod only; SKIPs under `--env staging`)                                  | `gh pr list --base dev --state merged`    |
+| `surface-smoke` | Delegates to `scripts/release/surface-smoke.sh` against the env's deployed URL                                           | `scripts/release/surface-smoke.sh`        |
+| `all`           | every above, in order; `surface-smoke` targets the `--env` URL (default `prod`) and SKIPs when it is unreachable         | all of the above                          |
 
 Flags:
 
