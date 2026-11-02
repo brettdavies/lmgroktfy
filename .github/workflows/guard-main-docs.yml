@@ -1,12 +1,17 @@
-# Caller workflow for the centralized reusable guard-main-docs workflow.
+# Canonical version: 2026.11.01 (generic)
 #
-# Blocks engineering docs (docs/plans, and the other guarded prefixes the
-# reusable hardcodes) from being merged into main. Only needs pull-requests: read.
+# Source repo guard-main-docs wrapper that calls the fleet's reusable workflow.
+# Copy to .github/workflows/guard-main-docs.yml in repos with guarded docs.
 #
-# brettdavies/.github is first-party and owned by the same account as this repo,
-# so the reusable-workflow ref stays on @main rather than a SHA pin (the
-# supply-chain threat a SHA pin defends against does not apply when source and
-# consumer are both under the same control).
+# Blocks compound-engineering docs (plans, solutions, brainstorms, reviews)
+# from being merged into main. Only needs pull-requests: read.
+#
+# To guard more paths, add the `with: extra_paths:` line below. Its entries are
+# globs: `**/` spans any depth, `*` and `?` stay within one segment, a trailing
+# `/` guards the subtree, and a plain entry is a prefix or an exact path.
+# scripts/release/guarded-paths.sh reads this line, so keep it on one line in
+# single quotes.
+#
 name: Guard main from engineering docs
 
 on:
@@ -19,3 +24,5 @@ permissions:
 jobs:
   guard-docs:
     uses: brettdavies/.github/.github/workflows/guard-main-docs.yml@main
+    # with:
+    #   extra_paths: 'CONCEPTS.md,docs/designs/'
