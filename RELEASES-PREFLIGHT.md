@@ -28,18 +28,20 @@ scripts/release/preflight.sh all
 `scripts/release/preflight.sh` is project-authored: it wraps the commands below into gated, scriptable subcommands. The
 recipes in this checklist are the manual fallback and the contract each subcommand implements.
 
-| Sub-command     | What it checks                                                                                                                                                                                            | Source of truth                                            |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `drift`         | What `main` carries that `dev` never received (delegates to `scripts/release/drift.sh`)                                                                                                                   | `git log`, `.github/`, lockfiles on both branches          |
-| `surface`       | Commits + diff vs last tag, breaking markers                                                                                                                                                              | `git log`, `git diff`                                      |
-| `mechanics`     | `bun run lint`, `format:check`, `typecheck`, `build`, `test:all`, `test:e2e`, then version and `CHANGELOG.md` sanity, the guarded-path leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | `package.json` scripts, `scripts/release/guarded-paths.sh` |
-| `surface-smoke` | Delegates to `scripts/release/surface-smoke.sh` against the deployed staging URL                                                                                                                          | `scripts/release/surface-smoke.sh`                         |
-| `all`           | Every above, in order; `drift` runs first, since nothing else matters while `main` holds changes `dev` never received                                                                                     |                                                            |
+| Sub-command          | What it checks                                                                                                                                                                                            | Source of truth                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `drift`              | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, lockfile packages `main` resolves newer                                                                            | `scripts/release/drift.sh`                                 |
+| `surface`            | Commits since the last release reached `dev`, files changed since the last tag, breaking markers                                                                                                          | `git log`, `git diff`                                      |
+| `surface-smoke`      | Delegates to `scripts/release/surface-smoke.sh` against the deployed staging URL; staging unreachable fails the gate                                                                                      | `scripts/release/surface-smoke.sh`                         |
+| `changelog-sections` | No PR this release carries leaves its changelog entry to its title for want of a `## Changelog` section                                                                                                   | `generate-changelog.py --audit-sections`, `gh`             |
+| `mechanics`          | `bun run lint`, `format:check`, `typecheck`, `build`, `test:all`, `test:e2e`, then version and `CHANGELOG.md` sanity, the guarded-path leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | `package.json` scripts, `scripts/release/guarded-paths.sh` |
+| `all`                | Every above, in order; `drift` runs first, since nothing else matters while `main` holds changes `dev` never received                                                                                     |                                                            |
 
 Flags:
 
-- `--staging-url URL`: override `https://dev.lmgroktfy.com` for `surface-smoke`.
-- `--tag TAG`: override `LAST_TAG` resolution (default: `git tag --sort=-version:refname | head -n 1`).
+- `--staging-url URL`: override the staging URL for `surface-smoke` (default: `STAGING_URL_DEFAULT` in
+  `scripts/release/release.env`, `https://dev.lmgroktfy.com`).
+- `--tag TAG`: override `LAST_TAG` resolution (default: the newest `v[0-9]*` tag).
 
 Unlike a CLI repo, lmgroktfy's "real-world smoke" and its "surface smoke" are the same exercise: staging is a live
 Cloudflare Worker sitting behind the real Turnstile widget and the real xAI API, so hitting `surface-smoke` against it
@@ -52,14 +54,23 @@ Everything below assumes you know what's changing. Run this first.
 Driven by `scripts/release/preflight.sh surface`.
 
 ```bash
-LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
-git log "$LAST_TAG..dev" --oneline                              # commits going out
-git diff "$LAST_TAG..dev" --stat                                # file-level scope
-git log "$LAST_TAG..dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
+LAST_TAG=$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1)
+# The commit that synced the tag back into dev opens dev's window.
+SINCE=$(git log origin/dev --format='%H %s' \
+  | grep -E -m1 "^[0-9a-f]+ chore\(release\): (sync dev after|backport) ${LAST_TAG//./\\.}( |$)" | cut -d' ' -f1)
+git log "$SINCE..origin/dev" --oneline                          # commits going out
+git diff "$LAST_TAG" origin/dev --name-only \
+  | grep -Ev "$(scripts/release/guarded-paths.sh)"              # file-level scope: what ships
+git log "$SINCE..origin/dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conventional-Commits breaking markers, scoped or not
 ```
 
-On a repo with no tags yet, or whose lineage is squash-only so no tag is an ancestor of `dev`, the surface is
-`origin/main..origin/dev` instead of `$LAST_TAG..dev`; `preflight.sh surface` SKIPs the tag counts in that case.
+Every release squash-merges into `main`, so the tag shares no recent history with `dev`, and a log from the tag counts
+`dev`'s whole past. The window opens at the commit that synced the tag back into `dev`, whose subject reads
+`chore(release): sync dev after vX.Y.Z`. The file list compares trees, so it reads from the tag directly, minus the
+guarded set `dev` carries but never ships. In a repo whose tag is an ancestor of `dev`, the window is
+`$LAST_TAG..origin/dev`. With no tags yet, or no commit syncing the tag back, `preflight.sh surface` SKIPs, and the
+surface is `origin/main..origin/dev`. `generate-changelog.py`'s section, not this count, is the complete list of PRs the
+release carries.
 
 Every `!:` commit drives the major-version decision and gets a row in the release's `### Breaking changes` section.
 
@@ -73,17 +84,23 @@ Security PRs, hotfixes, and config edits land on `main` first. The release branc
 `dev`'s changes, so anything `main` holds that `dev` never received is reverted by the release or collides with it, and
 Dependabot raises the same fix again.
 
-- [ ] The previous release's bookkeeping (`package.json` version, `CHANGELOG.md` section) is on `dev` (gate 0 fails when
-  it never reached `dev`; run `scripts/sync-dev-after-release.sh v<previous>` and rerun).
+<!-- canonical:begin drift-gate -->
+
+- [ ] The previous release's own bookkeeping reached `dev` (gate 0: the version carriers and `CHANGELOG.md` as the
+  release left them). It fails when a backport never ran; run `scripts/sync-dev-after-release.sh v<previous>`, merge its
+  PR, and rerun.
 - [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
   `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
 - [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2). `.github/` reaches `main` through the release,
-  so config that has reached `dev` and not `main` (a Bun pin bump, a Dependabot edit) is what this release delivers, and
-  the gate counts it. The gate fails on the other direction, where `main` holds workflow or ruleset config `dev` never
-  received, and names each path as `missing` or `differs`.
-- [ ] No `bun.lock` package resolves newer on `main` than on `dev` (gate 3). The one benign case is a version still
-  inside Bun's release-age window when the advisory is already patched at `dev`'s version.
+  so config that has reached `dev` and not `main` is what this release delivers, and the gate counts it. The gate fails
+  on the other direction, where `main` holds workflow or ruleset config `dev` never received, and names each path as
+  `missing` or `differs`.
+- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3, which reads `package-lock.json`, `bun.lock`,
+  and `Cargo.lock`). The one benign case is a version still inside the local package manager's release-age window when
+  the advisory is already patched at `dev`'s version.
 - [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
+
+<!-- canonical:end drift-gate -->
 
 ### Route and agent-surface contract
 
@@ -100,7 +117,8 @@ lmgroktfy's public contract is the union of its rendered pages, the `/api/grok` 
 ### Real-world smoke (staging, live dependencies)
 
 Driven by `scripts/release/preflight.sh surface-smoke` against `https://dev.lmgroktfy.com`. Deploy the release branch to
-staging first if it hasn't already been deployed (`bun run deploy:staging`).
+staging first if it hasn't already been deployed (`bun run deploy:staging`): an unreachable staging Worker fails the
+gate.
 
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
   baked in.
@@ -129,9 +147,8 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 - [ ] Version bumped to the new tag value in the root `package.json` (`release.yml`'s integrity gate enforces this;
   catch early).
 - [ ] `bun.lock` regenerated (`bun install`), committed.
-- [ ] Every PR merged since `$LAST_TAG` has a non-empty `## Changelog` section. Spot-check via
-  `gh pr list --base dev --state merged --search "merged:>$(git log -1 --format=%aI $LAST_TAG)"` then
-  `gh pr view <num> --json body`.
+- [ ] Every PR this release carries offers a `## Changelog` section (`scripts/release/preflight.sh changelog-sections`
+  runs `scripts/generate-changelog.py --audit-sections`; a section left empty on purpose passes).
 - [ ] Bun toolchain pin (`bun-version: 1.4.0` in `.github/workflows/test.yml` and `canary.yml`) last bumped ≥7 days ago
   (supply-chain quarantine). If a bump landed inside the window, hold or revert it before tagging.
 - [ ] No advisory this release should fix: `bun audit` reads every package in `bun.lock`, and open Dependabot alerts

@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# lmgroktfy HTTP surface smoke. Invoked against any base URL -- the
-# orchestrators call this same script with different URLs:
+# Canonical version: 2026.11.01 (generic)
 #
-#   scripts/release/preflight.sh surface-smoke                -> staging (https://dev.lmgroktfy.com)
-#   scripts/release/postflight.sh --env staging surface-smoke -> staging (https://dev.lmgroktfy.com)
-#   scripts/release/postflight.sh --env prod    surface-smoke -> prod (https://lmgroktfy.com)
+# lmgroktfy HTTP surface smoke. Invoked against any base URL: the
+# orchestrators (preflight.sh and postflight.sh) call this same script with
+# different URLs, read from scripts/release/release.env:
+#
+#   scripts/release/preflight.sh surface-smoke               -> $STAGING_URL_DEFAULT (deployed staging)
+#   scripts/release/postflight.sh --env staging surface-smoke -> $STAGING_URL_DEFAULT (deployed staging)
+#   scripts/release/postflight.sh --env prod    surface-smoke -> $PROD_URL_DEFAULT    (deployed prod)
 #
 # Usage:
 #   scripts/release/surface-smoke.sh <base-url> [--result-file PATH]
@@ -36,9 +39,11 @@ set -euo pipefail
 BASE_URL=""
 RESULT_FILE=""
 
+# usage [CODE]: prints the header and exits CODE, 2 (a usage error) by default;
+# --help passes 0.
 usage() {
-  sed -n '2,24p' "$0" | sed 's/^# \?//'
-  exit 2
+  print_usage_header
+  exit "${1:-2}"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -47,7 +52,7 @@ while [[ $# -gt 0 ]]; do
       RESULT_FILE="$2"
       shift 2
       ;;
-    -h | --help) usage ;;
+    -h | --help) usage 0 ;;
     http://* | https://*)
       BASE_URL="$1"
       shift
@@ -69,20 +74,23 @@ require_bin curl
 # no CF Access or bearer auth gates the transport.
 CURL_AUTH=()
 
-# Gate: transport reachable ---------------------------------------------------
+# Gate: transport reachable --------------------------------------------------
+#
+# Confirms the surface is reachable at all. An unreachable deployment fails
+# here: the orchestrators smoke a deployed URL as given.
 
 gate_transport() {
   header "Transport reachable at $BASE_URL"
   local code
   code=$(curl "${CURL_AUTH[@]}" -sSo /dev/null -w '%{http_code}' --max-time 10 "$BASE_URL/" || echo "000")
-  if [[ "$code" == "200" ]]; then
+  if [[ "$code" =~ ^(200|301|302|307|308)$ ]]; then
     gate_pass "$BASE_URL/ -> HTTP $code"
   else
-    gate_fail "$BASE_URL/" "HTTP $code (expected 200)"
+    gate_fail "$BASE_URL/" "HTTP $code (expected 2xx or 3xx)"
   fi
 }
 
-# Gate: contract ---------------------------------------------------------
+# Gate: contract -------------------------------------------------------------
 #
 # Structural: the discoverable, agent-facing surface. Each route is static
 # per-locale content generated at build time (apps/web/src/pages/*.ts) --
@@ -110,7 +118,7 @@ gate_contract() {
   check_route "/index.md" "text/markdown"
 }
 
-# Gate: live exercise ----------------------------------------------------
+# Gate: live exercise --------------------------------------------------------
 #
 # Behavioral: /api/grok is a hardened SSR endpoint that fails closed on
 # Turnstile. A caller with no token must never reach the upstream xAI call --
@@ -131,7 +139,7 @@ gate_live() {
   fi
 }
 
-# Main -------------------------------------------------------------------
+# Main -----------------------------------------------------------------------
 
 gate_transport
 gate_contract

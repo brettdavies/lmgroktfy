@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Canonical version: 2026.11.01 (generic)
+#
 # Run release preflight gates against the current checkout.
 #
 # Usage:
@@ -7,22 +9,30 @@
 # Subcommands:
 #   drift          Branch drift: what main carries that dev never received (delegated to drift.sh)
 #   surface        Establish surface: commits + diff vs last tag, breaking markers
+#   surface-smoke  Delegates to scripts/release/surface-smoke.sh against the deployed staging URL
+#   changelog-sections
+#                  No PR this release carries leaves its changelog entry to its title for want
+#                  of a ## Changelog section (generate-changelog.py --audit-sections)
 #   mechanics      CI-mirror gates (install, lint, format, typecheck, build, tests) + version/CHANGELOG sanity,
 #                  guarded-path leak check, unguarded docs added to main, diff-B vs origin/dev
-#   surface-smoke  Delegates to scripts/release/surface-smoke.sh against the deployed staging URL
-#   all            Run drift, surface, mechanics, surface-smoke
+#   all            Run drift, surface, surface-smoke, changelog-sections, mechanics
 #
 # Post-tag verification (release.yml + GitHub Release) lives in
-# scripts/release/postflight.sh -- that runs AFTER the tag push, not before.
+# scripts/release/postflight.sh, that runs AFTER the tag push, not before.
 #
 # Flags:
-#   --staging-url URL   Override the staging URL for surface-smoke (default: https://dev.lmgroktfy.com)
-#   --tag TAG           Override LAST_TAG resolution (default: git tag --sort=-version:refname | head -n 1)
+#   --tag TAG           Override LAST_TAG resolution (default: the newest `v[0-9]*` tag)
+#   --staging-url URL   Run surface-smoke against this deployed URL (default: STAGING_URL_DEFAULT
+#                       from release.env)
+#
+# Environment:
+#   CHANGELOG_PR_BASE   Branch whose merged PRs changelog-sections reads (default: dev, or main
+#                       when origin/dev does not exist)
 #
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
 #   1 = one or more gates failed
-#   2 = setup error (missing dep, unreachable staging, etc.)
+#   2 = setup error (missing dep, etc.)
 #
 # Dependencies:
 #   - `bun`, `gh`, `git`, `curl`, `jaq` on PATH
@@ -30,7 +40,7 @@
 # lmgroktfy has no local-server smoke mode: Turnstile refuses to issue a
 # widget for localhost / *.workers.dev (see apps/web/wrangler.jsonc), so the
 # only meaningful pre-release smoke is against the already-deployed staging
-# Worker at https://dev.lmgroktfy.com (run `bun run deploy:staging` first).
+# Worker at STAGING_URL_DEFAULT (run `bun run deploy:staging` first).
 # surface-smoke.sh is the same script postflight.sh delegates to against
 # prod after the tag publishes; only the URL differs.
 
@@ -38,12 +48,79 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 readonly REPO_ROOT
-readonly STAGING_URL_DEFAULT="https://dev.lmgroktfy.com"
 
-# Shared output helpers, gate counters, dependency checks. Same _lib.sh as
-# postflight.sh and surface-smoke.sh.
+# Shared output helpers, gate counters, dependency checks, and release.env.
+# Same _lib.sh as postflight.sh and surface-smoke.sh.
 # shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
+
+# Gate: surface --------------------------------------------------------------
+#
+# Generic: confirms what's actually changing since the last release on the
+# binary's tag line. Counts feed the human's gut-check on release scope and the
+# breaking-marker tally drives the major-version decision.
+#
+# The window is read on the integration branch (origin/dev, or HEAD in a repo
+# without one). Every release squash-merges into main, so its tag shares no
+# recent history with dev, and a log from the tag counts dev's whole past. When
+# the tag is not an ancestor, the window opens at the commit that synced the tag
+# back into dev instead. A PR merged after the previous cut and before that
+# commit sits outside this window; generate-changelog.py reads those PRs too, so
+# its section, not this count, is the complete list.
+
+# The commit on REF whose subject syncs TAG back, the way generate-changelog.py
+# finds it: `chore(release): sync dev after <tag>`, or `backport <tag>` from
+# older backport scripts. Only the subject counts, because a later message can
+# quote it. Empty when no commit names the tag. awk reads the whole log rather
+# than exiting at the match: an early exit leaves git log writing into a closed
+# pipe, and under pipefail the SIGPIPE ends the script on any long history.
+release_backport_commit() {
+  git log --format='%H %s' "$1" 2>/dev/null | awk -v tag="$2" '
+    !found {
+      subject = substr($0, index($0, " ") + 1)
+      split("chore(release): sync dev after |chore(release): backport ", prefixes, "|")
+      for (i = 1; i <= 2; i++) {
+        lead = prefixes[i] tag
+        rest = substr(subject, length(lead) + 1)
+        if (index(subject, lead) == 1 && (rest == "" || substr(rest, 1, 1) == " ")) {
+          print $1
+          found = 1
+          break
+        }
+      }
+    }'
+}
+
+gate_surface() {
+  header "Establish surface"
+  local last_tag head_ref window anchor="" commits files breaking
+  last_tag="${LAST_TAG:-$(last_release_tag)}"
+  [[ -n "$last_tag" ]] || {
+    gate_skip "LAST_TAG" "no tags in repo yet (first release); surface is everything on the branch"
+    return
+  }
+  head_ref=origin/dev
+  git rev-parse --verify --quiet "$head_ref" >/dev/null 2>&1 || head_ref=HEAD
+  window="$last_tag..$head_ref"
+  if ! git merge-base --is-ancestor "$last_tag" "$head_ref" 2>/dev/null; then
+    anchor=$(release_backport_commit "$head_ref" "$last_tag")
+    if [[ -z "$anchor" ]]; then
+      gate_skip "LAST_TAG" \
+        "$last_tag is no ancestor of $head_ref and no commit there syncs it back; read the surface as origin/main..$head_ref"
+      return
+    fi
+    window="$anchor..$head_ref"
+  fi
+  # Files compare trees, so they read from the tag directly, minus the guarded
+  # set: dev carries engineering docs that never ship.
+  local guarded
+  guarded=$("$(dirname "$0")/guarded-paths.sh" 2>/dev/null) || guarded='^$'
+  commits=$(git log "$window" --oneline | wc -l)
+  files=$(git diff "$last_tag" "$head_ref" --name-only | { grep -Ev "$guarded" || true; } | wc -l)
+  # Scoped markers count too: `feat(api)!:` is breaking as much as `feat!:`.
+  breaking=$(git log "$window" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline | wc -l)
+  gate_pass "LAST_TAG = $last_tag  ($commits commits, $files files, $breaking breaking${anchor:+, counted from its backport ${anchor:0:12} on $head_ref})"
+}
 
 # Gate: drift (delegated to drift.sh) ----------------------------------------
 #
@@ -52,39 +129,94 @@ readonly STAGING_URL_DEFAULT="https://dev.lmgroktfy.com"
 # that dev never received is reverted by the release or collides with it.
 # drift.sh lists that set (commits since the last release whose changes dev
 # lacks, .github/ parity, and lockfile packages main resolves newer) and
-# fails while any exist. Run it before cutting the release branch.
+# fails while any exist. Run it before cutting the release branch. Repos
+# without a dev branch skip it.
 
 gate_drift() {
   local drift_script
   drift_script="$(dirname "$0")/drift.sh"
   [[ -x "$drift_script" ]] || return 0
   header "Branch drift (delegated to drift.sh)"
-  if ! git -C "$REPO_ROOT" rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
+  if ! git rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
     gate_skip "drift" "no origin/dev branch (single-branch repo)"
     return
   fi
   delegate_to_subscript "$drift_script"
 }
 
-# Gate: surface --------------------------------------------------------------
+# Gate: surface-smoke (delegation) -------------------------------------------
 #
-# Generic: confirms what's actually changing since the last tag. Counts feed
-# the human's gut-check on release scope and the breaking-marker tally drives
-# the major-version decision.
+# Against the deployed staging Worker; see the file header for why localhost
+# isn't a meaningful target here. The sub-script must accept --result-file PATH
+# per the contract in _lib.sh's delegate_to_subscript helper. Post-flight runs
+# the SAME script against the deployed env.
 
-gate_surface() {
-  header "Establish surface"
-  local last_tag commits files breaking
-  last_tag="${LAST_TAG:-$(git tag --sort=-version:refname | head -n 1)}"
-  [[ -n "$last_tag" ]] || {
-    gate_skip "LAST_TAG" "no tags in repo yet (first release); surface is everything on the branch"
+gate_surface_smoke() {
+  local surface_script
+  surface_script="$(dirname "$0")/surface-smoke.sh"
+  [[ -x "$surface_script" ]] || return 0
+  header "Surface smoke (delegated to surface-smoke.sh against staging)"
+  # A deployed staging URL (--staging-url, else STAGING_URL_DEFAULT from
+  # release.env, the same default postflight reads) is smoked as given: an
+  # unreachable deployment is a failure, not a skip.
+  local url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
+  if [[ -z "$url" ]]; then
+    gate_skip "surface-smoke" "no staging URL (pass --staging-url or set STAGING_URL_DEFAULT in scripts/release/release.env)"
+    return
+  fi
+  delegate_to_subscript "$surface_script" "$url"
+}
+
+# Gate: changelog-sections ---------------------------------------------------
+#
+# generate-changelog.py owns the rules for reading a PR body, so it runs the
+# audit: `--audit-sections` names the PRs whose entry would fall back to their
+# title because the body never offered the changelog section. It reads the PRs
+# from the integration branch's history since the previous release on the tag
+# line, as the changelog itself does, so stacked PRs are among them and a
+# member's tag never moves the binary's window. A section left empty on purpose
+# passes, because the generator reads it as "nothing for this crate".
+#
+# One audit per changelog the release writes: the release package's, and each
+# workspace member whose release is pending (no tag yet at its version), each
+# under the heading its [package.metadata.changelog] table declares.
+gate_changelog_sections() {
+  header "PR changelog sections"
+  if [[ ! -x "$REPO_ROOT/scripts/generate-changelog.py" ]]; then
+    gate_skip "PR changelog sections" "scripts/generate-changelog.py not vendored"
+    return
+  fi
+  have_bin gh || {
+    gate_skip "PR changelog sections" "gh not installed"
     return
   }
-  commits=$(git log "$last_tag..HEAD" --oneline | wc -l)
-  files=$(git diff "$last_tag..HEAD" --name-only | wc -l)
-  # Scoped markers count too: `feat(api)!:` is breaking as much as `feat!:`.
-  breaking=$(git log "$last_tag..HEAD" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline | wc -l)
-  gate_pass "LAST_TAG = $last_tag  ($commits commits, $files files, $breaking breaking)"
+
+  local base
+  base="${CHANGELOG_PR_BASE:-dev}"
+  git -C "$REPO_ROOT" rev-parse --verify --quiet "origin/$base" >/dev/null 2>&1 || base="main"
+
+  local targets=() name prefix version
+  targets+=("$(cd "$REPO_ROOT" && changelog_crate_args)")
+  while IFS=$'\t' read -r name _ prefix _ version; do
+    [[ -n "$name" && -n "$version" ]] || continue
+    git -C "$REPO_ROOT" rev-parse --verify --quiet "refs/tags/$prefix$version" >/dev/null && continue
+    targets+=("--crate $name --tag $prefix$version")
+  done < <(cd "$REPO_ROOT" && release_members)
+
+  local target label out
+  for target in "${targets[@]}"; do
+    label="PR changelog sections"
+    if [[ "$target" == --crate* ]]; then
+      read -r _ name _ <<<"$target"
+      label="$label ($name)"
+    fi
+    # shellcheck disable=SC2086  # target is a flag list, split on purpose
+    if out=$(cd "$REPO_ROOT" && scripts/generate-changelog.py --audit-sections --dev-branch "$base" $target 2>&1); then
+      gate_pass "$label: ${out%%$'\n'*}"
+    else
+      gate_fail "$label" "$out"
+    fi
+  done
 }
 
 # Gate: mechanics -------------------------------------------------------------
@@ -123,20 +255,25 @@ gate_mechanics() {
   project_version=$(jaq -r .version "$REPO_ROOT/package.json")
   gate_pass "package.json version = $project_version"
 
-  if [[ -f "$REPO_ROOT/CHANGELOG.md" ]]; then
-    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$REPO_ROOT/CHANGELOG.md" | tr -d '[]## ')
+  # The changelog the release notes are cut from. One that release.env names
+  # must exist; a repo that declares none and keeps no CHANGELOG.md has
+  # nothing to check.
+  local release_changelog
+  release_changelog=$(release_changelog)
+  if [[ -f "$REPO_ROOT/$release_changelog" ]]; then
+    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$REPO_ROOT/$release_changelog" | tr -d '[]## ' || true)
     if [[ "$changelog_version" == "$project_version" ]]; then
-      gate_pass "CHANGELOG top section = [$changelog_version] (matches project version)"
+      gate_pass "$release_changelog top section = [$changelog_version] (matches project version)"
     else
-      gate_fail "CHANGELOG mismatch" "changelog=$changelog_version project=$project_version"
+      gate_fail "$release_changelog mismatch" "changelog=$changelog_version project=$project_version"
     fi
-    if grep -q '\[Unreleased\]' "$REPO_ROOT/CHANGELOG.md"; then
-      gate_fail "CHANGELOG" "has [Unreleased] placeholder"
+    if grep -q '\[Unreleased\]' "$REPO_ROOT/$release_changelog"; then
+      gate_fail "$release_changelog" "has [Unreleased] placeholder"
     else
-      gate_pass "CHANGELOG has no [Unreleased] placeholder"
+      gate_pass "$release_changelog has no [Unreleased] placeholder"
     fi
   else
-    gate_fail "CHANGELOG.md" "missing"
+    gate_fail "$release_changelog" "missing"
   fi
 
   # The three screens below match against the guarded set the workflow
@@ -151,9 +288,12 @@ gate_mechanics() {
   ship_base="${LAST_TAG:-origin/main}"
   git -C "$REPO_ROOT" rev-parse --verify --quiet origin/main >/dev/null 2>&1 && ship_base=origin/main
 
-  # Leak check: no guarded path in what the release adds to main.
+  # Leak check: no guarded path added or modified in what the release ships to
+  # main. --diff-filter=ACMR, as in cut-release-branch.sh's check B: a release
+  # that removes a guarded doc main still carries from before the guard existed
+  # lists the removal too, and that is cleanup, not a leak.
   local leaked
-  leaked=$(git -C "$REPO_ROOT" diff "$ship_base..HEAD" --name-only 2>/dev/null | grep -E "$guarded" || true)
+  leaked=$(git -C "$REPO_ROOT" diff --diff-filter=ACMR "$ship_base..HEAD" --name-only 2>/dev/null | grep -E "$guarded" || true)
   if [[ -z "$leaked" ]]; then
     gate_pass "leak check (guarded paths): clean"
   else
@@ -163,9 +303,11 @@ gate_mechanics() {
   # The leak check screens against the registered set, so it is blind to a
   # category nobody registered yet. Enumerate what the release adds to main
   # (anything under docs/, plus markdown anywhere, so a root-level glossary
-  # shows up) and put every unguarded doc in front of a human.
+  # shows up) and put every unguarded doc in front of a human. --no-renames,
+  # because rename detection reports a doc moved from one main carries as R,
+  # and the A filter then drops it.
   local added_docs
-  added_docs=$(git -C "$REPO_ROOT" diff "$ship_base..HEAD" --diff-filter=A --name-only 2>/dev/null | grep -E '(^docs/|\.md$)' | grep -Ev "$guarded" || true)
+  added_docs=$(git -C "$REPO_ROOT" diff --no-renames "$ship_base..HEAD" --diff-filter=A --name-only 2>/dev/null | grep -E '(^docs/|\.md$)' | grep -Ev "$guarded" || true)
   if [[ -z "$added_docs" ]]; then
     gate_pass "no unguarded docs newly added to main"
   else
@@ -175,10 +317,13 @@ gate_mechanics() {
   # diff-B: files on dev that this branch lacks. Excluding all of docs/ would
   # hide a missed pick under a directory that ships to main (docs/runbooks/),
   # so exclude only the guarded set. Version files and the regenerated
-  # changelog are release-only by design.
+  # changelogs are release-only by design, at any depth, so a workspace
+  # package's bump reads as a release edit; cut-release-branch.sh's check A
+  # excludes the same set.
   if git -C "$REPO_ROOT" rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
     local missed
-    missed=$(git -C "$REPO_ROOT" diff HEAD..origin/dev --name-only 2>/dev/null | grep -Ev "$guarded" | grep -Ev '^(package\.json|bun\.lock|CHANGELOG\.md)$' || true)
+    missed=$(git -C "$REPO_ROOT" diff HEAD..origin/dev --name-only 2>/dev/null | grep -Ev "$guarded" \
+      | grep -Ev '^((.*/)?(Cargo\.toml|Cargo\.lock|package\.json|package-lock\.json|bun\.lock|pyproject\.toml|uv\.lock|VERSION|CHANGELOG\.md))$' || true)
     if [[ -z "$missed" ]]; then
       gate_pass "diff-B: no missed picks vs origin/dev"
     else
@@ -189,32 +334,13 @@ gate_mechanics() {
   fi
 }
 
-# Gate: surface-smoke (delegation) -------------------------------------------
-#
-# Against the deployed staging Worker -- see file header for why localhost
-# isn't a meaningful target here.
-
-gate_surface_smoke() {
-  local surface_script
-  surface_script="$(dirname "$0")/surface-smoke.sh"
-  [[ -x "$surface_script" ]] || {
-    gate_skip "surface-smoke" "scripts/release/surface-smoke.sh not present or not executable"
-    return
-  }
-  header "Surface smoke (delegated to surface-smoke.sh against staging)"
-  local staging_url="${STAGING_URL:-$STAGING_URL_DEFAULT}"
-  if ! curl -fsS --max-time 5 "$staging_url/" >/dev/null 2>&1; then
-    gate_skip "surface-smoke" "staging not reachable at $staging_url (run 'bun run deploy:staging' first)"
-    return
-  fi
-  delegate_to_subscript "$surface_script" "$staging_url"
-}
-
 # Main dispatcher ------------------------------------------------------------
 
+# usage [CODE]: prints the header and exits CODE, 2 (a usage error) by default;
+# --help passes 0.
 usage() {
-  sed -n '2,28p' "$0" | sed 's/^# \?//'
-  exit 2
+  print_usage_header
+  exit "${1:-2}"
 }
 
 LAST_TAG=""
@@ -223,21 +349,21 @@ SUBCMD=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --staging-url)
-      STAGING_URL="$2"
-      shift 2
-      ;;
     --tag)
       LAST_TAG="$2"
       shift 2
       ;;
-    -h | --help) usage ;;
-    drift | surface | mechanics | surface-smoke | all)
+    --staging-url)
+      STAGING_URL="$2"
+      shift 2
+      ;;
+    -h | --help) usage 0 ;;
+    drift | surface | mechanics | changelog-sections | surface-smoke | all)
       SUBCMD="$1"
       shift
       ;;
     post-tag)
-      echo "post-tag moved to scripts/release/postflight.sh: run that after the tag push" >&2
+      echo "post-tag moved to scripts/release/postflight.sh, run that after the tag push" >&2
       exit 2
       ;;
     *)
@@ -253,12 +379,14 @@ case "$SUBCMD" in
   drift) gate_drift ;;
   surface) gate_surface ;;
   mechanics) gate_mechanics ;;
+  changelog-sections) gate_changelog_sections ;;
   surface-smoke) gate_surface_smoke ;;
   all)
     gate_drift
     gate_surface
-    gate_mechanics
     gate_surface_smoke
+    gate_changelog_sections
+    gate_mechanics
     ;;
 esac
 
