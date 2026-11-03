@@ -67,7 +67,8 @@ set -uo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root" || exit 1
-# shellcheck source=scripts/hooks/_lib.sh
+# A CI action that checks one file at a time without -x reports SC1091 here.
+# shellcheck source=scripts/hooks/_lib.sh disable=SC1091
 . ./scripts/hooks/_lib.sh || exit 1
 
 if push_only_deletes; then
@@ -80,6 +81,13 @@ fi
 # and checks everything.
 if [ "$#" -ge 2 ] && [ -z "${HOOK_PUSH_REFS:-}" ]; then
   echo "pre-push: nothing to push"
+  exit 0
+fi
+
+# A tag, or a new branch, at a commit the remote already has brings no commit
+# for any check to read.
+if push_only_known_commits "${1:-}"; then
+  echo "Nothing to check: every pushed commit is already on $1."
   exit 0
 fi
 
@@ -132,7 +140,7 @@ step_bg "concurrency namespacing" "scripts/check-workflow-concurrency.sh" check_
 step_wait || fail=1
 
 [ "$fail" -eq 0 ] || {
-  echo "pre-push checks failed (see README \"Local hooks\")." >&2
+  echo "pre-push checks failed: rerun the command each failing line names (checks: scripts/hooks/pre-push)." >&2
   exit 1
 }
 

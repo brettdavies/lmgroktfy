@@ -94,8 +94,8 @@ git config core.hooksPath scripts/hooks
 `pre-commit` runs fast, staged-scoped checks (Biome lint, Prettier check, actionlint, workflow concurrency namespacing,
 markdownlint). `pre-push` mirrors CI (`bun run lint`, `format:check`, `typecheck`, `build`, `test:all`, `test:e2e`)
 and adds shellcheck, actionlint, and the concurrency check. Both report every failing check in one run, and both share
-their checks through `scripts/hooks/_lib.sh`. markdownlint reports a skip while `.markdownlint-cli2.yaml` sets
-`fix: true`, since a fixing run would rewrite files mid-commit. Verify with `git config --get core.hooksPath` (expect
+their checks through `scripts/hooks/_lib.sh`. markdownlint lints the staged content in a scratch tree, with `fix: true`
+turned off there, so it never rewrites the checkout. Verify with `git config --get core.hooksPath` (expect
 `scripts/hooks`).
 
 ### Commands

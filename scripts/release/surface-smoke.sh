@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.01 (generic)
+# Canonical version: 2026.11.02 (generic)
 #
 # lmgroktfy HTTP surface smoke. Invoked against any base URL: the
 # orchestrators (preflight.sh and postflight.sh) call this same script with
@@ -78,16 +78,45 @@ CURL_AUTH=()
 #
 # Confirms the surface is reachable at all. An unreachable deployment fails
 # here: the orchestrators smoke a deployed URL as given.
+#
+# A redirect counts as reachable only when it stays on this host. A gated
+# deploy answers a request whose auth headers are missing or rejected with a
+# redirect to its login page (Cloudflare Access sends it to the team domain
+# or to /cdn-cgi/access/login), and that redirect is not the surface.
+
+# Prints the host of a URL, lowercased, without userinfo or port.
+url_host() {
+  local rest="${1#*://}"
+  rest="${rest%%[/?#]*}"
+  rest="${rest##*@}"
+  rest="${rest%%:*}"
+  printf '%s' "${rest,,}"
+}
 
 gate_transport() {
   header "Transport reachable at $BASE_URL"
-  local code
-  code=$(curl "${CURL_AUTH[@]}" -sSo /dev/null -w '%{http_code}' --max-time 10 "$BASE_URL/" || echo "000")
-  if [[ "$code" =~ ^(200|301|302|307|308)$ ]]; then
+  local out code location path
+  out=$(curl "${CURL_AUTH[@]}" -sSo /dev/null -w '%{http_code} %{redirect_url}' --max-time 10 "$BASE_URL/" || echo "000")
+  code="${out%% *}"
+  location=""
+  [[ "$out" == *" "* ]] && location="${out#* }"
+  if [[ "$code" =~ ^2[0-9][0-9]$ ]]; then
     gate_pass "$BASE_URL/ -> HTTP $code"
-  else
-    gate_fail "$BASE_URL/" "HTTP $code (expected 2xx or 3xx)"
+    return
   fi
+  if [[ ! "$code" =~ ^3[0-9][0-9]$ ]]; then
+    gate_fail "$BASE_URL/" "HTTP $code (expected 2xx, or a 3xx that stays on this host)"
+    return
+  fi
+  path="${location#*://*/}"
+  [[ "$path" == "$location" ]] && path=""
+  if [[ -z "$location" ]] \
+    || [[ "$(url_host "$location")" != "$(url_host "$BASE_URL")" ]] \
+    || [[ "/$path" == /cdn-cgi/access/* ]]; then
+    gate_fail "$BASE_URL/" "HTTP $code to ${location:-an empty Location}: a login page or another host, not this surface (check the auth headers, or point the base URL at the host that serves it)"
+    return
+  fi
+  gate_pass "$BASE_URL/ -> HTTP $code to $location (same host)"
 }
 
 # Gate: contract -------------------------------------------------------------

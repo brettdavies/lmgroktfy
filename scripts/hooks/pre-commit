@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.01 (generic)
+# Canonical version: 2026.11.02 (generic)
 #
 # Pre-commit hook: fast, staged-file-scoped checks that catch the cheap
 # mistakes before they reach a commit. The whole-repo CI mirror lives in the
@@ -52,7 +52,8 @@ set -uo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root" || exit 1
-# shellcheck source=scripts/hooks/_lib.sh
+# A CI action that checks one file at a time without -x reports SC1091 here.
+# shellcheck source=scripts/hooks/_lib.sh disable=SC1091
 . ./scripts/hooks/_lib.sh || exit 1
 
 fail=0
@@ -61,9 +62,9 @@ fail=0
 # `commit <paths>`, GIT_INDEX_FILE names the temporary index the commit is built
 # from, and `staged` has to read it. None of the checks below runs git.
 
-# Every check here is a file-scoped linter over a disjoint set of paths: none
-# writes, none takes a build lock, so they all run together and the slowest one
-# sets the wall-clock. step_wait replays them in the order queued below.
+# Every check here reads files and none writes, so they all run together and
+# the slowest one sets the wall-clock. step_wait replays them in the order
+# queued below.
 
 # JS/TS/JSON: Biome lint on the staged files.
 mapfile -t biome_files < <(staged '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.json' '*.jsonc')
@@ -79,8 +80,8 @@ mapfile -t wf < <(staged '.github/workflows/*.yml' '.github/workflows/*.yaml')
 step_bg "actionlint" "actionlint" check_actionlint "${wf[@]}"
 step_bg "concurrency namespacing" "scripts/check-workflow-concurrency.sh" check_workflow_concurrency "${wf[@]}"
 
-# Markdown: lint the staged docs. check_markdown refuses to run when the repo's
-# markdownlint config sets `fix: true`, which would rewrite files mid-commit.
+# Markdown: lint the staged docs. check_markdown lints their staged blobs in a
+# scratch tree, so a config's `fix: true` cannot rewrite the checkout.
 #
 # CHANGELOG.md is excluded because generate-changelog.py writes it with one
 # logical line per bullet, so MD013 reports hundreds of characters no author
@@ -92,7 +93,7 @@ step_bg "markdownlint" "markdownlint-cli2" check_markdown "${md[@]}"
 step_wait || fail=1
 
 [ "$fail" -eq 0 ] || {
-  echo "pre-commit checks failed (see README \"Local hooks\")." >&2
+  echo "pre-commit checks failed: rerun the command each failing line names (checks: scripts/hooks/pre-commit)." >&2
   exit 1
 }
 
