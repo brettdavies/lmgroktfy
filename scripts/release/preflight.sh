@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.01 (generic)
+# Canonical version: 2026.11.03 (generic)
 #
 # Run release preflight gates against the current checkout.
 #
@@ -251,9 +251,19 @@ gate_mechanics() {
   run_step "end-to-end tests (bun run test:e2e)" bun run test:e2e
   rm -f /tmp/preflight-mechanics.log
 
-  local project_version changelog_version
-  project_version=$(jaq -r .version "$REPO_ROOT/package.json")
-  gate_pass "package.json version = $project_version"
+  local project_version changelog_version site=""
+
+  # The version a release tag names: the site deploy stamp its changelog
+  # heading carries, checked below with site-version.sh (RELEASES.md
+  # § Versioning). Without SITE_VERSION_BASE, the root package.json's.
+  if [[ -n "${SITE_VERSION_BASE:-}" ]]; then
+    site=1
+    project_version=""
+    gate_pass "site version: the deploy stamp at base $SITE_VERSION_BASE (scripts/release/site-version.sh)"
+  else
+    project_version=$(jaq -r .version "$REPO_ROOT/package.json")
+    gate_pass "package.json version = $project_version"
+  fi
 
   # The changelog the release notes are cut from. One that release.env names
   # must exist; a repo that declares none and keeps no CHANGELOG.md has
@@ -261,13 +271,21 @@ gate_mechanics() {
   local release_changelog
   release_changelog=$(release_changelog)
   if [[ -f "$REPO_ROOT/$release_changelog" ]]; then
-    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$REPO_ROOT/$release_changelog" | tr -d '[]## ' || true)
-    if [[ "$changelog_version" == "$project_version" ]]; then
+    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+(-g[0-9a-f]{7})?\]' "$REPO_ROOT/$release_changelog" | tr -d '[]## ' || true)
+    if [[ -n "$site" ]]; then
+      local verified
+      if verified=$(cd "$REPO_ROOT" && scripts/release/site-version.sh --verify "v$changelog_version" 2>&1); then
+        gate_pass "$release_changelog top section = [$changelog_version] (site-version.sh: ${verified#v"$changelog_version" })"
+      else
+        gate_fail "$release_changelog top section = [${changelog_version:-none}]" "$verified"
+      fi
+    elif [[ "$changelog_version" == "$project_version" ]]; then
       gate_pass "$release_changelog top section = [$changelog_version] (matches project version)"
     else
       gate_fail "$release_changelog mismatch" "changelog=$changelog_version project=$project_version"
     fi
-    if grep -q '\[Unreleased\]' "$REPO_ROOT/$release_changelog"; then
+    # The heading, not the text: a released section may quote `[Unreleased]`.
+    if grep -qE '^## \[Unreleased\]' "$REPO_ROOT/$release_changelog"; then
       gate_fail "$release_changelog" "has [Unreleased] placeholder"
     else
       gate_pass "$release_changelog has no [Unreleased] placeholder"

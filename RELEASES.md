@@ -1,3 +1,4 @@
+<!-- canonical: version-scheme site -->
 # Releasing `lmgroktfy`
 
 Operational runbook. Rationale lives in [`RELEASES-RATIONALE.md`](./RELEASES-RATIONALE.md). Pre-cut go/no-go checklist
@@ -88,6 +89,30 @@ Every PR (feature, fix, docs, release) uses `.github/pull_request_template.md` v
 
 → Rationale: [`RELEASES-RATIONALE.md` § PR body conventions](./RELEASES-RATIONALE.md#pr-body-conventions).
 
+## Versioning
+
+The marked lines below are github-repo-setup's site deploy-stamp section of `references/versioning.md`, which the drift
+check compares, and line 1 declares the scheme.
+
+<!-- canonical:begin versioning-site -->
+
+This site's version is a deploy stamp, `<base>.<epoch>-g<sha7>`, tagged `v<version>`. Each release carries it in its
+tag, its GitHub Release, its `CHANGELOG.md` section, and the backport to `dev`.
+
+- `<base>` is `SITE_VERSION_BASE` in `scripts/release/release.env`, the site's major.minor. The maintainer raises it by
+  hand, and it never goes down.
+- `<epoch>` is the committer time, in Unix seconds, of the `dev` commit the release is cut from.
+- `<sha7>` is the first seven characters of that commit's sha.
+
+`scripts/release/site-version.sh` computes it, and every caller runs the helper rather than rebuilding the format: the
+cut names its branch and changelog section from it, preflight checks the changelog heading with
+`site-version.sh --verify`, and the release workflow checks the pushed tag the same way. The same commit always gives
+the same version, and the helper refuses one that does not sort above the newest tag. The changelog keeps its six
+headings (`Breaking changes`, `Added`, `Changed`, `Deprecated`, `Fixed`, `Documentation`) for the notes; they set no
+version.
+
+<!-- canonical:end versioning-site -->
+
 ## Releasing dev to main
 
 Before cutting a release branch, walk [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md) end-to-end. Any unchecked item
@@ -97,8 +122,8 @@ Engineering docs (`docs/plans/`, and the other six guarded prefixes if adopted) 
 `guard-main-docs.yml` blocks them from reaching `main`, and `guard-release-branch.yml` rejects any PR to main whose head
 isn't `release/*`.
 
-**Branch naming**: `release/v<version>` or `release/v<version>-<slug>`. `scripts/generate-changelog.py` extracts the
-version from the branch name, so the `v<version>` prefix is required.
+**Branch naming**: `release/v<version>` or `release/v<version>-<slug>`, where `<version>` is the deploy stamp
+`scripts/release/site-version.sh` prints for `origin/dev` ([§ Versioning](#versioning)).
 
 `main` and `dev` share only an ancient merge-base: every release squash-merges into `main`, so the two branches diverge
 in history even as their content converges. Reconciling that with a merge, or a branch cut from `dev`, produces a pile
@@ -110,8 +135,9 @@ end-state directly:
 # 0. Nothing on main that dev never received (security PRs, hotfixes, config). Exits 1 while drift exists.
 scripts/release/drift.sh
 
-# 1. Branch from main, NOT dev.
+# 1. Branch from main, NOT dev. <version> is dev's deploy stamp: the same dev commit always gives the same one.
 git fetch origin
+scripts/release/site-version.sh                                 # prints <version>
 git checkout -B release/v<version> origin/main
 
 # 2. Overlay dev's entire tracked tree onto the main base. `checkout -- .` writes dev's
@@ -127,21 +153,18 @@ GUARDED="$(scripts/release/guarded-paths.sh)"
 git ls-files | grep -E "$GUARDED" | xargs -r trash
 git add -A                                                      # stages adds, mods, AND deletions
 
-# 4. Version bump, then the changelog from the PRs merged into dev since the previous
-#    release. The overlay commit carries no per-PR history, so the section is built from
-#    dev's PRs, not from this branch's commits.
-#    - Bump "version" in the root package.json to <version> (release.yml's integrity gate
-#      requires tag == package.json version). apps/web and packages/shared keep their own
-#      workspace-package versions.
-#    - bun install (re-resolves bun.lock against the bump).
-scripts/generate-changelog.py --from-dev-prs
+# 4. The changelog from the PRs merged into dev since the previous release. The overlay
+#    commit carries no per-PR history, so the section is built from dev's PRs, not from
+#    this branch's commits. The version lives in the tag alone, so no file is bumped;
+#    apps/web and packages/shared keep their own workspace-package versions.
+scripts/generate-changelog.py --from-dev-prs --tag v<version>
 git add -A
 
 # 5. Verify before committing.
-#    A: staged tree equals dev's minus the version files and the stripped guarded paths.
+#    A: staged tree equals dev's minus CHANGELOG.md and the stripped guarded paths.
 #       Anything else printed here is a mistake.
 git diff --cached --name-only origin/dev | grep -Ev "$GUARDED" \
-  | grep -Ev '^(package\.json|bun\.lock|CHANGELOG\.md)$' \
+  | grep -Ev '^CHANGELOG\.md$' \
   && echo "unexpected delta above; investigate" || echo "(clean: only intended deltas)"
 #    B: no guarded path in the release tree.
 git diff --cached --name-only origin/main | grep -E "$GUARDED" \
@@ -244,8 +267,9 @@ git push origin main --tags
 ```
 
 Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/release.yml`, which runs an integrity gate
-(tag is `vX.Y.Z`-shaped, reachable from `main`, and equal to the root `package.json` version), then creates the GitHub
-Release with notes extracted from the tagged version's `CHANGELOG.md` section.
+(the tag is a deploy stamp, reachable from `main`, and `scripts/release/site-version.sh --verify` recomputes it from the
+`dev` commit its `-g<sha7>` names), then creates the GitHub Release with notes extracted from the tagged version's
+`CHANGELOG.md` section.
 
 **Single-channel**: the Release is created published and the pipeline stops. There is no `cargo publish`, no `npm
 publish`, no Homebrew dispatch, and no `finalize-release` step: lmgroktfy has no distribution channel besides the
@@ -263,19 +287,18 @@ step on a tag or merge event.
 
 ### After publish: sync `dev` with the release
 
-Once `release.yml` completes and the GitHub Release exists, bring the release bookkeeping (the root `package.json`
-version, `CHANGELOG.md`) and any edit made on the release branch back to `dev` so the integration branch starts from
-the released baseline. Preview it first: `--dry-run` prints what the sync would carry, creates no branch, and leaves the
-tree clean.
+Once `release.yml` completes and the GitHub Release exists, bring the release bookkeeping (`CHANGELOG.md`) and any edit
+made on the release branch back to `dev` so the integration branch starts from the released baseline. Preview it first:
+`--dry-run` prints what the sync would carry, creates no branch, and leaves the tree clean.
 
 ```bash
 scripts/sync-dev-after-release.sh v<version> --dry-run
 scripts/sync-dev-after-release.sh v<version>
 ```
 
-The script cuts a `chore/sync-dev-after-v<version>` branch, writes the released version into the root `package.json`
-in place, copies `CHANGELOG.md` from `main`, and opens a PR against `dev`; merge it once CI is green. The postflight
-backport gate looks for that merged PR.
+The script cuts a `chore/sync-dev-after-v<version>` branch, copies `CHANGELOG.md` from `main`, and opens a PR against
+`dev`; merge it once CI is green. It writes no version into any file, since a site's version is its tag. The postflight
+backport gate looks for that PR's subject, `chore(release): sync dev after v<version>`, on `dev`.
 
 Every other path `main` and `dev` disagree about is discovered, bounded by the previous release tag, the last point the
 two branches agreed:

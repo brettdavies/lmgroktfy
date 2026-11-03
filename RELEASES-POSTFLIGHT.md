@@ -1,10 +1,10 @@
 # Post-release verification: `lmgroktfy`
 
 Operational post-flight checklist. Runs **after** the `release/v<version> → main` PR merges and you push the tag
-(`git push origin vX.Y.Z`) per [`RELEASES.md` § Tagging and publishing](./RELEASES.md#tagging-and-publishing). Verifies
-that `release.yml` landed cleanly and that the GitHub Release is the record it should be. Production deployment is a
-separate, human-gated step covered in [§ Production cutover](#production-cutover-manual-human-gated) below; it is not
-part of the automated tag-triggered pipeline.
+(`git push origin v<version>`) per [`RELEASES.md` § Tagging and publishing](./RELEASES.md#tagging-and-publishing).
+Verifies that `release.yml` landed cleanly and that the GitHub Release is the record it should be. Production deployment
+is a separate, human-gated step covered in [§ Production cutover](#production-cutover-manual-human-gated) below; it is
+not part of the automated tag-triggered pipeline.
 
 Companion to [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md), which gates the release-branch cut. Both docs follow
 the same go/no-go shape: every box is explicit, an unchecked or red item holds the next release (or motivates a hotfix).
@@ -20,11 +20,9 @@ scripts/release/postflight.sh --env prod surface-smoke    # only after bun run d
 `scripts/release/postflight.sh` is vendored verbatim from the github-repo-setup template and covers the automatable
 post-tag gates: `release.yml`'s conclusion, the GitHub Release's state and `releases/latest`, the `main → dev` backport
 check, and an optional surface-smoke against a deployed env. The template also carries Homebrew-tap, finalize,
-crates.io, and workspace-tag gates for Rust CLIs. lmgroktfy has no Homebrew tap and no package registry. `crates` and
-`tags` SKIP here (no `Cargo.toml`), and so does `finalize` (no `finalize-release.yml` run). `tap` does not: it matches
-runs on the shared `brettdavies/homebrew-tap` by name and start time only, so once any other CLI's formula bump runs
-after this release, `tap` passes on that run. A `tap` pass here always describes another repository's release; ignore
-it.
+crates.io, and workspace-tag gates for Rust CLIs. lmgroktfy has no Homebrew tap and no package registry, so `tap` SKIPs
+here (no workflow calls the `rust-release.yml` reusable or sends `update-formula`), `crates` and `tags` SKIP (no
+`Cargo.toml`), and so does `finalize` (no `finalize-release.yml` run).
 
 **`--env staging|prod` selects which deployed URL `surface-smoke` targets, and whether `backport` runs.** The
 release-pipeline gates are single-environment (they check `main`, the tag, and the Release once); `backport` is
@@ -35,25 +33,25 @@ before that manual step just confirms the previous production build is still hea
 
 Sub-commands let you re-run one verification in isolation:
 
-| Sub-command     | What it checks                                                                                                           | Source of truth                           |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| `release`       | `release.yml` on the tag push concluded `"success"`                                                                      | `gh run list`, `gh run view`              |
-| `tap`           | Homebrew-tap `update-formula` and `Publish formula` runs since `release.yml` started (a pass here is another repo's run) | `gh run list -R brettdavies/homebrew-tap` |
-| `finalize`      | `finalize-release.yml` callback ran (SKIPs here: lmgroktfy has no finalize workflow)                                     | `gh run list`                             |
-| `make-latest`   | GitHub Release `vX.Y.Z` is published (not a draft, not a prerelease) and `releases/latest` resolves to it                | `gh release view`, `gh api`               |
-| `crates`        | crates.io shows the crate at the tag's version (SKIPs here: no `Cargo.toml`)                                             | `cargo search`                            |
-| `tags`          | every workspace member the release moved is tagged on the release commit (SKIPs here: no `Cargo.toml`)                   | `git tag`, `cargo metadata`               |
-| `backport`      | a merged PR to `dev` with the tag in its title (prod only; SKIPs under `--env staging`)                                  | `gh pr list --base dev --state merged`    |
-| `surface-smoke` | Delegates to `scripts/release/surface-smoke.sh` against the env's deployed URL                                           | `scripts/release/surface-smoke.sh`        |
-| `all`           | every above, in order; `surface-smoke` targets the `--env` URL (default `prod`) and SKIPs when it is unreachable         | all of the above                          |
+| Sub-command     | What it checks                                                                                                                                                  | Source of truth                                              |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `release`       | `release.yml` on the tag push concluded `"success"`                                                                                                             | `gh run list`, `gh run view`                                 |
+| `tap`           | Homebrew-tap `update-formula` and `Publish formula` runs since `release.yml` started (SKIPs here: no workflow dispatches to the tap)                            | `gh run list -R brettdavies/homebrew-tap`                    |
+| `finalize`      | `finalize-release.yml` callback ran (SKIPs here: lmgroktfy has no finalize workflow)                                                                            | `gh run list`                                                |
+| `make-latest`   | GitHub Release `v<version>` is published (not a draft, not a prerelease) and `releases/latest` resolves to it                                                   | `gh release view`, `gh api`                                  |
+| `crates`        | crates.io shows the crate at the tag's version (SKIPs here: no `Cargo.toml`)                                                                                    | `cargo search`                                               |
+| `tags`          | every workspace member the release moved is tagged on the release commit (SKIPs here: no `Cargo.toml`)                                                          | `git tag`, `cargo metadata`                                  |
+| `backport`      | the backport's subject, `chore(release): sync dev after <tag>`, on `dev`'s first-parent history or a merged PR's title (prod only; SKIPs under `--env staging`) | `git log origin/dev`, `gh pr list --base dev --state merged` |
+| `surface-smoke` | Delegates to `scripts/release/surface-smoke.sh` against the env's deployed URL                                                                                  | `scripts/release/surface-smoke.sh`                           |
+| `all`           | every above, in order; `surface-smoke` targets the `--env` URL (default `prod`) and SKIPs when it is unreachable                                                | all of the above                                             |
 
 Flags:
 
 - `--env staging|prod`: which deployed URL `surface-smoke` targets (default: `prod`). Pass `--env staging` before the
   manual cutover, since `prod` only reflects this release after `bun run deploy:prod`.
 - `--repo OWNER/REPO`: override the auto-detected nameWithOwner.
-- `--tag vX.Y.Z`: override auto-detection (default: derived from the root `package.json` version, falls back to the
-  latest git tag).
+- `--tag v<version>`: override auto-detection (default: the newest stamp tag, since `SITE_VERSION_BASE` is set and a
+  site's version lives in its tag alone).
 - `--staging-url URL`: override the staging URL for `surface-smoke` (default: `STAGING_URL_DEFAULT` in
   `scripts/release/release.env`, `https://dev.lmgroktfy.com`).
 - `--prod-url URL`: override the prod URL for `surface-smoke` (default: `PROD_URL_DEFAULT` in
@@ -66,14 +64,15 @@ Run immediately after the tag push triggers `release.yml`.
 
 - [ ] **`release.yml` green end-to-end.** `gh run watch <id> --exit-status` then verify with
   `gh run view <id> --json conclusion --jq .conclusion` because the watcher exit code alone is not authoritative (a
-  completed watcher is not a green watcher). Runs the integrity gate (tag format, reachable from `main`, matches
-  `package.json` version), then creates the GitHub Release. Run `scripts/release/postflight.sh release` for the
+  completed watcher is not a green watcher). Runs the integrity gate (a deploy-stamp tag, reachable from `main`, that
+  `scripts/release/site-version.sh --verify` recomputes from the `dev` commit it names), then creates the GitHub
+  Release. Run `scripts/release/postflight.sh release` for the
   automated check.
 - [ ] **GitHub Release exists, is published (not draft), and is latest.**
-  `gh api repos/<owner>/<repo>/releases/tags/vX.Y.Z --jq '{draft, tag_name}'`, expect `draft: false`. Single-channel:
-  `release.yml` publishes the Release directly, so there is no `make_latest: false → true` flip to wait for and
-  `releases/latest` resolves to the tag at once. Run `scripts/release/postflight.sh make-latest` for the automated
-  check.
+  `gh api repos/<owner>/<repo>/releases/tags/v<version> --jq '{draft, tag_name}'`, expect `draft: false`.
+  Single-channel: `release.yml` publishes the Release directly, so there is no `make_latest: false → true` flip to wait
+  for and `releases/latest` resolves to the tag at once. Run `scripts/release/postflight.sh make-latest` for the
+  automated check.
 - [ ] **Release notes match the tagged version.** The Release body is extracted from the `CHANGELOG.md` section whose
   heading contains the tag's version string, not the first `## [` heading in the file. Confirm they match verbatim.
 - [ ] **Last-good identifier recorded.** Before `bun run deploy:prod`, note the active production Version ID
@@ -83,21 +82,22 @@ Run immediately after the tag push triggers `release.yml`.
   (`bunx wrangler rollback --env production`, or `bunx wrangler versions deploy <VERSION_ID> --env production`), then
   land a `fix` or `revert` through the normal `dev` to `release/*` to `main` flow so `main` reconverges with what is
   live.
-- [ ] **Backport `main` → `dev`** via a **merged PR to `dev` with the version in its title.** Bring the release-only
-  changes (`CHANGELOG.md`, the root `package.json` version, and any edit made on the release branch) across to `dev` so
-  the next release's `RELEASES-PREFLIGHT.md` drift and diff-B gates stay quiet. The script adopts the release-prep edits
-  it discovers since the previous tag and lists contested paths (ones `dev` also changed) without taking them: run it
-  with `--dry-run` first to see both lists without creating a branch, then name the contested paths to take with
-  `--only PATH` (see [`RELEASES.md` § After publish](./RELEASES.md#after-publish-sync-dev-with-the-release)).
-  `scripts/release/postflight.sh backport` looks for the merged PR alone; the only requirement is the tag (`vX.Y.Z`) in
-  the PR title.
+- [ ] **Backport `main` → `dev`** via the PR `scripts/sync-dev-after-release.sh` opens, merged to `dev`. Bring the
+  release-only changes (`CHANGELOG.md` and any edit made on the release branch) across to `dev` so the next release's
+  `RELEASES-PREFLIGHT.md` drift and diff-B gates stay quiet. The script adopts the release-prep edits it discovers since
+  the previous tag and lists contested paths (ones `dev` also changed) without taking them: run it with `--dry-run`
+  first to see both lists without creating a branch, then name the contested paths to take with `--only PATH` (see
+  [`RELEASES.md` § After publish](./RELEASES.md#after-publish-sync-dev-with-the-release)).
+  `scripts/release/postflight.sh backport` looks for the backport's subject,
+  `chore(release): sync dev after v<version>`, on `dev`'s first-parent history and then among merged PRs to `dev`; a PR
+  that only mentions the version does not count.
 
   ```bash
-  scripts/sync-dev-after-release.sh v<X.Y.Z> --dry-run   # previews the sync; no branch, clean tree
-  scripts/sync-dev-after-release.sh v<X.Y.Z>             # opens the PR against dev; merge once CI is green
+  scripts/sync-dev-after-release.sh v<version> --dry-run   # previews the sync; no branch, clean tree
+  scripts/sync-dev-after-release.sh v<version>             # opens the PR against dev; merge once CI is green
   ```
 
-  When `dev` already holds the release, the dry run prints `no changes -- dev already in sync with v<X.Y.Z>` and the
+  When `dev` already holds the release, the dry run prints `no changes -- dev already in sync with v<version>` and the
   script opens no PR, so `backport` SKIPs. That SKIP is accurate, not a missed step. v2.0.2 is such a release: `dev`
   contains its release commit through a merge of `main`.
 

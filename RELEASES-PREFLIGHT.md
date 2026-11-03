@@ -34,7 +34,7 @@ recipes in this checklist are the manual fallback and the contract each subcomma
 | `surface`            | Commits since the last release reached `dev`, files changed since the last tag, breaking markers                                                                                                          | `git log`, `git diff`                                      |
 | `surface-smoke`      | Delegates to `scripts/release/surface-smoke.sh` against the deployed staging URL; staging unreachable fails the gate                                                                                      | `scripts/release/surface-smoke.sh`                         |
 | `changelog-sections` | No PR this release carries leaves its changelog entry to its title for want of a `## Changelog` section                                                                                                   | `generate-changelog.py --audit-sections`, `gh`             |
-| `mechanics`          | `bun run lint`, `format:check`, `typecheck`, `build`, `test:all`, `test:e2e`, then version and `CHANGELOG.md` sanity, the guarded-path leak check, unguarded docs added to `main`, diff-B vs `origin/dev` | `package.json` scripts, `scripts/release/guarded-paths.sh` |
+| `mechanics`          | `bun run lint`, `format:check`, `typecheck`, `build`, `test:all`, `test:e2e`, then the `CHANGELOG.md` stamp heading, the guarded-path leak check, unguarded docs added to `main`, diff-B vs `origin/dev`  | `package.json` scripts, `scripts/release/guarded-paths.sh` |
 | `all`                | Every above, in order; `drift` runs first, since nothing else matters while `main` holds changes `dev` never received                                                                                     |                                                            |
 
 Flags:
@@ -66,7 +66,7 @@ git log "$SINCE..origin/dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conv
 
 Every release squash-merges into `main`, so the tag shares no recent history with `dev`, and a log from the tag counts
 `dev`'s whole past. The window opens at the commit that synced the tag back into `dev`, whose subject reads
-`chore(release): sync dev after vX.Y.Z`. The file list compares trees, so it reads from the tag directly, minus the
+`chore(release): sync dev after v<version>`. The file list compares trees, so it reads from the tag directly, minus the
 guarded set `dev` carries but never ships. In a repo whose tag is an ancestor of `dev`, the window is
 `$LAST_TAG..origin/dev`. With no tags yet, or no commit syncing the tag back, `preflight.sh surface` SKIPs, and the
 surface is `origin/main..origin/dev`. `generate-changelog.py`'s section, not this count, is the complete list of PRs the
@@ -86,18 +86,27 @@ Dependabot raises the same fix again.
 
 <!-- canonical:begin drift-gate -->
 
-- [ ] The previous release's own bookkeeping reached `dev` (gate 0: the version carriers and `CHANGELOG.md` as the
-  release left them). It fails when a backport never ran; run `scripts/sync-dev-after-release.sh v<previous>`, merge its
-  PR, and rerun.
-- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
-  `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
-- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2). `.github/` reaches `main` through the release,
-  so config that has reached `dev` and not `main` is what this release delivers, and the gate counts it. The gate fails
-  on the other direction, where `main` holds workflow or ruleset config `dev` never received, and names each path as
-  `missing` or `differs`.
-- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3, which reads `package-lock.json`, `bun.lock`,
-  and `Cargo.lock`). The one benign case is a version still inside the local package manager's release-age window when
-  the advisory is already patched at `dev`'s version.
+- [ ] The previous release's own bookkeeping reached `dev` (gate 0).
+
+  Gate 0 checks the version carriers and `CHANGELOG.md` as the release left them. It fails when a backport never ran;
+  run `scripts/sync-dev-after-release.sh v<previous>`, merge its PR, and rerun.
+
+- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1).
+
+  Gate 1 lists each commit that does not, as `differs` or `missing`. Backport them by PR into `dev` first, merge, and
+  rerun.
+
+- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2).
+
+  `.github/` reaches `main` through the release, so config that has reached `dev` and not `main` is what this release
+  delivers, and the gate counts it. The gate fails on the other direction, where `main` holds workflow or ruleset
+  config `dev` never received, and names each path as `missing` or `differs`.
+
+- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3).
+
+  Gate 3 reads `package-lock.json`, `bun.lock`, and `Cargo.lock`. The one benign case is a version still inside the
+  local package manager's release-age window when the advisory is already patched at `dev`'s version.
+
 - [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
 
 <!-- canonical:end drift-gate -->
@@ -144,9 +153,8 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
 - [ ] `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run build`, and `bun run test:all` all pass
   locally against the release branch (`release.yml`'s integrity gate does not re-run these; CI on the release PR to
   `main` does, but confirm before opening it).
-- [ ] Version bumped to the new tag value in the root `package.json` (`release.yml`'s integrity gate enforces this;
-  catch early).
-- [ ] `bun.lock` regenerated (`bun install`), committed.
+- [ ] The release branch is named for the deploy stamp `scripts/release/site-version.sh` prints for the `dev` commit
+  the cut overlaid (`RELEASES.md` § Versioning). No file carries the version, so nothing is bumped.
 - [ ] Every PR this release carries offers a `## Changelog` section (`scripts/release/preflight.sh changelog-sections`
   runs `scripts/generate-changelog.py --audit-sections`; a section left empty on purpose passes).
 - [ ] Bun toolchain pin (`bun-version: 1.4.0` in `.github/workflows/test.yml` and `canary.yml`) last bumped ≥7 days ago
@@ -171,14 +179,15 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   registered. `git diff origin/main..HEAD --diff-filter=A --name-only | grep -E '(^docs/|\.md$)' | grep -Ev "$GUARDED"`
   lists the unguarded additions; each one needs a reason to ship (`docs/runbooks/` does by design), or it gets
   registered in the workflow's `extra_paths` and removed from the branch.
-- [ ] `CHANGELOG.md` versioned section has no `[Unreleased]` placeholder and matches the bumped version.
+- [ ] `CHANGELOG.md` versioned section has no `[Unreleased]` placeholder, and its heading is the deploy stamp:
+  `scripts/release/site-version.sh --verify v<version>` passes (`preflight.sh mechanics` runs it).
 
 ### Post-tag verification
 
 Moved to [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) because tagging happens **after** the release-branch cut
 and PR-to-main merge, so verification of the tag-triggered pipeline (`release.yml` → GitHub Release) and the manual
 production cutover are post-flight, not pre-flight. Run `scripts/release/postflight.sh all` immediately after
-`git push origin vX.Y.Z`.
+`git push origin v<version>`.
 
 ## Related docs
 

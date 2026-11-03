@@ -1,5 +1,6 @@
 # Single-channel web-app release. The GitHub Release is this pipeline's
-# output, not its trigger: an annotated vX.Y.Z tag pushed to main runs the
+# output, not its trigger: an annotated site deploy-stamp tag,
+# v<base>.<epoch>-g<sha7> (RELEASES.md § Versioning), pushed to main runs the
 # integrity gate, then publishes the Release with notes extracted from
 # CHANGELOG.md by version string. There is no build/publish/deploy leg here
 # -- lmgroktfy ships no crate, no bottle, no npm package, and Cloudflare
@@ -10,11 +11,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-g[0-9a-f]+'
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to (re-)release, e.g. v2.0.0. Only needed to retry a failed run without cutting a new tag.'
+        description: 'Tag to (re-)release, e.g. v2.0.1793674334-gc2b6e44. Only needed to retry a failed run without cutting a new tag.'
         type: string
         required: true
 
@@ -51,15 +52,16 @@ jobs:
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      # Verifies: the tag is vX.Y.Z-shaped, its commit is reachable from
-      # main, and it equals package.json's version. Everything downstream
-      # trusts tag-equals-version once this passes.
-      - name: Verify tag shape, reachability, and package.json version
+      # Verifies: the tag is a site deploy stamp, its commit is reachable
+      # from main, and site-version.sh --verify finds the dev commit its
+      # -g<sha7> names and recomputes the same version from it. Everything
+      # downstream trusts the tag's version once this passes.
+      - name: Verify tag shape, reachability, and site version
         env:
           TAG: ${{ steps.resolve.outputs.tag }}
         run: |
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::tag '$TAG' is not shaped vX.Y.Z"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-g[0-9a-f]{7}$ ]]; then
+            echo "::error::tag '$TAG' is not a site deploy stamp, v<base>.<epoch>-g<sha7>"
             exit 1
           fi
 
@@ -74,14 +76,13 @@ jobs:
             exit 1
           fi
 
-          PKG_VERSION=$(jq -r .version package.json)
-          TAG_VERSION="${TAG#v}"
-          if [[ "$PKG_VERSION" != "$TAG_VERSION" ]]; then
-            echo "::error::tag $TAG does not match package.json version $PKG_VERSION"
+          if ! VERIFIED=$(scripts/release/site-version.sh --verify "$TAG" 2>&1); then
+            printf '%s\n' "$VERIFIED"
+            echo "::error::tag $TAG is not the site version of the dev commit it names (site-version.sh output above)"
             exit 1
           fi
 
-          echo "integrity gate passed: $TAG == package.json $PKG_VERSION, reachable from main"
+          echo "integrity gate passed: $VERIFIED; reachable from main"
 
   release:
     name: Create GitHub Release
