@@ -169,8 +169,9 @@ If a PR's body has no `## Changelog` section at all, its title becomes a `Change
 `## Changelog` heading and leaves it empty has declared nothing user-facing and adds nothing. To fix a wrong CHANGELOG
 entry, fix the input: edit the squash-merged PR body, then re-run the script. Do **not** edit `CHANGELOG.md` directly.
 
-`scripts/release/preflight.sh mechanics` checks that the top `CHANGELOG.md` section matches the bumped `package.json`
-version and carries no `[Unreleased]` placeholder. `release.yml` extracts the tagged version's section, matched by
+`scripts/release/preflight.sh mechanics` checks that the top `CHANGELOG.md` section's heading is the deploy stamp
+`scripts/release/site-version.sh --verify` recomputes from the `dev` commit it names, and that it carries no
+`[Unreleased]` placeholder. `release.yml` extracts the tagged version's section, matched by
 version string rather than by position, for the GitHub Release body.
 
 ### Why `cliff.toml` skips chore/style/test/ci/build
@@ -198,15 +199,15 @@ published and the pipeline stops.
 
 ### Why backport `main` → `dev` after publish
 
-Once `release.yml` has run and the GitHub Release exists, the release-bookkeeping files on `main` (the root
-`package.json` version, `CHANGELOG.md`) need to reach `dev` so future builds from `dev` report the released version and
-so the next dev work starts from the released baseline.
+Once `release.yml` has run and the GitHub Release exists, the release bookkeeping on `main` (`CHANGELOG.md`) needs to
+reach `dev` so the next dev work starts from the released baseline. The version itself lives in the tag alone, so no
+file carries it.
 
 The backport is a PR opened by `scripts/sync-dev-after-release.sh`, never a merge of `main` into `dev` and never a
-direct push. The squash-merged branches share no recent history, so a merge conflicts on every file both sides
-touched, and a direct push to `dev` bypasses its required status checks. The script writes the released version into
-`package.json` in place, copies `CHANGELOG.md` from `main`, and opens the PR; the postflight backport gate treats that
-merged PR as the durable signal that the backport ran.
+direct push. The squash-merged branches share no recent history, so a merge conflicts on every file both sides touched,
+and a direct push to `dev` bypasses its required status checks. The script copies `CHANGELOG.md` from `main` and opens
+the PR; the postflight backport gate treats its subject, `chore(release): sync dev after v<version>`, on `dev` as the
+durable signal that the backport ran.
 
 A release branch also takes edits nobody predicts (a doc fix, a reverted payload, a deleted config). Each is made
 against `main`'s base, so it reaches `dev` only through the backport; left behind, the next release's overlay restores
