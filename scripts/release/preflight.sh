@@ -93,10 +93,12 @@ gate_surface() {
 # plus release-mechanics sanity: version source of truth, CHANGELOG state,
 # guarded-paths leak check, unguarded docs added to main, diff-B vs dev.
 
+# Only the command runs in a subshell, so gate_pass and gate_fail update the
+# counters print_summary and the exit code read.
 run_step() {
   local desc="$1"
   shift
-  if "$@" >/tmp/preflight-mechanics.log 2>&1; then
+  if (cd "$REPO_ROOT" && "$@") >/tmp/preflight-mechanics.log 2>&1; then
     gate_pass "$desc"
   else
     gate_fail "$desc" "$(tail -n 20 /tmp/preflight-mechanics.log)"
@@ -108,13 +110,13 @@ gate_mechanics() {
   require_bin bun
   require_bin jaq
 
-  (cd "$REPO_ROOT" && run_step "bun install --frozen-lockfile" bun install --frozen-lockfile)
-  (cd "$REPO_ROOT" && run_step "lint (bun run lint)" bun run lint)
-  (cd "$REPO_ROOT" && run_step "format check (bun run format:check)" bun run format:check)
-  (cd "$REPO_ROOT" && run_step "typecheck (bun run typecheck)" bun run typecheck)
-  (cd "$REPO_ROOT" && run_step "build (bun run build)" bun run build)
-  (cd "$REPO_ROOT" && run_step "unit tests (bun run test:all)" bun run test:all)
-  (cd "$REPO_ROOT" && run_step "end-to-end tests (bun run test:e2e)" bun run test:e2e)
+  run_step "bun install --frozen-lockfile" bun install --frozen-lockfile
+  run_step "lint (bun run lint)" bun run lint
+  run_step "format check (bun run format:check)" bun run format:check
+  run_step "typecheck (bun run typecheck)" bun run typecheck
+  run_step "build (bun run build)" bun run build
+  run_step "unit tests (bun run test:all)" bun run test:all
+  run_step "end-to-end tests (bun run test:e2e)" bun run test:e2e
   rm -f /tmp/preflight-mechanics.log
 
   local project_version changelog_version
