@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.02 (generic)
+# Canonical version: 2026.11.03 (generic)
 #
 # lmgroktfy HTTP surface smoke. Invoked against any base URL: the
 # orchestrators (preflight.sh and postflight.sh) call this same script with

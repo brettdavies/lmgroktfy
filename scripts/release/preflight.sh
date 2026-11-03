@@ -274,7 +274,10 @@ gate_mechanics() {
     changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+(-g[0-9a-f]{7})?\]' "$REPO_ROOT/$release_changelog" | tr -d '[]## ' || true)
     if [[ -n "$site" ]]; then
       local verified
-      if verified=$(cd "$REPO_ROOT" && scripts/release/site-version.sh --verify "v$changelog_version" 2>&1); then
+      if git -C "$REPO_ROOT" rev-parse --verify --quiet "refs/tags/v$changelog_version" >/dev/null; then
+        gate_fail "$release_changelog top section = [$changelog_version]" "v$changelog_version is already tagged, so this is a released section, not this release's
+    fix: re-cut the release, writing the section for the next stamp (RELEASES.md § Releasing dev to main)"
+      elif verified=$(cd "$REPO_ROOT" && scripts/release/site-version.sh --verify "v$changelog_version" 2>&1); then
         gate_pass "$release_changelog top section = [$changelog_version] (site-version.sh: ${verified#v"$changelog_version" })"
       else
         gate_fail "$release_changelog top section = [${changelog_version:-none}]" "$verified"

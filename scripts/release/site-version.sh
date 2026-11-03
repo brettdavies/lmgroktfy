@@ -12,7 +12,8 @@
 #
 # The same commit always yields the same version. A version whose numbers do
 # not sort above the newest `v` tag's is refused, so no release tags below one
-# already out. Every caller (the cut, preflight, a release workflow's tag check)
+# already out, and so is one already tagged: a release that is out is never cut
+# again. Every caller (the cut, preflight, a release workflow's tag check)
 # runs this rather than rebuilding the format.
 #
 # Usage:
@@ -29,8 +30,8 @@
 #
 # Exit codes:
 #   0 = printed, or verified
-#   1 = refused: the version does not sort above the newest tag, or VERSION is
-#       not the stamp of a commit on origin/dev
+#   1 = refused: the version is already tagged or does not sort above the newest
+#       tag, or VERSION is not the stamp of a commit on origin/dev
 #   2 = setup error: no SITE_VERSION_BASE, a commit git cannot find, a bad
 #       argument
 #
@@ -112,10 +113,12 @@ above() {
   }'
 }
 
-# guard VERSION: refuses VERSION unless it sorts above every other `v` tag.
+# guard VERSION [EXCEPT]: refuses VERSION unless it sorts above every `v` tag
+# but EXCEPT. --verify passes the stamp's own tag, which a release workflow
+# checks after it is pushed.
 guard() {
   local newest
-  newest=$(newest_tag "v$1")
+  newest=$(newest_tag "${2:-}")
   [[ -z "$newest" ]] || above "v$1" "$newest" \
     || refuse 1 "v$1 does not sort above the newest tag, $newest" \
       "cut from a dev commit newer than $newest's, or raise SITE_VERSION_BASE in scripts/release/release.env above $BASE (a maintainer's decision; the base never goes down)"
@@ -126,6 +129,10 @@ if [[ -z "$VERIFY" ]]; then
     || refuse 2 "$COMMIT names no commit" \
       "git fetch origin dev, or pass --commit <sha> of the dev commit the release is cut from"
   version=$(stamp_of "$sha")
+  if git rev-parse --verify --quiet "refs/tags/v$version" >/dev/null; then
+    refuse 1 "v$version is already tagged: $COMMIT (${sha:0:12}) is released" \
+      "merge the next change into dev and cut from it, or pass --commit <a newer dev commit>"
+  fi
   guard "$version"
   echo "$version"
   exit 0
@@ -143,7 +150,7 @@ expected=""
 while IFS= read -r sha; do
   expected=$(stamp_of "$sha")
   if [[ "$expected" == "$version" ]]; then
-    guard "$version"
+    guard "$version" "v$version"
     echo "v$version is the stamp of $sha on origin/dev"
     exit 0
   fi

@@ -105,9 +105,12 @@ tag, its GitHub Release, its `CHANGELOG.md` section, and the backport to `dev`.
 - `<sha7>` is the first seven characters of that commit's sha.
 
 `scripts/release/site-version.sh` computes it, and every caller runs the helper rather than rebuilding the format: the
-cut names its branch and changelog section from it, preflight checks the changelog heading with
-`site-version.sh --verify`, and the release workflow checks the pushed tag the same way. The same commit always gives
-the same version, and the helper refuses one that does not sort above the newest tag. The changelog keeps its six
+cut names its branch and changelog section from it, and preflight checks the changelog heading with
+`site-version.sh --verify`. The site's release workflow must have `origin/dev`, through an explicit
+`git fetch origin dev` or a checkout with `fetch-depth: 0`, and must run `scripts/release/site-version.sh --verify` on
+the tag it releases before it publishes. `cliff.toml`'s `tag_pattern` region names the stamp too,
+`^v[0-9]+\.[0-9]+\.[0-9]+(-g[0-9a-f]{7})?$`, so git-cliff reads each stamp tag as a release. The same commit always
+gives the same version, and the helper refuses one that does not sort above the newest tag. The changelog keeps its six
 headings (`Breaking changes`, `Added`, `Changed`, `Deprecated`, `Fixed`, `Documentation`) for the notes; they set no
 version.
 

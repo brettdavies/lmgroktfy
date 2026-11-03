@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.02 (generic)
+# Canonical version: 2026.11.03 (generic)
 #
 # Local CI mirror: the whole-repo pre-push gate. Runs the same checks as
 # .github/workflows/test.yml (lint, format, typecheck, build, unit and e2e
@@ -30,6 +30,9 @@
 #
 # Failures aggregate. One run reports every failing step rather than stopping
 # at the first, so a push is fixed in one pass instead of one step at a time.
+#
+# A commit any remote-tracking branch of the pushed remote reaches counts as
+# already checked, so a tag or new branch at one runs nothing.
 #
 # Exit codes: 0 = all pass or nothing to check (the push only deletes, or
 # updates no ref), 1 = failure
