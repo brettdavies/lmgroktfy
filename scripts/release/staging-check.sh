@@ -109,7 +109,8 @@ ready() {
 }
 
 # printf is a builtin, so the values reach only the pipe -K reads, never an argv. -q
-# keeps the operator's curl config out, so nothing follows a redirect or adds a proxy.
+# keeps the operator's curl config out, so it cannot follow a redirect or name a proxy.
+# An environment proxy still applies; over https it sees only the CONNECT.
 with_token() {
   curl -q -g -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' "$id" "$secret") \
     -s --max-time 10 "$@"

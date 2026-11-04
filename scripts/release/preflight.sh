@@ -45,16 +45,19 @@
 # prod after the tag publishes; only the URL differs.
 
 set -euo pipefail
-# A traced run would print the Access credentials captured below.
+# A traced run would print the Access token smoke_with_token reads.
 { set +x; } 2>/dev/null
 
-# Only the staging smoke needs the Access token, so nothing else `all` starts
-# (bun, gh, every package script) inherits it. Cleared first: an exported variable
-# keeps its export attribute when assigned.
-unset ACCESS_CLIENT_ID ACCESS_CLIENT_SECRET
-ACCESS_CLIENT_ID="${CF_ACCESS_CLIENT_ID:-}"
-ACCESS_CLIENT_SECRET="${CF_ACCESS_CLIENT_SECRET:-}"
+# The token is read at smoke time, not taken from here: unset does not change
+# /proc/<pid>/environ, so what this process was started with stays readable to
+# everything `all` starts (bun, gh, every package script) for the whole run.
+if [[ -n "${CF_ACCESS_CLIENT_ID:-}${CF_ACCESS_CLIENT_SECRET:-}" ]]; then
+  echo "preflight: ignoring CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET; the smoke reads the token with op read" >&2
+fi
 unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
+# An exported variable passes its export attribute through `local`, and would carry
+# the token smoke_with_token holds to the smoke's children.
+unset id secret
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 readonly REPO_ROOT
@@ -163,7 +166,7 @@ gate_drift() {
   fi
   header "Branch drift (delegated to drift.sh)"
   if ! git rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
-    gate_skip "drift" "no origin/dev branch (single-branch repo)"
+    gate_fail "drift" "no origin/dev: this repo always has a dev branch, so fetch it (git fetch origin dev)"
     return
   fi
   delegate_or_fail "drift" "$drift_script"
@@ -179,8 +182,15 @@ gate_drift() {
 # Assignments in front of a shell function reach everything it starts, so in
 # front of delegate_to_subscript they would also reach its mktemp and rm.
 smoke_with_token() {
-  CF_ACCESS_CLIENT_ID="$ACCESS_CLIENT_ID" CF_ACCESS_CLIENT_SECRET="$ACCESS_CLIENT_SECRET" \
-    "$(dirname "$0")/surface-smoke.sh" "$@"
+  local id="" secret=""
+  # With no token the smoke sends no headers, and its transport gate fails on the
+  # Access login.
+  if have_bin op; then
+    # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
+    id=$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id") || id=""
+    secret=$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret") || secret=""
+  fi
+  CF_ACCESS_CLIENT_ID="$id" CF_ACCESS_CLIENT_SECRET="$secret" "$(dirname "$0")/surface-smoke.sh" "$@"
 }
 
 gate_surface_smoke() {
@@ -196,7 +206,7 @@ gate_surface_smoke() {
   # unreachable deployment is a failure, not a skip.
   local url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
   if [[ -z "$url" ]]; then
-    gate_skip "surface-smoke" "no staging URL (pass --staging-url or set STAGING_URL_DEFAULT in scripts/release/release.env)"
+    gate_fail "surface-smoke" "no staging URL (pass --staging-url or set STAGING_URL_DEFAULT in scripts/release/release.env)"
     return
   fi
   delegate_or_fail "surface-smoke against $url" smoke_with_token "$url"

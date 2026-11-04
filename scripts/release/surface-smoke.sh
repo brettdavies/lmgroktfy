@@ -206,7 +206,7 @@ gate_transport() {
 check_route() {
   local path="$1" want_type="$2"
   local out code type
-  out=$(smoke_curl -sS -D - -o /dev/null --max-time 10 "$BASE_URL$path" 2>/dev/null || true)
+  out=$(smoke_curl --suppress-connect-headers -sS -D - -o /dev/null --max-time 10 "$BASE_URL$path" 2>/dev/null || true)
   code=$(printf '%s' "$out" | awk 'NR==1{print $2}')
   type=$(printf '%s' "$out" | grep -i '^content-type:' | head -1 | cut -d: -f2- | tr -d '\r' | xargs || true)
   if [[ "$code" == "200" && "$type" == "$want_type"* ]]; then

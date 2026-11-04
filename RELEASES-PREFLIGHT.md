@@ -135,15 +135,24 @@ fails, and every other gate reads that redirect too. `surface-smoke.sh` sends th
 both set and the target is exactly `STAGING_URL_DEFAULT`, through a pipe to curl rather than argv or a file. Any other
 target gets no headers and a warning: Access strips them on staging before the Worker runs, and nothing strips them on
 production. For the same reason the smoke first sends one request without them and withholds the token unless Access
-answers. `preflight.sh` unsets both variables at start and passes them only to the smoke, so the same prefix works for
-`all`. `postflight.sh` passes them to everything it starts, so give them only to its `surface-smoke` subcommand. Set
-them for the one command, so the values never stay in the shell:
+answers.
+
+`preflight.sh` reads the token itself with `op read` when the smoke runs and passes it only to the smoke, so run it with
+neither variable set, `all` included. A process keeps what it was started with readable in `/proc/<pid>/environ` for
+its whole run, where everything `all` starts could read it:
+
+```bash
+scripts/release/preflight.sh surface-smoke
+```
+
+`postflight.sh` takes the variables and passes them to everything it starts, so give them only to its `surface-smoke`
+subcommand, for the one command, so the values never stay in the shell:
 
 ```bash
 # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
 CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id")" \
   CF_ACCESS_CLIENT_SECRET="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret")" \
-  scripts/release/preflight.sh surface-smoke
+  scripts/release/postflight.sh --env staging surface-smoke
 ```
 
 A browser passes Access by signing in. A `curl` of staging needs the same two headers: without them it reads the Access
@@ -157,6 +166,7 @@ scripts prints it.
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
   baked in: `scripts/release/staging-check.sh site-key`.
 - [ ] Tokenless `POST https://dev.lmgroktfy.com/api/grok` returns `403` (fail-closed; matches the production contract).
+  The smoke's live gate asserts this, so it needs no manual request.
 - [ ] `llms.txt`, `.well-known/agent.json`, `.well-known/security.txt`, `sitemap.xml`, `robots.txt`, and at least one
   locale's `index.md` twin all return `200` with the expected content type. The smoke covers all but `agent.json`:
   `scripts/release/staging-check.sh agent-json`.
