@@ -62,7 +62,7 @@ function stub(name: string, body: string, dir = STUBS): void {
 stub(
   'curl',
   `{
-  printf 'CALL first=%s secret-env=%s\\n' "\${1:-}" "\${CF_ACCESS_CLIENT_SECRET:+set}"
+  printf 'CALL first=%s secret-env=%s\\n' "\${1:-}" "$(env | grep -qF -- '${SECRET}' && echo set)"
   printf 'ARGV %s\\n' "$*"
   while [[ $# -gt 0 ]]; do
     if [[ "$1" == "-K" ]]; then
@@ -88,7 +88,7 @@ exit 7`
 // and then fails, the shape of this test file running under `preflight.sh mechanics`.
 stub(
   'bun',
-  `printf 'BUN secret-env=%s\\n' "\${CF_ACCESS_CLIENT_SECRET:+set}" >>"$STUB_LOG"
+  `printf 'BUN secret-env=%s\\n' "$(env | grep -qF -- '${SECRET}' && echo set)" >>"$STUB_LOG"
 if [[ -n "\${STUB_NESTED_PREFLIGHT:-}" && "$*" == "run test:all" ]]; then
   env -u STUB_NESTED_PREFLIGHT "$STUB_NESTED_PREFLIGHT" mechanics >/dev/null 2>&1
   echo outer-failure-detail
@@ -97,15 +97,19 @@ fi`
 );
 stub('jaq', 'exit 0');
 stub(
+  'gh',
+  `printf 'GH secret-env=%s\\n' "$(env | grep -qF -- '${SECRET}' && echo set)" >>"$STUB_LOG"`
+);
+stub(
   'mktemp',
-  `printf 'MKTEMP secret-env=%s\\n' "\${CF_ACCESS_CLIENT_SECRET:+set}" >>"$STUB_LOG"
+  `printf 'MKTEMP secret-env=%s\\n' "$(env | grep -qF -- '${SECRET}' && echo set)" >>"$STUB_LOG"
 exec "$REAL_MKTEMP" "$@"`
 );
 const OP_STUB = `printf 'OP %s\\n' "$2" >>"$STUB_LOG"
 if [[ -n "\${STUB_OP_FAIL:-}" ]]; then exit 1; fi
 case "$2" in
   */client_id) printf '%s\\n' '${ID}' ;;
-  */client_secret) printf '%s\\n' "\${STUB_OP_SECRET:-${SECRET}}" ;;
+  */client_secret) printf '%s\\n' "\${STUB_OP_SECRET-${SECRET}}" ;;
   *) exit 1 ;;
 esac`;
 stub('op', OP_STUB);
@@ -393,6 +397,20 @@ describe('preflight.sh', () => {
     expect(output).toContain('outer-failure-detail');
   }, 60_000);
 
+  test('does not export the token when its variable names are already exported', () => {
+    const { log } = run([PREFLIGHT, 'surface-smoke'], {
+      ...CREDENTIALS,
+      ACCESS_CLIENT_ID: 'preset',
+      ACCESS_CLIENT_SECRET: 'preset',
+      ACCESS_ID: 'preset',
+      ACCESS_SECRET: 'preset',
+      ACCESS_HEADERS: 'preset',
+    });
+
+    expectHeadersOnEveryRequest(log);
+    expect(count(log, (line) => line.includes('secret-env=set'))).toBe(0);
+  });
+
   test('does not print the token under bash -x', () => {
     const { log, output } = run(['bash', '-x', PREFLIGHT, 'surface-smoke'], CREDENTIALS);
 
@@ -428,13 +446,6 @@ describe('staging-curl.sh', () => {
       '-',
       '-w',
       '%{http_code}',
-      '-X',
-      'POST',
-      '-H',
-      'Content-Type: application/json',
-      '-d',
-      '{}',
-      '-I',
       '--suppress-connect-headers',
     ]);
 
@@ -476,6 +487,15 @@ describe('staging-curl.sh', () => {
     ['verbose output, which prints the token', ['/', '-v']],
     ['a trace, which prints the token', ['/', '--trace-ascii', '-']],
     ['an allowed option with no value', ['/', '-o']],
+    ['a Host header, which Cloudflare routes on', ['/', '-H', 'Host: lmgroktfy.com']],
+    ['any header at all', ['/', '-H', 'Content-Type: application/json']],
+    ['another method', ['/', '-X', 'POST']],
+    ['a request body', ['/', '-d', '{}']],
+    ['--head', ['/', '-I']],
+    ['headers written to a file, which would hold the cookie', ['/', '-D', 'headers.txt']],
+    ['a write-out reading all headers', ['/', '-w', '%{header_json}']],
+    ['a write-out reading one header', ['/', '-w', '%header{set-cookie}']],
+    ['a write-out format from a file', ['/', '-w', '@format.txt']],
   ])('refuses %s, before any request', (_name, args) => {
     const { exitCode, log } = run([STAGING_CURL, ...args]);
 
@@ -484,12 +504,41 @@ describe('staging-curl.sh', () => {
     expect(count(log, (line) => line.startsWith('OP '))).toBe(0);
   });
 
+  test('strips the Access cookie from the response headers it prints', () => {
+    const { exitCode, output } = run([STAGING_CURL, '/', '-D', '-', '-o', '/dev/null'], {
+      STUB_RESPONSE:
+        'HTTP/2 200 \r\nSet-Cookie: CF_Authorization=dummycookie\r\nx-frame-options: DENY\r\n\r\n',
+    });
+
+    expect(exitCode).toBe(0);
+    expect(output).toContain('x-frame-options: DENY');
+    expect(output).not.toContain('dummycookie');
+  });
+
+  test('reports the status of curl, not of the cookie filter', () => {
+    expect(run([STAGING_CURL, '/', '-D', '-', '-o', '/dev/null']).exitCode).toBe(7);
+  });
+
   test('sends nothing when op read fails', () => {
     const { exitCode, log } = run([STAGING_CURL, '/'], { STUB_OP_FAIL: '1' });
 
     expect(exitCode).toBe(1);
     expect(count(log, isCall)).toBe(1);
     expect(count(log, namesHeader)).toBe(0);
+  });
+
+  test('refuses a blank secret from op', () => {
+    const { exitCode, log } = run([STAGING_CURL, '/'], { STUB_OP_SECRET: '' });
+
+    expect(exitCode).toBe(2);
+    expect(count(log, namesHeader)).toBe(0);
+  });
+
+  test('does not export the token when its variable names are already exported', () => {
+    const { log } = run([STAGING_CURL, '/'], { id: 'preset', secret: 'preset' });
+
+    expect(count(log, (line) => line.endsWith(SECRET_HEADER))).toBe(1);
+    expect(count(log, (line) => line.includes('secret-env=set'))).toBe(0);
   });
 
   test.each(BAD_VALUES)(
@@ -558,11 +607,25 @@ describe('staging-curl.sh', () => {
 
     const behindAccess = ({ secret }: Seen) =>
       secret
-        ? new Response('ok')
+        ? new Response('ok', { headers: { 'Set-Cookie': 'CF_Authorization=dummycookie' } })
         : new Response(null, {
             status: 302,
             headers: { Location: '/cdn-cgi/access/login/staging' },
           });
+
+    test('never prints the cookie Access returns', async () => {
+      const { exitCode, stdout } = await runAgainst('real-cookie', behindAccess, [
+        '/',
+        '-D',
+        '-',
+        '-o',
+        '/dev/null',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(stdout.toLowerCase()).toContain('http/1.1 200');
+      expect(stdout).not.toContain('dummycookie');
+    });
 
     test('delivers both headers, only after a request without them', async () => {
       const { exitCode, stdout, seen } = await runAgainst('real-behind-access', behindAccess, [
