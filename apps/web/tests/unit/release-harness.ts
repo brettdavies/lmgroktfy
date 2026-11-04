@@ -45,6 +45,10 @@ export function expectHeadersOnEveryRequest(log: string[]): void {
 // under any variable name shows up, not only under its original one.
 const SECRET_IN_ENV = `"$(env | grep -qF -- '${SECRET}' && echo set)"`;
 
+// Unsetting a variable does not change /proc/<pid>/environ, so a parent started with
+// the token stays readable to everything it starts.
+const SECRET_IN_PARENT = `"$(tr '\\0' '\\n' </proc/$PPID/environ 2>/dev/null | grep -qF -- '${SECRET}' && echo set)"`;
+
 // Records what each curl call was handed, including the config it read from -K and
 // whether that config came through a pipe, and makes no network call. A call with no
 // -K answers $STUB_HEADERLESS, the `<status> <redirect>` a gated host gives a request
@@ -75,7 +79,7 @@ exit 7`;
 
 // With $STUB_NESTED_PREFLIGHT set, the test suite step runs a whole inner preflight and
 // then fails, the shape of these test files running under `preflight.sh mechanics`.
-const BUN_STUB = `printf 'BUN secret-env=%s\\n' ${SECRET_IN_ENV} >>"$STUB_LOG"
+const BUN_STUB = `printf 'BUN secret-env=%s parent-env=%s\\n' ${SECRET_IN_ENV} ${SECRET_IN_PARENT} >>"$STUB_LOG"
 if [[ -n "\${STUB_NESTED_PREFLIGHT:-}" && "$*" == "run test:all" ]]; then
   env -u STUB_NESTED_PREFLIGHT "$STUB_NESTED_PREFLIGHT" mechanics >/dev/null 2>&1
   echo outer-failure-detail
@@ -85,7 +89,7 @@ fi`;
 const OP_STUB = `printf 'OP %s\\n' "$2" >>"$STUB_LOG"
 if [[ -n "\${STUB_OP_FAIL:-}" ]]; then exit 1; fi
 case "$2" in
-  */client_id) printf '%s\\n' '${ID}' ;;
+  */client_id) printf '%s\\n' "\${STUB_OP_ID-${ID}}" ;;
   */client_secret) printf '%s\\n' "\${STUB_OP_SECRET-${SECRET}}" ;;
   *) exit 1 ;;
 esac`;

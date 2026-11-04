@@ -12,6 +12,7 @@ import {
   isArgv,
   isCall,
   makeHarness,
+  PREFLIGHT,
   ROOT,
   SECRET,
   SECRET_HEADER,
@@ -253,6 +254,13 @@ describe.each(CHECKS)('staging-check.sh %s', (check) => {
     }
   );
 
+  test('refuses a malformed id from op', async () => {
+    const { exitCode, seen } = await serve(check, { env: { STUB_OP_ID: 'abc"def' } });
+
+    expect(exitCode).toBe(2);
+    expect(seen.filter(({ id }) => id !== null)).toEqual([]);
+  });
+
   test('sends nothing when op read fails', async () => {
     const { exitCode, seen } = await serve(check, { env: { STUB_OP_FAIL: '1' } });
 
@@ -368,12 +376,20 @@ describe('RELEASES-PREFLIGHT.md Access commands', () => {
 
     expect(items(RUNBOOK)).toHaveLength(1);
     expect(items(SCRIPT)).toEqual(items(RUNBOOK));
+    expect(items(readFileSync(PREFLIGHT, 'utf-8'))).toEqual(items(RUNBOOK));
   });
 
-  test('the documented smoke command reaches the smoke with the token', () => {
+  test('the documented preflight command reaches the smoke with the token, and no prefix', () => {
+    const block = RUNBOOK.match(/^scripts\/release\/preflight\.sh surface-smoke$/m)?.[0] ?? '';
+
+    expect(block).not.toBe('');
+    expectHeadersOnEveryRequest(run(['bash', '-c', block]).log);
+  });
+
+  test('the documented postflight command reaches the smoke with the token', () => {
     const block =
       RUNBOOK.match(
-        /^CF_ACCESS_CLIENT_ID="\$\(op read [\s\S]*?preflight\.sh surface-smoke$/m
+        /^CF_ACCESS_CLIENT_ID="\$\(op read [\s\S]*?postflight\.sh --env staging surface-smoke$/m
       )?.[0] ?? '';
 
     expect(block).not.toBe('');

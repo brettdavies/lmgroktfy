@@ -17,8 +17,12 @@ import {
 const { run, scratch, cleanup } = makeHarness();
 afterAll(cleanup);
 
+// A closed environment: GIT_DIR, exported by git to its hooks, outranks -C and would
+// point these commands at the repository under test.
 function git(args: string[]): void {
-  Bun.spawnSync(['git', ...args]);
+  Bun.spawnSync(['git', ...args], {
+    env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' },
+  });
 }
 
 // A throwaway repository holding the release scripts, for runs that must not touch this
@@ -45,8 +49,8 @@ function scriptsInScratchRepo(name: string): string {
 }
 
 describe('preflight.sh', () => {
-  test('passes the token to the staging smoke and to nothing the delegation helper starts', () => {
-    const { log } = run([PREFLIGHT, 'surface-smoke'], CREDENTIALS);
+  test('reads the token itself, and passes it to the smoke and to nothing the delegation helper starts', () => {
+    const { log } = run([PREFLIGHT, 'surface-smoke']);
 
     expectHeadersOnEveryRequest(log);
     expect(count(log, (line) => line.startsWith('MKTEMP '))).toBeGreaterThan(0);
@@ -54,10 +58,7 @@ describe('preflight.sh', () => {
   });
 
   test('fails the gate on a rejected value', () => {
-    const { exitCode, log } = run([PREFLIGHT, 'surface-smoke'], {
-      CF_ACCESS_CLIENT_ID: ID,
-      CF_ACCESS_CLIENT_SECRET: 'abc"def',
-    });
+    const { exitCode, log } = run([PREFLIGHT, 'surface-smoke'], { STUB_OP_SECRET: 'abc"def' });
 
     expect(exitCode).toBe(1);
     expect(count(log, isCall)).toBe(0);
@@ -72,6 +73,40 @@ describe('preflight.sh', () => {
     expect(exitCode).toBe(1);
     expect(output).toContain('recorded no gates');
     expect(count(log, isCall)).toBe(0);
+  });
+
+  test('ignores a token in its environment, with a warning, and passes it to nothing', () => {
+    const smoke = run([PREFLIGHT, 'surface-smoke'], { ...CREDENTIALS, STUB_OP_FAIL: '1' });
+    const mechanics = run([PREFLIGHT, 'mechanics'], CREDENTIALS);
+
+    expect(smoke.output).toContain('ignoring CF_ACCESS_CLIENT_ID');
+    expect(count(smoke.log, (line) => line.includes('CF-Access-Client'))).toBe(0);
+    expect(count(mechanics.log, (line) => line.startsWith('BUN '))).toBeGreaterThan(0);
+    expect(count(mechanics.log, holdsSecretInEnv)).toBe(0);
+  }, 60_000);
+
+  test('fails when there is no staging URL', () => {
+    const copy = join(scratch, 'no-staging-url');
+    cpSync(join(ROOT, 'scripts/release'), join(copy, 'scripts/release'), { recursive: true });
+    writeFileSync(join(copy, 'scripts/release/release.env'), 'SITE_VERSION_BASE="2.0"\n');
+
+    const { exitCode, output } = run([join(copy, 'scripts/release/preflight.sh'), 'surface-smoke']);
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain('no staging URL');
+  });
+
+  test('fails when the clone has no origin/dev', () => {
+    const copy = scriptsInScratchRepo('no-origin-dev');
+
+    const { exitCode, output } = run(
+      [join(copy, 'scripts/release/preflight.sh'), 'drift'],
+      {},
+      copy
+    );
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain('no origin/dev');
   });
 
   test('fails when the smoke script cannot run', () => {
@@ -117,11 +152,12 @@ describe('preflight.sh', () => {
   test('hides the token from everything `all` starts, before and after the smoke', () => {
     const copy = scriptsInScratchRepo('all');
 
-    const { log } = run([join(copy, 'scripts/release/preflight.sh'), 'all'], CREDENTIALS, copy);
+    const { log } = run([join(copy, 'scripts/release/preflight.sh'), 'all'], {}, copy);
 
     expectHeadersOnEveryRequest(log);
     expect(count(log, (line) => line.startsWith('BUN '))).toBeGreaterThan(0);
     expect(count(log, holdsSecretInEnv)).toBe(0);
+    expect(count(log, (line) => line.includes('parent-env=set'))).toBe(0);
   }, 60_000);
 
   test('keeps the detail of a failing step when a nested preflight runs inside it', () => {
@@ -132,9 +168,8 @@ describe('preflight.sh', () => {
 
   test('does not export the token when its variable names are already exported', () => {
     const { log } = run([PREFLIGHT, 'surface-smoke'], {
-      ...CREDENTIALS,
-      ACCESS_CLIENT_ID: 'preset',
-      ACCESS_CLIENT_SECRET: 'preset',
+      id: 'preset',
+      secret: 'preset',
       ACCESS_ID: 'preset',
       ACCESS_SECRET: 'preset',
       ACCESS_HEADERS: 'preset',
@@ -145,7 +180,7 @@ describe('preflight.sh', () => {
   });
 
   test('does not print the token under bash -x', () => {
-    const { log, output } = run(['bash', '-x', PREFLIGHT, 'surface-smoke'], CREDENTIALS);
+    const { log, output } = run(['bash', '-x', PREFLIGHT, 'surface-smoke']);
 
     expectHeadersOnEveryRequest(log);
     expect(output).not.toContain(SECRET);
