@@ -142,7 +142,9 @@ CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/clie
   scripts/release/preflight.sh surface-smoke
 ```
 
-A browser passes Access by signing in. The manual `curl` checks below need the same two headers.
+A browser passes Access by signing in. A manual `curl` of staging needs the same two headers, the
+Turnstile-tokenless `POST` included: without them it reads the Access login's `302`. The HSTS check below shows how
+to send them.
 
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
   baked in.
@@ -153,10 +155,20 @@ A browser passes Access by signing in. The manual `curl` checks below need the s
   submit a question, confirm an answer renders. Cannot be automated: a managed challenge has no headless solve path.
 - [ ] Second identical question on staging serves the cached answer (KV `ANSWER_CACHE` hit). Already asserted by
   `bun run test:e2e`; re-confirm manually if the cache layer changed this release.
-- [ ] Security headers present with no HSTS on staging (`CLOUDFLARE_ENV=staging` never emits it):
+- [ ] Security headers present with no HSTS on staging (`CLOUDFLARE_ENV=staging` never emits it). Expect
+  `HTTP 200, HSTS absent` and exit `0`. Only a `200` shows the check reached the Worker, because the Access login's
+  `302` carries no HSTS either. `printf` is a shell builtin, so the values never reach an argv:
 
   ```bash
-  curl -s -D - -o /dev/null https://dev.lmgroktfy.com/ | grep -i strict-transport   # expect no output
+  # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
+  curl -sS -D - -o /dev/null --max-time 10 \
+    -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' \
+      "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id")" \
+      "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret")") \
+    https://dev.lmgroktfy.com/ |
+    awk 'NR == 1 { status = $2 }
+      tolower($0) ~ /^strict-transport-security:/ { hsts = 1 }
+      END { print "HTTP " status ", HSTS " (hsts ? "present" : "absent"); exit !(status == 200 && !hsts) }'
   ```
 
 ### Release mechanics sanity
