@@ -45,6 +45,14 @@
 # prod after the tag publishes; only the URL differs.
 
 set -euo pipefail
+# A traced run would print the Access credentials captured below.
+{ set +x; } 2>/dev/null
+
+# Only the staging smoke needs the Access token, so nothing else `all` starts
+# (bun, gh, every package script) inherits it.
+ACCESS_CLIENT_ID="${CF_ACCESS_CLIENT_ID:-}"
+ACCESS_CLIENT_SECRET="${CF_ACCESS_CLIENT_SECRET:-}"
+unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 readonly REPO_ROOT
@@ -164,7 +172,8 @@ gate_surface_smoke() {
     gate_skip "surface-smoke" "no staging URL (pass --staging-url or set STAGING_URL_DEFAULT in scripts/release/release.env)"
     return
   fi
-  delegate_to_subscript "$surface_script" "$url"
+  CF_ACCESS_CLIENT_ID="$ACCESS_CLIENT_ID" CF_ACCESS_CLIENT_SECRET="$ACCESS_CLIENT_SECRET" \
+    delegate_to_subscript "$surface_script" "$url"
 }
 
 # Gate: changelog-sections ---------------------------------------------------
