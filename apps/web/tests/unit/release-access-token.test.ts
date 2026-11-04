@@ -1,5 +1,13 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { chmodSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { SECURITY_HEADERS } from '../../src/lib/security-headers.ts';
@@ -22,35 +30,46 @@ const NOT_ACCESS = [
   ['the page itself', '200 '],
   ['a redirect that stays on the host', '302 https://dev.lmgroktfy.com/elsewhere'],
   ['a redirect to another host that is not Access', '302 https://example.com/'],
+  ['a 403', '403 '],
+  ['a 401', '401 '],
   ['no answer', '000 '],
 ];
-const ACCESS_ANSWERS = [
-  ['its login redirect', ACCESS_LOGIN],
-  ['403 from strict service-token mode', '403 '],
-  ['401 from strict service-token mode', '401 '],
+const BAD_VALUES = [
+  ['a quote', 'abc"def'],
+  ['a newline that adds a url', 'abc\nurl = "http://127.0.0.1:9/x"'],
+  ['a space', 'abc def'],
+  ['a backslash', 'abc\\def'],
 ];
 
 const SCRATCH = mkdtempSync(join(tmpdir(), 'release-access-token-'));
 const STUB_LOG = join(SCRATCH, 'stub.log');
+const STUBS = join(SCRATCH, 'stubs');
+const OP_ONLY = join(SCRATCH, 'op-only');
+mkdirSync(STUBS);
+mkdirSync(OP_ONLY);
 
-function stub(name: string, body: string): void {
-  const path = join(SCRATCH, name);
+function stub(name: string, body: string, dir = STUBS): void {
+  const path = join(dir, name);
   writeFileSync(path, `#!/usr/bin/env bash\n${body}\n`);
   chmodSync(path, 0o700);
 }
 
-// Records what each curl call was handed, including the config it read from -K,
-// and makes no network call. A call with no -K answers $STUB_HEADERLESS, the
-// `<status> <redirect>` a gated host gives a request with no credentials. A call
-// with -K answers $STUB_RESPONSE when it is set, and otherwise like a refused
-// connection.
+// Records what each curl call was handed, including the config it read from -K and
+// whether that config came through a pipe, and makes no network call. A call with
+// no -K answers $STUB_HEADERLESS, the `<status> <redirect>` a gated host gives a
+// request with no credentials. A call with -K answers $STUB_RESPONSE when it is set,
+// and otherwise like a refused connection.
 stub(
   'curl',
   `{
   printf 'CALL first=%s secret-env=%s\\n' "\${1:-}" "\${CF_ACCESS_CLIENT_SECRET:+set}"
   printf 'ARGV %s\\n' "$*"
   while [[ $# -gt 0 ]]; do
-    if [[ "$1" == "-K" ]]; then cat "$2"; config=yes; fi
+    if [[ "$1" == "-K" ]]; then
+      if [[ -p "$2" ]]; then echo 'CONFIG-KIND=pipe'; else echo 'CONFIG-KIND=file'; fi
+      cat "$2"
+      config=yes
+    fi
     shift
   done
 } >>"$STUB_LOG"
@@ -82,15 +101,15 @@ stub(
   `printf 'MKTEMP secret-env=%s\\n' "\${CF_ACCESS_CLIENT_SECRET:+set}" >>"$STUB_LOG"
 exec "$REAL_MKTEMP" "$@"`
 );
-stub(
-  'op',
-  `printf 'OP %s\\n' "$2" >>"$STUB_LOG"
+const OP_STUB = `printf 'OP %s\\n' "$2" >>"$STUB_LOG"
+if [[ -n "\${STUB_OP_FAIL:-}" ]]; then exit 1; fi
 case "$2" in
   */client_id) printf '%s\\n' '${ID}' ;;
-  */client_secret) printf '%s\\n' '${SECRET}' ;;
+  */client_secret) printf '%s\\n' "\${STUB_OP_SECRET:-${SECRET}}" ;;
   *) exit 1 ;;
-esac`
-);
+esac`;
+stub('op', OP_STUB);
+stub('op', OP_STUB, OP_ONLY);
 
 afterAll(() => {
   rmSync(SCRATCH, { recursive: true, force: true });
@@ -104,7 +123,7 @@ function run(cmd: string[], env: Record<string, string> = {}, cwd = ROOT): Run {
     cmd,
     cwd,
     env: {
-      PATH: `${SCRATCH}:${process.env.PATH}`,
+      PATH: `${STUBS}:${process.env.PATH}`,
       HOME: process.env.HOME ?? SCRATCH,
       STUB_LOG,
       STUB_HEADERLESS: ACCESS_LOGIN,
@@ -126,8 +145,9 @@ function count(lines: string[], matches: (line: string) => boolean): number {
 }
 
 const isCall = (line: string) => line.startsWith('CALL ');
+const isArgv = (line: string) => line.startsWith('ARGV ');
 const namesHeader = (line: string) => line.includes('CF-Access-Client');
-const argvHoldsSecret = (line: string) => line.startsWith('ARGV ') && line.includes(SECRET);
+const argvHoldsSecret = (line: string) => isArgv(line) && line.includes(SECRET);
 
 function expectHeadersOnEveryRequest(log: string[]): void {
   expect(count(log, (line) => line.endsWith(ID_HEADER))).toBe(SMOKE_REQUESTS);
@@ -142,14 +162,17 @@ function runbookBlock(pattern: RegExp): string {
   return match[0];
 }
 
+function git(args: string[]): void {
+  Bun.spawnSync(['git', ...args]);
+}
+
 // A throwaway repository holding the release scripts, for runs that must not touch
-// this checkout: `all` runs drift.sh, which fetches.
+// this checkout: drift.sh, which `all` runs, fetches.
 function scriptsInScratchRepo(name: string): string {
   const copy = join(SCRATCH, name);
   cpSync(join(ROOT, 'scripts/release'), join(copy, 'scripts/release'), { recursive: true });
-  Bun.spawnSync(['git', 'init', '-q', copy]);
-  Bun.spawnSync([
-    'git',
+  git(['init', '-q', copy]);
+  git([
     '-C',
     copy,
     '-c',
@@ -171,6 +194,8 @@ describe('surface-smoke.sh Access headers', () => {
     const { log } = run([SMOKE, STAGING], CREDENTIALS);
 
     expectHeadersOnEveryRequest(log);
+    expect(count(log, (line) => line === 'CONFIG-KIND=pipe')).toBe(SMOKE_REQUESTS);
+    expect(count(log, (line) => line === 'CONFIG-KIND=file')).toBe(0);
     expect(count(log, (line) => isCall(line) && !line.startsWith('CALL first=-q '))).toBe(0);
     expect(count(log, argvHoldsSecret)).toBe(0);
     expect(count(log, (line) => line.includes('secret-env=set'))).toBe(0);
@@ -180,15 +205,16 @@ describe('surface-smoke.sh Access headers', () => {
     const { log } = run([SMOKE, `${STAGING}/`], CREDENTIALS);
 
     expectHeadersOnEveryRequest(log);
-    expect(
-      count(log, (line) => line.startsWith('ARGV ') && line.endsWith(`${STAGING}/llms.txt`))
-    ).toBe(1);
+    expect(count(log, (line) => isArgv(line) && line.endsWith(`${STAGING}/llms.txt`))).toBe(1);
   });
 
-  test.each(ACCESS_ANSWERS)('go out once Access answers without them with %s', (_name, answer) => {
-    const { exitCode, log } = run([SMOKE, STAGING], { ...CREDENTIALS, STUB_HEADERLESS: answer });
+  test('go out only after the Worker route answers with the Access login, without them', () => {
+    const { exitCode, log } = run([SMOKE, STAGING], CREDENTIALS);
+    const argvs = log.filter(isArgv);
 
-    expectHeadersOnEveryRequest(log);
+    expect(argvs[0]).not.toContain('-K');
+    expect(argvs[0]?.endsWith(`${STAGING}/api/grok`)).toBe(true);
+    expect(count(argvs, (line) => line.includes('-K'))).toBe(SMOKE_REQUESTS);
     // Every credentialed request fails under this stub, the shape of a rejected token.
     expect(exitCode).toBe(1);
   });
@@ -243,24 +269,32 @@ describe('surface-smoke.sh Access headers', () => {
     expect(output).not.toContain(ID);
   });
 
-  test.each([
-    ['a quote', 'abc"def'],
-    ['a newline that adds a url', 'abc\nurl = "http://127.0.0.1:9/x"'],
-    ['a space', 'abc def'],
-    ['a backslash', 'abc\\def'],
-  ])('reject %s before any request, as a counted failure', (_name, value) => {
-    const resultFile = join(SCRATCH, 'result');
-    writeFileSync(resultFile, '');
+  test.each(BAD_VALUES)(
+    'reject a secret holding %s before any request, as a counted failure',
+    (_name, value) => {
+      const resultFile = join(SCRATCH, 'result');
+      writeFileSync(resultFile, '');
 
-    const { exitCode, log, output } = run([SMOKE, STAGING, '--result-file', resultFile], {
-      CF_ACCESS_CLIENT_ID: ID,
-      CF_ACCESS_CLIENT_SECRET: value,
+      const { exitCode, log, output } = run([SMOKE, STAGING, '--result-file', resultFile], {
+        CF_ACCESS_CLIENT_ID: ID,
+        CF_ACCESS_CLIENT_SECRET: value,
+      });
+
+      expect(exitCode).toBe(2);
+      expect(readFileSync(resultFile, 'utf-8')).toBe('0 1 0\n');
+      expect(count(log, isCall)).toBe(0);
+      expect(output).not.toContain('abc');
+    }
+  );
+
+  test('reject a malformed id the same way', () => {
+    const { exitCode, log } = run([SMOKE, STAGING], {
+      CF_ACCESS_CLIENT_ID: 'abc"def',
+      CF_ACCESS_CLIENT_SECRET: SECRET,
     });
 
     expect(exitCode).toBe(2);
-    expect(readFileSync(resultFile, 'utf-8')).toBe('0 1 0\n');
     expect(count(log, isCall)).toBe(0);
-    expect(output).not.toContain('abc');
   });
 
   test('accept the id and secret formats Cloudflare issues', () => {
@@ -273,7 +307,7 @@ describe('surface-smoke.sh Access headers', () => {
   });
 });
 
-describe('preflight.sh Access token scope', () => {
+describe('preflight.sh', () => {
   test('passes the token to the staging smoke and to nothing the delegation helper starts', () => {
     const { log } = run([PREFLIGHT, 'surface-smoke'], CREDENTIALS);
 
@@ -308,7 +342,39 @@ describe('preflight.sh Access token scope', () => {
     cpSync(join(ROOT, 'scripts/release'), join(copy, 'scripts/release'), { recursive: true });
     chmodSync(join(copy, 'scripts/release/surface-smoke.sh'), 0o600);
 
-    expect(run([join(copy, 'scripts/release/preflight.sh'), 'surface-smoke']).exitCode).toBe(1);
+    const { exitCode, output } = run([join(copy, 'scripts/release/preflight.sh'), 'surface-smoke']);
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain('surface-smoke.sh is missing or not executable');
+  });
+
+  test('fails when drift.sh cannot run', () => {
+    const copy = scriptsInScratchRepo('drift-not-executable');
+    chmodSync(join(copy, 'scripts/release/drift.sh'), 0o600);
+
+    const { exitCode, output } = run(
+      [join(copy, 'scripts/release/preflight.sh'), 'drift'],
+      {},
+      copy
+    );
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain('drift.sh is missing or not executable');
+  });
+
+  test('fails when drift.sh exits without recording anything', () => {
+    const copy = scriptsInScratchRepo('drift-records-nothing');
+    git(['-C', copy, 'update-ref', 'refs/remotes/origin/dev', 'HEAD']);
+    writeFileSync(join(copy, 'scripts/release/drift.sh'), '#!/usr/bin/env bash\nexit 2\n');
+
+    const { exitCode, output } = run(
+      [join(copy, 'scripts/release/preflight.sh'), 'drift'],
+      {},
+      copy
+    );
+
+    expect(exitCode).toBe(1);
+    expect(output).toContain('recorded no gates');
   });
 
   test('hides the token from everything `all` starts, before and after the smoke', () => {
@@ -328,48 +394,60 @@ describe('preflight.sh Access token scope', () => {
   }, 60_000);
 
   test('does not print the token under bash -x', () => {
-    const { output } = run(['bash', '-x', PREFLIGHT, 'surface-smoke'], CREDENTIALS);
+    const { log, output } = run(['bash', '-x', PREFLIGHT, 'surface-smoke'], CREDENTIALS);
 
+    expectHeadersOnEveryRequest(log);
     expect(output).not.toContain(SECRET);
     expect(output).not.toContain(ID);
   });
 });
 
 describe('staging-curl.sh', () => {
-  test('confirms Access answers, then sends the headers through a pipe behind -q', () => {
+  test('probes the route it was given without the token, then sends it through a pipe behind -q', () => {
     const { log } = run([STAGING_CURL, '/some/route', '-o', '/dev/null']);
-    const calls = log.filter(isCall);
-    const argvs = log.filter((line) => line.startsWith('ARGV '));
+    const argvs = log.filter(isArgv);
 
-    expect(calls).toHaveLength(2);
-    expect(count(calls, (line) => line.startsWith('CALL first=-q '))).toBe(2);
+    expect(count(log, (line) => line.startsWith('CALL first=-q '))).toBe(2);
     expect(argvs[0]).not.toContain('-K');
+    expect(argvs[0]?.endsWith(`${STAGING}/some/route`)).toBe(true);
     expect(argvs[1]).toContain('-K');
+    expect(argvs[1]?.endsWith(`${STAGING}/some/route`)).toBe(true);
+    expect(count(log, (line) => line === 'CONFIG-KIND=pipe')).toBe(1);
     expect(count(log, (line) => line.endsWith(ID_HEADER))).toBe(1);
     expect(count(log, (line) => line.endsWith(SECRET_HEADER))).toBe(1);
     expect(count(log, argvHoldsSecret)).toBe(0);
   });
 
-  test('puts its own redirect limit and the staging URL after the caller options', () => {
-    const { log } = run([STAGING_CURL, '/some/route', '-L']);
+  test('passes the options it allows, and keeps the staging URL last', () => {
+    const { log } = run([
+      STAGING_CURL,
+      '/x',
+      '-o',
+      '/dev/null',
+      '-D',
+      '-',
+      '-w',
+      '%{http_code}',
+      '-X',
+      'POST',
+      '-H',
+      'Content-Type: application/json',
+      '-d',
+      '{}',
+      '-I',
+      '--suppress-connect-headers',
+    ]);
 
     expect(
       count(
         log,
         (line) =>
-          line.startsWith('ARGV ') && line.endsWith(`-L --max-redirs 0 ${STAGING}/some/route`)
+          isArgv(line) &&
+          line.includes('--suppress-connect-headers') &&
+          line.endsWith(`${STAGING}/x`)
       )
     ).toBe(1);
   });
-
-  test.each(ACCESS_ANSWERS)(
-    'sends the token once Access answers without it with %s',
-    (_name, answer) => {
-      const { log } = run([STAGING_CURL, '/'], { STUB_HEADERLESS: answer });
-
-      expect(count(log, (line) => line.endsWith(SECRET_HEADER))).toBe(1);
-    }
-  );
 
   test.each(NOT_ACCESS)(
     'withholds the token, unread, when the host answers without it with %s',
@@ -386,15 +464,45 @@ describe('staging-curl.sh', () => {
   test.each([
     ['userinfo', ['@evil.example/']],
     ['a host suffix', ['.evil.example/']],
-    ['a bare host', ['evil.example/']],
+    ['a bare host as the route', ['evil.example/']],
     ['nothing', []],
     ['a second URL', ['/', 'https://evil.example/']],
+    ['a bare second host', ['/', 'evil.example/']],
+    ['--url', ['/', '--url', 'evil.example/']],
+    ['--next', ['/', '--next', 'evil.example/']],
+    ['a config file', ['/', '-K', '/dev/null']],
+    ['a proxy', ['/', '-x', 'evil.example:8080']],
+    ['following redirects', ['/', '-L']],
+    ['verbose output, which prints the token', ['/', '-v']],
+    ['a trace, which prints the token', ['/', '--trace-ascii', '-']],
+    ['an allowed option with no value', ['/', '-o']],
   ])('refuses %s, before any request', (_name, args) => {
     const { exitCode, log } = run([STAGING_CURL, ...args]);
 
     expect(exitCode).toBe(2);
     expect(count(log, isCall)).toBe(0);
+    expect(count(log, (line) => line.startsWith('OP '))).toBe(0);
   });
+
+  test('sends nothing when op read fails', () => {
+    const { exitCode, log } = run([STAGING_CURL, '/'], { STUB_OP_FAIL: '1' });
+
+    expect(exitCode).toBe(1);
+    expect(count(log, isCall)).toBe(1);
+    expect(count(log, namesHeader)).toBe(0);
+  });
+
+  test.each(BAD_VALUES)(
+    'refuses a secret from op holding %s, without echoing it',
+    (_name, value) => {
+      const { exitCode, log, output } = run([STAGING_CURL, '/'], { STUB_OP_SECRET: value });
+
+      expect(exitCode).toBe(2);
+      expect(count(log, isCall)).toBe(1);
+      expect(count(log, namesHeader)).toBe(0);
+      expect(output).not.toContain('abc');
+    }
+  );
 
   test('does not print the token under bash -x', () => {
     const { log, output } = run(['bash', '-x', STAGING_CURL, '/']);
@@ -403,59 +511,159 @@ describe('staging-curl.sh', () => {
     expect(output).not.toContain(SECRET);
     expect(output).not.toContain(ID);
   });
-});
 
-describe('real curl', () => {
-  test.each([
-    ['surface-smoke.sh', [SMOKE, STAGING], CREDENTIALS],
-    ['staging-curl.sh', [STAGING_CURL, '/'], {}],
-  ] as [string, string[], Record<string, string>][])(
-    'accepts the config %s hands it',
-    async (_name, cmd, env) => {
-      const configLines = run(cmd, env).log.filter(
-        (line) => namesHeader(line) && !line.startsWith('ARGV ')
-      );
-      const configPath = join(SCRATCH, 'captured-config');
-      writeFileSync(configPath, `${configLines.slice(0, 2).join('\n')}\n`);
-      const seen: Headers[] = [];
+  describe('under real curl, against a loopback server', () => {
+    type Seen = { path: string; id: string | null; secret: string | null };
+
+    async function runAgainst(name: string, answer: (seen: Seen) => Response, args: string[]) {
+      const seen: Seen[] = [];
       const server = Bun.serve({
         hostname: '127.0.0.1',
         port: 0,
         fetch(request) {
-          seen.push(request.headers);
-          return new Response('ok');
+          const entry = {
+            path: new URL(request.url).pathname,
+            id: request.headers.get('cf-access-client-id'),
+            secret: request.headers.get('cf-access-client-secret'),
+          };
+          seen.push(entry);
+          return answer(entry);
         },
       });
+      const copy = join(SCRATCH, name);
+      cpSync(join(ROOT, 'scripts/release'), join(copy, 'scripts/release'), { recursive: true });
+      writeFileSync(
+        join(copy, 'scripts/release/release.env'),
+        `STAGING_URL_DEFAULT="http://127.0.0.1:${server.port}"\n`
+      );
+      writeFileSync(STUB_LOG, '');
 
       try {
-        const curl = Bun.spawn({
-          cmd: [
-            'curl',
-            '-q',
-            '-K',
-            configPath,
-            '-sS',
-            '-o',
-            '/dev/null',
-            `http://127.0.0.1:${server.port}/`,
-          ],
-          stdout: 'ignore',
+        const child = Bun.spawn({
+          cmd: [join(copy, 'scripts/release/staging-curl.sh'), ...args],
+          env: {
+            PATH: `${OP_ONLY}:${process.env.PATH}`,
+            HOME: process.env.HOME ?? SCRATCH,
+            STUB_LOG,
+          },
+          stdout: 'pipe',
           stderr: 'ignore',
         });
-
-        expect(await curl.exited).toBe(0);
+        const stdout = await new Response(child.stdout).text();
+        return { exitCode: await child.exited, stdout, seen };
       } finally {
         server.stop(true);
       }
-      expect(seen[0]?.get('cf-access-client-id')).toBe(ID);
-      expect(seen[0]?.get('cf-access-client-secret')).toBe(SECRET);
     }
-  );
+
+    const behindAccess = ({ secret }: Seen) =>
+      secret
+        ? new Response('ok')
+        : new Response(null, {
+            status: 302,
+            headers: { Location: '/cdn-cgi/access/login/staging' },
+          });
+
+    test('delivers both headers, only after a request without them', async () => {
+      const { exitCode, stdout, seen } = await runAgainst('real-behind-access', behindAccess, [
+        '/llms.txt',
+        '-o',
+        '/dev/null',
+        '-w',
+        '%{http_code}',
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(stdout).toBe('200');
+      expect(seen).toEqual([
+        { path: '/llms.txt', id: null, secret: null },
+        { path: '/llms.txt', id: ID, secret: SECRET },
+      ]);
+    });
+
+    test('never sends the token when Access is gone', async () => {
+      const { exitCode, seen } = await runAgainst('real-no-access', () => new Response('ok'), [
+        '/',
+      ]);
+
+      expect(exitCode).toBe(1);
+      expect(seen).toEqual([{ path: '/', id: null, secret: null }]);
+    });
+
+    test('does not follow a redirect with the token', async () => {
+      const redirectOnceAdmitted = ({ secret }: Seen) =>
+        secret
+          ? new Response(null, { status: 302, headers: { Location: '/elsewhere' } })
+          : new Response(null, {
+              status: 302,
+              headers: { Location: '/cdn-cgi/access/login/staging' },
+            });
+
+      const { seen } = await runAgainst('real-redirect', redirectOnceAdmitted, [
+        '/',
+        '-o',
+        '/dev/null',
+      ]);
+
+      expect(seen).toHaveLength(2);
+    });
+  });
+});
+
+describe('surface-smoke.sh config under real curl', () => {
+  test('carries both headers to a loopback server', async () => {
+    const configLines = run([SMOKE, STAGING], CREDENTIALS).log.filter(
+      (line) => namesHeader(line) && !isArgv(line)
+    );
+    const configPath = join(SCRATCH, 'captured-config');
+    writeFileSync(configPath, `${configLines.slice(0, 2).join('\n')}\n`);
+    const seen: Headers[] = [];
+    const server = Bun.serve({
+      hostname: '127.0.0.1',
+      port: 0,
+      fetch(request) {
+        seen.push(request.headers);
+        return new Response('ok');
+      },
+    });
+
+    try {
+      const curl = Bun.spawn({
+        cmd: [
+          'curl',
+          '-q',
+          '-K',
+          configPath,
+          '-sS',
+          '-o',
+          '/dev/null',
+          `http://127.0.0.1:${server.port}/`,
+        ],
+        stdout: 'ignore',
+        stderr: 'ignore',
+      });
+
+      expect(await curl.exited).toBe(0);
+    } finally {
+      server.stop(true);
+    }
+    expect(seen[0]?.get('cf-access-client-id')).toBe(ID);
+    expect(seen[0]?.get('cf-access-client-secret')).toBe(SECRET);
+  });
 });
 
 describe('RELEASES-PREFLIGHT.md Access commands', () => {
   test('name a real item, not a placeholder', () => {
     expect(RUNBOOK).not.toContain('<item-uuid>');
+  });
+
+  test('name the same item as staging-curl.sh', () => {
+    const items = (text: string) => [
+      ...new Set([...text.matchAll(/op:\/\/secrets-dev\/([^/]+)\//g)].map((match) => match[1])),
+    ];
+
+    expect(items(RUNBOOK)).toHaveLength(1);
+    expect(items(readFileSync(STAGING_CURL, 'utf-8'))).toEqual(items(RUNBOOK));
   });
 
   test('the documented smoke command reaches the smoke with the token', () => {
@@ -477,7 +685,8 @@ describe('RELEASES-PREFLIGHT.md Access commands', () => {
     expect(
       count(
         log,
-        (line) => line.startsWith('ARGV ') && line.endsWith(`${STAGING}/.well-known/agent.json`)
+        (line) =>
+          isArgv(line) && line.includes('-K') && line.endsWith(`${STAGING}/.well-known/agent.json`)
       )
     ).toBe(1);
   });
