@@ -132,8 +132,11 @@ gate.
 Cloudflare Access gates staging: a request without credentials gets `302` to the Access login, which the transport gate
 fails, and every other gate reads that redirect too. `surface-smoke.sh` sends the staging service token's
 `CF-Access-Client-Id` and `CF-Access-Client-Secret` headers when `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` are
-both set, through a mode-600 curl config rather than argv. Set them for the one command, so the values never stay in the
-shell:
+both set and the target is https on the `STAGING_URL_DEFAULT` host, through a pipe to curl rather than argv or a file.
+Any other target gets no headers and a warning: Access strips them on staging before the Worker runs, and nothing
+strips them on production. `preflight.sh` unsets both variables at start and passes them only to the smoke, so the same
+prefix works for `all`. `postflight.sh` passes them to everything it starts, so give them only to its `surface-smoke`
+subcommand. Set them for the one command, so the values never stay in the shell:
 
 ```bash
 # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
@@ -142,33 +145,51 @@ CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/clie
   scripts/release/preflight.sh surface-smoke
 ```
 
-A browser passes Access by signing in. A manual `curl` of staging needs the same two headers, the
-Turnstile-tokenless `POST` included: without them it reads the Access login's `302`. The HSTS check below shows how
-to send them.
+A browser passes Access by signing in. A manual `curl` of staging needs the same two headers, the Turnstile-tokenless
+`POST` included: without them it reads the Access login's `302`. Define this once for the checks below. `printf` is a
+shell builtin, so the values reach only a pipe, never an argv, and `-q` keeps `~/.curlrc` out of the request:
+
+```bash
+# 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
+staging_curl() {
+  curl -q -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' \
+    "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id")" \
+    "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret")") \
+    -sS --max-time 10 "$@"
+}
+```
 
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
   baked in.
 - [ ] Tokenless `POST https://dev.lmgroktfy.com/api/grok` returns `403` (fail-closed; matches the production contract).
 - [ ] `llms.txt`, `.well-known/agent.json`, `.well-known/security.txt`, `sitemap.xml`, `robots.txt`, and at least one
-  locale's `index.md` twin all return `200` with the expected content type.
+  locale's `index.md` twin all return `200` with the expected content type. The smoke covers all but `agent.json`:
+
+  ```bash
+  staging_curl -o /dev/null -w '%{http_code} %{content_type}\n' https://dev.lmgroktfy.com/.well-known/agent.json
+  ```
+
 - [ ] Manual real-challenge check: in a browser at `https://dev.lmgroktfy.com`, solve the live Turnstile challenge,
   submit a question, confirm an answer renders. Cannot be automated: a managed challenge has no headless solve path.
 - [ ] Second identical question on staging serves the cached answer (KV `ANSWER_CACHE` hit). Already asserted by
   `bun run test:e2e`; re-confirm manually if the cache layer changed this release.
-- [ ] Security headers present with no HSTS on staging (`CLOUDFLARE_ENV=staging` never emits it). Expect
-  `HTTP 200, HSTS absent` and exit `0`. Only a `200` shows the check reached the Worker, because the Access login's
-  `302` carries no HSTS either. `printf` is a shell builtin, so the values never reach an argv:
+- [ ] Security headers present with no HSTS on staging, on both delivery paths. `/` comes from the asset layer's
+  `_headers`, where `CLOUDFLARE_ENV=staging` leaves HSTS out, and a question path comes from the Worker's middleware,
+  which sends HSTS only on the production domains. The six names are `SECURITY_HEADERS` in
+  `apps/web/src/lib/security-headers.ts`. Expect `HTTP 200, security headers 6/6, HSTS absent` for each path, then
+  `exit 0`. Only a `200` shows the request passed Access, because the login's `302` carries no HSTS either:
 
   ```bash
-  # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
-  curl -sS -D - -o /dev/null --max-time 10 \
-    -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' \
-      "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id")" \
-      "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret")") \
-    https://dev.lmgroktfy.com/ |
-    awk 'NR == 1 { status = $2 }
-      tolower($0) ~ /^strict-transport-security:/ { hsts = 1 }
-      END { print "HTTP " status ", HSTS " (hsts ? "present" : "absent"); exit !(status == 200 && !hsts) }'
+  rc=0
+  for route in / /preflight-smoke; do
+    staging_curl -D - -o /dev/null --suppress-connect-headers "https://dev.lmgroktfy.com$route" |
+      awk 'NR == 1 { status = $2 }
+        { name = tolower($1) }
+        name == "strict-transport-security:" { hsts = 1 }
+        name ~ /^(content-security-policy|x-content-type-options|x-frame-options|referrer-policy|cross-origin-opener-policy|permissions-policy):$/ && !seen[name]++ { count++ }
+        END { print "HTTP " status ", security headers " count + 0 "/6, HSTS " (hsts ? "present" : "absent"); exit !(status == 200 && count == 6 && !hsts) }' || rc=1
+  done
+  echo "exit $rc"
   ```
 
 ### Release mechanics sanity
