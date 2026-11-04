@@ -146,45 +146,30 @@ CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/clie
   scripts/release/preflight.sh surface-smoke
 ```
 
-A browser passes Access by signing in. A manual `curl` of staging needs the same two headers: without them it reads the
-Access login's `302`. Use `scripts/release/staging-curl.sh <path> [options]` for the `GET` checks below; the smoke
-covers the `POST`. It takes a path and supplies the host, accepts only the output options its header lists, confirms
-Access still answers that path without the token, and only then reads the token and sends it through a pipe behind
-`-q`. Access answers the token with a `CF_Authorization` cookie, a bearer credential, so the script strips `Set-Cookie`
-from `-D -`.
+A browser passes Access by signing in. A `curl` of staging needs the same two headers: without them it reads the Access
+login's `302`. For the manual checks below, run `scripts/release/staging-check.sh <check>`. Each check names its own
+paths on `STAGING_URL_DEFAULT` and takes no other argument. It confirms Access still answers each path without the
+token, then reads the token and sends it through a pipe behind `curl -q`, and prints only a status and a verdict.
+
+Access issues a `CF_Authorization` cookie, a bearer credential, when it admits the service token. Nothing in these
+scripts prints it.
 
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
-  baked in.
+  baked in: `scripts/release/staging-check.sh site-key`.
 - [ ] Tokenless `POST https://dev.lmgroktfy.com/api/grok` returns `403` (fail-closed; matches the production contract).
 - [ ] `llms.txt`, `.well-known/agent.json`, `.well-known/security.txt`, `sitemap.xml`, `robots.txt`, and at least one
   locale's `index.md` twin all return `200` with the expected content type. The smoke covers all but `agent.json`:
-
-  ```bash
-  scripts/release/staging-curl.sh /.well-known/agent.json -o /dev/null -w '%{http_code} %{content_type}\n'
-  ```
+  `scripts/release/staging-check.sh agent-json`.
 
 - [ ] Manual real-challenge check: in a browser at `https://dev.lmgroktfy.com`, solve the live Turnstile challenge,
   submit a question, confirm an answer renders. Cannot be automated: a managed challenge has no headless solve path.
 - [ ] Second identical question on staging serves the cached answer (KV `ANSWER_CACHE` hit). Already asserted by
   `bun run test:e2e`; re-confirm manually if the cache layer changed this release.
-- [ ] Security headers present with no HSTS on staging, on both delivery paths. `/` comes from the asset layer's
-  `_headers`, where `CLOUDFLARE_ENV=staging` leaves HSTS out, and a question path comes from the Worker's middleware,
-  which sends HSTS only on the production domains. The six names are `SECURITY_HEADERS` in
-  `apps/web/src/lib/security-headers.ts`. Expect `HTTP 200, security headers 6/6, HSTS absent` for each path, then
-  `exit 0`. Only a `200` shows the request passed Access, because the login's `302` carries no HSTS either:
-
-  ```bash
-  rc=0
-  for route in / /preflight-smoke; do
-    scripts/release/staging-curl.sh "$route" -D - -o /dev/null --suppress-connect-headers |
-      awk 'NR == 1 { status = $2 }
-        { name = tolower($1) }
-        name == "strict-transport-security:" { hsts = 1 }
-        name ~ /^(content-security-policy|x-content-type-options|x-frame-options|referrer-policy|cross-origin-opener-policy|permissions-policy):$/ && !seen[name]++ { count++ }
-        END { print "HTTP " status ", security headers " count + 0 "/6, HSTS " (hsts ? "present" : "absent"); exit !(status == 200 && count == 6 && !hsts) }' || rc=1
-  done
-  echo "exit $rc"
-  ```
+- [ ] Security headers present with no HSTS on staging, on both delivery paths: `/` from the asset layer's `_headers`,
+  where `CLOUDFLARE_ENV=staging` leaves HSTS out, and a question path from the Worker's middleware, which sends HSTS
+  only on the production domains. `scripts/release/staging-check.sh security-headers` expects
+  `HTTP 200, security headers 6/6, HSTS absent` on each. Only a `200` shows the request passed Access, because the
+  login's `302` carries no HSTS either.
 
 ### Release mechanics sanity
 
