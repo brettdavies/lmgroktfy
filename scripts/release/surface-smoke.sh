@@ -132,22 +132,22 @@ smoke_curl() {
 #
 # Access strips the token's headers before the Worker runs. Without Access the
 # Worker receives them, and its logs may keep them, so the token goes out only
-# after a request sent without it shows Access still answers for this host: a
-# redirect to its login, or the 401 or 403 of its strict service-token mode.
+# after a request sent without it gets the Access login redirect. The request
+# goes to /api/grok because prerendered paths never reach the Worker.
 
 gate_access() {
   [[ -n "$ACCESS_HEADERS" ]] || return 0
   header "Access in front of $BASE_URL"
   local out code location=""
-  out=$(curl -q -sSo /dev/null -w '%{http_code} %{redirect_url}' --max-time 10 "$BASE_URL/" || echo "000")
+  out=$(curl -q -sSo /dev/null -w '%{http_code} %{redirect_url}' --max-time 10 "$BASE_URL/api/grok" || echo "000")
   code="${out%% *}"
   [[ "$out" == *" "* ]] && location="${out#* }"
-  if [[ "$code" == 401 || "$code" == 403 ]] || [[ "$code" =~ ^3[0-9][0-9]$ && "$location" == */cdn-cgi/access/* ]]; then
-    gate_pass "$BASE_URL/ without credentials -> HTTP $code (Access answers)"
+  if [[ "$code" =~ ^3[0-9][0-9]$ && "$location" == */cdn-cgi/access/* ]]; then
+    gate_pass "$BASE_URL/api/grok without credentials -> HTTP $code (Access answers)"
     return
   fi
   ACCESS_HEADERS=""
-  gate_fail "$BASE_URL/ without credentials" "HTTP $code: Access is not answering for this host, so the token was withheld"
+  gate_fail "$BASE_URL/api/grok without credentials" "HTTP $code: Access is not answering for this host, so the token was withheld"
 }
 
 # Gate: transport reachable --------------------------------------------------

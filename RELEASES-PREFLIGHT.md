@@ -147,9 +147,10 @@ CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/clie
 ```
 
 A browser passes Access by signing in. A manual `curl` of staging needs the same two headers, the Turnstile-tokenless
-`POST` included: without them it reads the Access login's `302`. Use `scripts/release/staging-curl.sh <path> [curl
-output options]` for the checks below. It takes a path and supplies the host, confirms Access still answers a request
-sent without the token, and only then reads the token and sends it through a pipe behind `-q`, with redirects off.
+`POST` included: without them it reads the Access login's `302`. Use `scripts/release/staging-curl.sh <path> [options]`
+for the checks below. It takes a path and supplies the host, accepts only the output and request options its header
+lists, confirms Access still answers that path without the token, and only then reads the token and sends it through a
+pipe behind `-q`.
 
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
   baked in.
