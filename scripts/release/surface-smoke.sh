@@ -24,17 +24,25 @@
 #   the Access service-token headers to every request. Unset, no headers are
 #   sent, and a gated deployment answers its Access login redirect, which the
 #   transport gate fails. Turnstile gates POST /api/grok itself (see
-#   gate_live), not the transport.
+#   gate_live), not the transport. Values may hold only [A-Za-z0-9._-]; any
+#   other character fails the run before a request goes out.
 #
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
 #   1 = one or more gates failed
-#   2 = setup error (missing dep, no base URL, etc.)
+#   2 = setup error (missing dep, no base URL, a rejected credential, etc.)
 #
 # Dependencies:
 #   - curl on PATH
 
 set -euo pipefail
+# A traced run would print the token and any cookie Access returns.
+{ set +x; } 2>/dev/null
+
+# Held in unexported variables from here on, so no child process inherits them.
+ACCESS_ID="${CF_ACCESS_CLIENT_ID:-}"
+ACCESS_SECRET="${CF_ACCESS_CLIENT_SECRET:-}"
+unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 
 # shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
@@ -75,17 +83,40 @@ done
 }
 require_bin curl
 
-# The headers go through a mode-600 curl config file, so the secret never
-# reaches curl's argv.
-CURL_AUTH=()
-if [[ -n "${CF_ACCESS_CLIENT_ID:-}" && -n "${CF_ACCESS_CLIENT_SECRET:-}" ]]; then
-  CURL_CONFIG=$(mktemp)
-  chmod 600 "$CURL_CONFIG"
-  trap 'rm -f "$CURL_CONFIG"' EXIT
-  printf -- '-H "CF-Access-Client-Id: %s"\n' "$CF_ACCESS_CLIENT_ID" >>"$CURL_CONFIG"
-  printf -- '-H "CF-Access-Client-Secret: %s"\n' "$CF_ACCESS_CLIENT_SECRET" >>"$CURL_CONFIG"
-  CURL_AUTH=(-K "$CURL_CONFIG")
+# delegate_to_subscript ignores this script's exit status and counts nothing
+# from an empty result file, so a setup failure has to go through the counters
+# or the orchestrators report it as a pass.
+report_counts() {
+  if [[ -n "$RESULT_FILE" ]]; then
+    printf "%d %d %d\n" "$PASS_COUNT" "$FAIL_COUNT" "$SKIP_COUNT" >"$RESULT_FILE"
+  else
+    print_summary
+  fi
+}
+
+ACCESS_HEADERS=""
+if [[ -n "$ACCESS_ID" && -n "$ACCESS_SECRET" ]]; then
+  # A curl config is line-oriented and quoted: a newline in a value adds an
+  # option, such as a second url that receives the headers.
+  if [[ ! "$ACCESS_ID$ACCESS_SECRET" =~ ^[A-Za-z0-9._-]+$ ]]; then
+    gate_fail "Access credentials" "CF_ACCESS_CLIENT_ID or CF_ACCESS_CLIENT_SECRET holds a character outside [A-Za-z0-9._-]"
+    report_counts
+    exit 2
+  fi
+  printf -v ACCESS_HEADERS 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' "$ACCESS_ID" "$ACCESS_SECRET"
 fi
+unset ACCESS_ID ACCESS_SECRET
+
+# -q keeps the operator's curl config out of credentialed requests: a `location`
+# line would carry the headers to another host. The headers reach curl through
+# a pipe, so they are on no argv and in no file that could outlive the run.
+smoke_curl() {
+  if [[ -n "$ACCESS_HEADERS" ]]; then
+    curl -q -K <(printf '%s' "$ACCESS_HEADERS") "$@"
+  else
+    curl -q "$@"
+  fi
+}
 
 # Gate: transport reachable --------------------------------------------------
 #
@@ -109,7 +140,7 @@ url_host() {
 gate_transport() {
   header "Transport reachable at $BASE_URL"
   local out code location path
-  out=$(curl "${CURL_AUTH[@]}" -sSo /dev/null -w '%{http_code} %{redirect_url}' --max-time 10 "$BASE_URL/" || echo "000")
+  out=$(smoke_curl -sSo /dev/null -w '%{http_code} %{redirect_url}' --max-time 10 "$BASE_URL/" || echo "000")
   code="${out%% *}"
   location=""
   [[ "$out" == *" "* ]] && location="${out#* }"
@@ -141,7 +172,7 @@ gate_transport() {
 check_route() {
   local path="$1" want_type="$2"
   local out code type
-  out=$(curl "${CURL_AUTH[@]}" -sS -D - -o /dev/null --max-time 10 "$BASE_URL$path" 2>/dev/null || true)
+  out=$(smoke_curl -sS -D - -o /dev/null --max-time 10 "$BASE_URL$path" 2>/dev/null || true)
   code=$(printf '%s' "$out" | awk 'NR==1{print $2}')
   type=$(printf '%s' "$out" | grep -i '^content-type:' | head -1 | cut -d: -f2- | tr -d '\r' | xargs || true)
   if [[ "$code" == "200" && "$type" == "$want_type"* ]]; then
@@ -170,7 +201,7 @@ gate_contract() {
 gate_live() {
   header "Live exercise (Turnstile-gated API)"
   local code
-  code=$(curl "${CURL_AUTH[@]}" -sSo /dev/null -w '%{http_code}' --max-time 10 \
+  code=$(smoke_curl -sSo /dev/null -w '%{http_code}' --max-time 10 \
     -X POST "$BASE_URL/api/grok" \
     -H 'Content-Type: application/json' \
     -d '{"question":"smoke test"}' || echo "000")
@@ -187,10 +218,6 @@ gate_transport
 gate_contract
 gate_live
 
-if [[ -n "$RESULT_FILE" ]]; then
-  printf "%d %d %d\n" "$PASS_COUNT" "$FAIL_COUNT" "$SKIP_COUNT" >"$RESULT_FILE"
-else
-  print_summary
-fi
+report_counts
 
 [[ $FAIL_COUNT -eq 0 ]] || exit 1
