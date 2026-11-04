@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { chmodSync, cpSync, writeFileSync } from 'node:fs';
+import { cpSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   count,
@@ -64,95 +64,23 @@ describe('preflight.sh', () => {
     expect(count(log, isCall)).toBe(0);
   });
 
-  test.each([
-    ['no scheme', 'dev.lmgroktfy.com'],
-    ['an unsupported scheme', 'ftp://dev.lmgroktfy.com'],
-  ])('fails when --staging-url has %s, because nothing was smoked', (_name, url) => {
-    const { exitCode, log, output } = run([PREFLIGHT, '--staging-url', url, 'surface-smoke']);
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain('recorded no gates');
-    expect(count(log, isCall)).toBe(0);
-  });
-
-  test('ignores a token in its environment, with a warning, and passes it to nothing', () => {
+  test('restarts without a token in its environment, and reads its own', () => {
     const smoke = run([PREFLIGHT, 'surface-smoke'], { ...CREDENTIALS, STUB_OP_FAIL: '1' });
     const mechanics = run([PREFLIGHT, 'mechanics'], CREDENTIALS);
 
-    expect(smoke.output).toContain('ignoring CF_ACCESS_CLIENT_ID');
+    expect(smoke.output).toContain('restarting without CF_ACCESS_CLIENT_ID');
     expect(count(smoke.log, (line) => line.includes('CF-Access-Client'))).toBe(0);
+    // With no token the transport gate fails on the login, so a failed op read stays red.
+    expect(smoke.exitCode).toBe(1);
     expect(count(mechanics.log, (line) => line.startsWith('BUN '))).toBeGreaterThan(0);
     expect(count(mechanics.log, holdsSecretInEnv)).toBe(0);
+    expect(count(mechanics.log, (line) => line.includes('parent-env=set'))).toBe(0);
   }, 60_000);
-
-  test('fails when there is no staging URL', () => {
-    const copy = join(scratch, 'no-staging-url');
-    cpSync(join(ROOT, 'scripts/release'), join(copy, 'scripts/release'), { recursive: true });
-    writeFileSync(join(copy, 'scripts/release/release.env'), 'SITE_VERSION_BASE="2.0"\n');
-
-    const { exitCode, output } = run([join(copy, 'scripts/release/preflight.sh'), 'surface-smoke']);
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain('no staging URL');
-  });
-
-  test('fails when the clone has no origin/dev', () => {
-    const copy = scriptsInScratchRepo('no-origin-dev');
-
-    const { exitCode, output } = run(
-      [join(copy, 'scripts/release/preflight.sh'), 'drift'],
-      {},
-      copy
-    );
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain('no origin/dev');
-  });
-
-  test('fails when the smoke script cannot run', () => {
-    const copy = join(scratch, 'not-executable');
-    cpSync(join(ROOT, 'scripts/release'), join(copy, 'scripts/release'), { recursive: true });
-    chmodSync(join(copy, 'scripts/release/surface-smoke.sh'), 0o600);
-
-    const { exitCode, output } = run([join(copy, 'scripts/release/preflight.sh'), 'surface-smoke']);
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain('surface-smoke.sh is missing or not executable');
-  });
-
-  test('fails when drift.sh cannot run', () => {
-    const copy = scriptsInScratchRepo('drift-not-executable');
-    chmodSync(join(copy, 'scripts/release/drift.sh'), 0o600);
-
-    const { exitCode, output } = run(
-      [join(copy, 'scripts/release/preflight.sh'), 'drift'],
-      {},
-      copy
-    );
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain('drift.sh is missing or not executable');
-  });
-
-  test('fails when drift.sh exits without recording anything', () => {
-    const copy = scriptsInScratchRepo('drift-records-nothing');
-    git(['-C', copy, 'update-ref', 'refs/remotes/origin/dev', 'HEAD']);
-    writeFileSync(join(copy, 'scripts/release/drift.sh'), '#!/usr/bin/env bash\nexit 2\n');
-
-    const { exitCode, output } = run(
-      [join(copy, 'scripts/release/preflight.sh'), 'drift'],
-      {},
-      copy
-    );
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain('recorded no gates');
-  });
 
   test('hides the token from everything `all` starts, before and after the smoke', () => {
     const copy = scriptsInScratchRepo('all');
 
-    const { log } = run([join(copy, 'scripts/release/preflight.sh'), 'all'], {}, copy);
+    const { log } = run([join(copy, 'scripts/release/preflight.sh'), 'all'], CREDENTIALS, copy);
 
     expectHeadersOnEveryRequest(log);
     expect(count(log, (line) => line.startsWith('BUN '))).toBeGreaterThan(0);

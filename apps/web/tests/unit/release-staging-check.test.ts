@@ -283,6 +283,14 @@ describe.each(CHECKS)('staging-check.sh %s', (check) => {
 });
 
 describe('staging-check.sh verdicts', () => {
+  test('security-headers reads statuses past a proxy CONNECT response', () => {
+    const { log } = run([STAGING_CHECK, 'security-headers'], { STUB_RESPONSE: '' });
+    const withToken = log.filter((line) => isArgv(line) && line.includes('-K'));
+
+    expect(withToken).toHaveLength(2);
+    expect(count(withToken, (line) => !line.includes('--suppress-connect-headers'))).toBe(0);
+  });
+
   test.each([
     ['agent-json', 'agent-json: HTTP 200: pass\n'],
     ['site-key', 'site-key: HTTP 200: pass\n'],

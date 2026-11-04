@@ -41,14 +41,6 @@ describe('surface-smoke.sh Access headers', () => {
     expect(count(log, (line) => isArgv(line) && line.endsWith(`${STAGING}/llms.txt`))).toBe(1);
   });
 
-  test('read route statuses past a proxy CONNECT response', () => {
-    const { log } = run([SMOKE, STAGING], CREDENTIALS);
-    const routes = log.filter((line) => isArgv(line) && line.includes('-D -'));
-
-    expect(routes).toHaveLength(5);
-    expect(count(routes, (line) => !line.includes('--suppress-connect-headers'))).toBe(0);
-  });
-
   test('go out only after the Worker route answers with the Access login, without them', () => {
     const { exitCode, log } = run([SMOKE, STAGING], CREDENTIALS);
     const argvs = log.filter(isArgv);
