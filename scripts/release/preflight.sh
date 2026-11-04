@@ -140,16 +140,31 @@ gate_surface() {
 # fails while any exist. Run it before cutting the release branch. Repos
 # without a dev branch skip it.
 
+# delegate_to_subscript counts nothing when a sub-script writes no result file,
+# as when it exits during setup, so a gate that never ran fails here rather than
+# reading as a pass.
+delegate_or_fail() {
+  local name="$1" before=$((PASS_COUNT + FAIL_COUNT + SKIP_COUNT))
+  shift
+  delegate_to_subscript "$@"
+  if ((PASS_COUNT + FAIL_COUNT + SKIP_COUNT == before)); then
+    gate_fail "$name" "recorded no gates, so nothing was checked"
+  fi
+}
+
 gate_drift() {
   local drift_script
   drift_script="$(dirname "$0")/drift.sh"
-  [[ -x "$drift_script" ]] || return 0
+  if [[ ! -x "$drift_script" ]]; then
+    gate_fail "drift" "$drift_script is missing or not executable"
+    return
+  fi
   header "Branch drift (delegated to drift.sh)"
   if ! git rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
     gate_skip "drift" "no origin/dev branch (single-branch repo)"
     return
   fi
-  delegate_to_subscript "$drift_script"
+  delegate_or_fail "drift" "$drift_script"
 }
 
 # Gate: surface-smoke (delegation) -------------------------------------------
@@ -159,8 +174,15 @@ gate_drift() {
 # per the contract in _lib.sh's delegate_to_subscript helper. Post-flight runs
 # the SAME script against the deployed env.
 
+# Assignments in front of a shell function reach everything it starts, so in
+# front of delegate_to_subscript they would also reach its mktemp and rm.
+smoke_with_token() {
+  CF_ACCESS_CLIENT_ID="$ACCESS_CLIENT_ID" CF_ACCESS_CLIENT_SECRET="$ACCESS_CLIENT_SECRET" \
+    "$(dirname "$0")/surface-smoke.sh" "$@"
+}
+
 gate_surface_smoke() {
-  local surface_script before
+  local surface_script
   surface_script="$(dirname "$0")/surface-smoke.sh"
   if [[ ! -x "$surface_script" ]]; then
     gate_fail "surface-smoke" "$surface_script is missing or not executable"
@@ -175,14 +197,7 @@ gate_surface_smoke() {
     gate_skip "surface-smoke" "no staging URL (pass --staging-url or set STAGING_URL_DEFAULT in scripts/release/release.env)"
     return
   fi
-  before=$((PASS_COUNT + FAIL_COUNT + SKIP_COUNT))
-  CF_ACCESS_CLIENT_ID="$ACCESS_CLIENT_ID" CF_ACCESS_CLIENT_SECRET="$ACCESS_CLIENT_SECRET" \
-    delegate_to_subscript "$surface_script" "$url"
-  # delegate_to_subscript counts nothing when the smoke wrote no result file, as
-  # when it rejects the URL before it reaches --result-file.
-  if ((PASS_COUNT + FAIL_COUNT + SKIP_COUNT == before)); then
-    gate_fail "surface-smoke against $url" "the smoke recorded no gates, so nothing was checked"
-  fi
+  delegate_or_fail "surface-smoke against $url" smoke_with_token "$url"
 }
 
 # Gate: changelog-sections ---------------------------------------------------
@@ -248,10 +263,10 @@ gate_changelog_sections() {
 run_step() {
   local desc="$1"
   shift
-  if (cd "$REPO_ROOT" && "$@") >/tmp/preflight-mechanics.log 2>&1; then
+  if (cd "$REPO_ROOT" && "$@") >"$MECHANICS_LOG" 2>&1; then
     gate_pass "$desc"
   else
-    gate_fail "$desc" "$(tail -n 20 /tmp/preflight-mechanics.log)"
+    gate_fail "$desc" "$(tail -n 20 "$MECHANICS_LOG")"
   fi
 }
 
@@ -260,6 +275,10 @@ gate_mechanics() {
   require_bin bun
   require_bin jaq
 
+  # Per run: `test:all` can start another preflight, and a shared path would lose
+  # this run's failure output.
+  MECHANICS_LOG=$(mktemp)
+
   run_step "bun install --frozen-lockfile" bun install --frozen-lockfile
   run_step "lint (bun run lint)" bun run lint
   run_step "format check (bun run format:check)" bun run format:check
@@ -267,7 +286,7 @@ gate_mechanics() {
   run_step "build (bun run build)" bun run build
   run_step "unit tests (bun run test:all)" bun run test:all
   run_step "end-to-end tests (bun run test:e2e)" bun run test:e2e
-  rm -f /tmp/preflight-mechanics.log
+  rm -f "$MECHANICS_LOG"
 
   local project_version changelog_version site=""
 

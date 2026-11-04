@@ -84,6 +84,7 @@ done
   echo "missing base URL (positional argument)" >&2
   usage
 }
+BASE_URL="${BASE_URL%/}"
 require_bin curl
 
 # delegate_to_subscript ignores this script's exit status and counts nothing
@@ -108,7 +109,7 @@ if [[ -n "$ACCESS_ID" && -n "$ACCESS_SECRET" ]]; then
   fi
   # An exact match rather than a parsed host: curl expands URL globs, so a URL
   # whose host parses as staging can still reach another host.
-  if [[ "${STAGING_URL_DEFAULT:-}" == https://* && "${BASE_URL%/}" == "${STAGING_URL_DEFAULT%/}" ]]; then
+  if [[ "${STAGING_URL_DEFAULT:-}" == https://* && "$BASE_URL" == "${STAGING_URL_DEFAULT%/}" ]]; then
     printf -v ACCESS_HEADERS 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' "$ACCESS_ID" "$ACCESS_SECRET"
   else
     echo "Access credentials are set, but $BASE_URL is not the staging URL: sending no Access headers" >&2

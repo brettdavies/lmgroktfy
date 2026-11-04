@@ -147,21 +147,9 @@ CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/clie
 ```
 
 A browser passes Access by signing in. A manual `curl` of staging needs the same two headers, the Turnstile-tokenless
-`POST` included: without them it reads the Access login's `302`. Define this once for the checks below. It takes a path
-and supplies the host, so the token can only go to staging. `printf` is a shell builtin, so the values reach only a
-pipe, never an argv, and `-q` keeps `~/.curlrc` out of the request:
-
-```bash
-# 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
-staging_curl() {
-  local route="$1"
-  shift
-  curl -q -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' \
-    "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id")" \
-    "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret")") \
-    -sS --max-time 10 "$@" "https://dev.lmgroktfy.com$route"
-}
-```
+`POST` included: without them it reads the Access login's `302`. Use `scripts/release/staging-curl.sh <path> [curl
+output options]` for the checks below. It takes a path and supplies the host, confirms Access still answers a request
+sent without the token, and only then reads the token and sends it through a pipe behind `-q`, with redirects off.
 
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
   baked in.
@@ -170,7 +158,7 @@ staging_curl() {
   locale's `index.md` twin all return `200` with the expected content type. The smoke covers all but `agent.json`:
 
   ```bash
-  staging_curl /.well-known/agent.json -o /dev/null -w '%{http_code} %{content_type}\n'
+  scripts/release/staging-curl.sh /.well-known/agent.json -o /dev/null -w '%{http_code} %{content_type}\n'
   ```
 
 - [ ] Manual real-challenge check: in a browser at `https://dev.lmgroktfy.com`, solve the live Turnstile challenge,
@@ -186,7 +174,7 @@ staging_curl() {
   ```bash
   rc=0
   for route in / /preflight-smoke; do
-    staging_curl "$route" -D - -o /dev/null --suppress-connect-headers |
+    scripts/release/staging-curl.sh "$route" -D - -o /dev/null --suppress-connect-headers |
       awk 'NR == 1 { status = $2 }
         { name = tolower($1) }
         name == "strict-transport-security:" { hsts = 1 }
