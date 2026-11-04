@@ -21,11 +21,13 @@
 # Auth (env-driven):
 #   Cloudflare Access gates staging (dev.lmgroktfy.com); production is public.
 #   CF_ACCESS_CLIENT_ID + CF_ACCESS_CLIENT_SECRET, when both are set, attach
-#   the Access service-token headers to every request. Unset, no headers are
-#   sent, and a gated deployment answers its Access login redirect, which the
-#   transport gate fails. Turnstile gates POST /api/grok itself (see
-#   gate_live), not the transport. Values may hold only [A-Za-z0-9._-]; any
-#   other character fails the run before a request goes out.
+#   the Access service-token headers to every request, but only when the base
+#   URL is https on the STAGING_URL_DEFAULT host. Any other target gets no
+#   headers and a warning. Unset, no headers are sent, and a gated deployment
+#   answers its Access login redirect, which the transport gate fails.
+#   Turnstile gates POST /api/grok itself (see gate_live), not the transport.
+#   Values may hold only [A-Za-z0-9._-]; any other character fails the run
+#   before a request goes out.
 #
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
@@ -83,6 +85,15 @@ done
 }
 require_bin curl
 
+# Prints the host of a URL, lowercased, without userinfo or port.
+url_host() {
+  local rest="${1#*://}"
+  rest="${rest%%[/?#]*}"
+  rest="${rest##*@}"
+  rest="${rest%%:*}"
+  printf '%s' "${rest,,}"
+}
+
 # delegate_to_subscript ignores this script's exit status and counts nothing
 # from an empty result file, so a setup failure has to go through the counters
 # or the orchestrators report it as a pass.
@@ -103,7 +114,11 @@ if [[ -n "$ACCESS_ID" && -n "$ACCESS_SECRET" ]]; then
     report_counts
     exit 2
   fi
-  printf -v ACCESS_HEADERS 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' "$ACCESS_ID" "$ACCESS_SECRET"
+  if [[ "$BASE_URL" == https://* && "$(url_host "$BASE_URL")" == "$(url_host "${STAGING_URL_DEFAULT:-}")" ]]; then
+    printf -v ACCESS_HEADERS 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' "$ACCESS_ID" "$ACCESS_SECRET"
+  else
+    echo "Access credentials are set, but $BASE_URL is not the https staging host: sending no Access headers" >&2
+  fi
 fi
 unset ACCESS_ID ACCESS_SECRET
 
@@ -127,15 +142,6 @@ smoke_curl() {
 # deploy answers a request whose auth headers are missing or rejected with a
 # redirect to its login page (Cloudflare Access sends it to the team domain
 # or to /cdn-cgi/access/login), and that redirect is not the surface.
-
-# Prints the host of a URL, lowercased, without userinfo or port.
-url_host() {
-  local rest="${1#*://}"
-  rest="${rest%%[/?#]*}"
-  rest="${rest##*@}"
-  rest="${rest%%:*}"
-  printf '%s' "${rest,,}"
-}
 
 gate_transport() {
   header "Transport reachable at $BASE_URL"
