@@ -43,6 +43,8 @@ set -euo pipefail
 { set +x; } 2>/dev/null
 
 # Held in unexported variables from here on, so no child process inherits them.
+# Cleared first: an exported variable keeps its export attribute when assigned.
+unset ACCESS_ID ACCESS_SECRET ACCESS_HEADERS
 ACCESS_ID="${CF_ACCESS_CLIENT_ID:-}"
 ACCESS_SECRET="${CF_ACCESS_CLIENT_SECRET:-}"
 unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET

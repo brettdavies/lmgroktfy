@@ -12,10 +12,14 @@
 #   scripts/release/staging-curl.sh /llms.txt -o /dev/null -w '%{http_code}\n'
 #
 # The path must start with /, so it cannot change the host. Only these curl options
-# are accepted: -o, -D, -w, -X, -H, -d, -I, --suppress-connect-headers. Anything else
-# is refused, because curl hands the headers to every URL it is given (a bare host,
-# --url, --next), to any host a config or proxy names, and across a followed redirect,
-# and -v and --trace print them.
+# are accepted: -o, -w, -D - and --suppress-connect-headers. Anything else is refused,
+# because curl hands the headers to every URL it is given (a bare host, --url, --next),
+# to any host a config or proxy names, and across a followed redirect; Cloudflare
+# routes on a Host header, so -H reaches production past the Access check; and -v and
+# --trace print them.
+#
+# Access answers the token with a CF_Authorization cookie, a bearer credential, so
+# -D goes only to stdout, with Set-Cookie stripped, and -w may not read headers.
 #
 # Exit codes:
 #   0 = curl succeeded, or curl's own status when it did not
@@ -45,14 +49,26 @@ route="${1:-}"
 shift
 
 options=()
+strip_cookies=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -o | -D | -w | -X | -H | -d)
+    -o)
       [[ $# -ge 2 ]] || usage
       options+=("$1" "$2")
       shift 2
       ;;
-    -I | --suppress-connect-headers)
+    -w)
+      [[ $# -ge 2 && "$2" != *header* && "$2" != @* ]] || usage
+      options+=("$1" "$2")
+      shift 2
+      ;;
+    -D)
+      [[ "${2:-}" == "-" ]] || usage
+      options+=("$1" "$2")
+      strip_cookies=yes
+      shift 2
+      ;;
+    --suppress-connect-headers)
       options+=("$1")
       shift
       ;;
@@ -74,6 +90,9 @@ case "$access" in
     ;;
 esac
 
+# Cleared first: an exported variable keeps its export attribute when assigned, and
+# would carry the token to curl.
+unset id secret
 # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
 if ! id=$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id") \
   || ! secret=$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret"); then
@@ -82,11 +101,19 @@ if ! id=$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id") \
 fi
 # A curl config is line-oriented and quoted: a newline in a value adds an option,
 # such as a second url that receives the headers.
-if [[ ! "$id$secret" =~ ^[A-Za-z0-9._-]+$ ]]; then
-  echo "staging-curl: a credential holds a character outside [A-Za-z0-9._-]" >&2
+if [[ -z "$id" || -z "$secret" || ! "$id$secret" =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "staging-curl: a credential is empty or holds a character outside [A-Za-z0-9._-]" >&2
   exit 2
 fi
 
 # printf is a builtin, so the values reach only the pipe -K reads, never an argv.
-curl -q -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' "$id" "$secret") \
-  -sS --max-time 10 "${options[@]}" "$url"
+request() {
+  curl -q -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' "$id" "$secret") \
+    -sS --max-time 10 "${options[@]}" "$url"
+}
+
+if [[ -n "$strip_cookies" ]]; then
+  request | awk 'tolower($1) != "set-cookie:"'
+else
+  request
+fi

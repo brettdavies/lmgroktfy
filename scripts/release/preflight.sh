@@ -49,7 +49,9 @@ set -euo pipefail
 { set +x; } 2>/dev/null
 
 # Only the staging smoke needs the Access token, so nothing else `all` starts
-# (bun, gh, every package script) inherits it.
+# (bun, gh, every package script) inherits it. Cleared first: an exported variable
+# keeps its export attribute when assigned.
+unset ACCESS_CLIENT_ID ACCESS_CLIENT_SECRET
 ACCESS_CLIENT_ID="${CF_ACCESS_CLIENT_ID:-}"
 ACCESS_CLIENT_SECRET="${CF_ACCESS_CLIENT_SECRET:-}"
 unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET

@@ -146,11 +146,12 @@ CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/clie
   scripts/release/preflight.sh surface-smoke
 ```
 
-A browser passes Access by signing in. A manual `curl` of staging needs the same two headers, the Turnstile-tokenless
-`POST` included: without them it reads the Access login's `302`. Use `scripts/release/staging-curl.sh <path> [options]`
-for the checks below. It takes a path and supplies the host, accepts only the output and request options its header
-lists, confirms Access still answers that path without the token, and only then reads the token and sends it through a
-pipe behind `-q`.
+A browser passes Access by signing in. A manual `curl` of staging needs the same two headers: without them it reads the
+Access login's `302`. Use `scripts/release/staging-curl.sh <path> [options]` for the `GET` checks below; the smoke
+covers the `POST`. It takes a path and supplies the host, accepts only the output options its header lists, confirms
+Access still answers that path without the token, and only then reads the token and sends it through a pipe behind
+`-q`. Access answers the token with a `CF_Authorization` cookie, a bearer credential, so the script strips `Set-Cookie`
+from `-D -`.
 
 - [ ] `GET https://dev.lmgroktfy.com/` returns `200` and serves the Astro build with the staging Turnstile site key
   baked in.
