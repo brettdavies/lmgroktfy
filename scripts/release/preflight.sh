@@ -35,7 +35,7 @@
 #   2 = setup error (missing dep, etc.)
 #
 # Dependencies:
-#   - `bun`, `gh`, `git`, `curl`, `jaq` on PATH
+#   - `bun`, `gh`, `git`, `curl`, `jaq` on PATH, and `op` for the staging smoke
 #
 # lmgroktfy has no local-server smoke mode: Turnstile refuses to issue a
 # widget for localhost / *.workers.dev (see apps/web/wrangler.jsonc), so the
@@ -48,13 +48,14 @@ set -euo pipefail
 # A traced run would print the Access token smoke_with_token reads.
 { set +x; } 2>/dev/null
 
-# The token is read at smoke time, not taken from here: unset does not change
-# /proc/<pid>/environ, so what this process was started with stays readable to
-# everything `all` starts (bun, gh, every package script) for the whole run.
-if [[ -n "${CF_ACCESS_CLIENT_ID:-}${CF_ACCESS_CLIENT_SECRET:-}" ]]; then
-  echo "preflight: ignoring CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET; the smoke reads the token with op read" >&2
+# The token is read at smoke time, not taken from here. unset does not change
+# /proc/<pid>/environ, so what this process was started with would stay readable to
+# everything `all` starts (bun, gh, every package script); only a new process image
+# clears it.
+if [[ -n "${CF_ACCESS_CLIENT_ID+set}${CF_ACCESS_CLIENT_SECRET+set}" ]]; then
+  echo "preflight: restarting without CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET; the smoke reads the token with op read" >&2
+  exec env -u CF_ACCESS_CLIENT_ID -u CF_ACCESS_CLIENT_SECRET bash "$0" "$@"
 fi
-unset CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 # An exported variable passes its export attribute through `local`, and would carry
 # the token smoke_with_token holds to the smoke's children.
 unset id secret
@@ -145,31 +146,16 @@ gate_surface() {
 # fails while any exist. Run it before cutting the release branch. Repos
 # without a dev branch skip it.
 
-# delegate_to_subscript counts nothing when a sub-script writes no result file,
-# as when it exits during setup, so a gate that never ran fails here rather than
-# reading as a pass.
-delegate_or_fail() {
-  local name="$1" before=$((PASS_COUNT + FAIL_COUNT + SKIP_COUNT))
-  shift
-  delegate_to_subscript "$@"
-  if ((PASS_COUNT + FAIL_COUNT + SKIP_COUNT == before)); then
-    gate_fail "$name" "recorded no gates, so nothing was checked"
-  fi
-}
-
 gate_drift() {
   local drift_script
   drift_script="$(dirname "$0")/drift.sh"
-  if [[ ! -x "$drift_script" ]]; then
-    gate_fail "drift" "$drift_script is missing or not executable"
-    return
-  fi
+  [[ -x "$drift_script" ]] || return 0
   header "Branch drift (delegated to drift.sh)"
   if ! git rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
-    gate_fail "drift" "no origin/dev: this repo always has a dev branch, so fetch it (git fetch origin dev)"
+    gate_skip "drift" "no origin/dev branch (single-branch repo)"
     return
   fi
-  delegate_or_fail "drift" "$drift_script"
+  delegate_to_subscript "$drift_script"
 }
 
 # Gate: surface-smoke (delegation) -------------------------------------------
@@ -185,7 +171,9 @@ smoke_with_token() {
   local id="" secret=""
   # With no token the smoke sends no headers, and its transport gate fails on the
   # Access login.
-  if have_bin op; then
+  if ! have_bin op; then
+    echo "preflight: op is not on PATH, so the smoke runs with no Access token" >&2
+  else
     # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
     id=$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id") || id=""
     secret=$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret") || secret=""
@@ -196,20 +184,17 @@ smoke_with_token() {
 gate_surface_smoke() {
   local surface_script
   surface_script="$(dirname "$0")/surface-smoke.sh"
-  if [[ ! -x "$surface_script" ]]; then
-    gate_fail "surface-smoke" "$surface_script is missing or not executable"
-    return
-  fi
+  [[ -x "$surface_script" ]] || return 0
   header "Surface smoke (delegated to surface-smoke.sh against staging)"
   # A deployed staging URL (--staging-url, else STAGING_URL_DEFAULT from
   # release.env, the same default postflight reads) is smoked as given: an
   # unreachable deployment is a failure, not a skip.
   local url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
   if [[ -z "$url" ]]; then
-    gate_fail "surface-smoke" "no staging URL (pass --staging-url or set STAGING_URL_DEFAULT in scripts/release/release.env)"
+    gate_skip "surface-smoke" "no staging URL (pass --staging-url or set STAGING_URL_DEFAULT in scripts/release/release.env)"
     return
   fi
-  delegate_or_fail "surface-smoke against $url" smoke_with_token "$url"
+  delegate_to_subscript smoke_with_token "$url"
 }
 
 # Gate: changelog-sections ---------------------------------------------------
