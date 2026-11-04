@@ -136,9 +136,9 @@ both set, through a mode-600 curl config rather than argv. Set them for the one 
 shell:
 
 ```bash
-# <item-uuid>: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
-CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/<item-uuid>/client_id")" \
-  CF_ACCESS_CLIENT_SECRET="$(op read "op://secrets-dev/<item-uuid>/client_secret")" \
+# 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
+CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id")" \
+  CF_ACCESS_CLIENT_SECRET="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret")" \
   scripts/release/preflight.sh surface-smoke
 ```
 
