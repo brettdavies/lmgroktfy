@@ -132,11 +132,12 @@ gate.
 Cloudflare Access gates staging: a request without credentials gets `302` to the Access login, which the transport gate
 fails, and every other gate reads that redirect too. `surface-smoke.sh` sends the staging service token's
 `CF-Access-Client-Id` and `CF-Access-Client-Secret` headers when `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` are
-both set and the target is https on the `STAGING_URL_DEFAULT` host, through a pipe to curl rather than argv or a file.
-Any other target gets no headers and a warning: Access strips them on staging before the Worker runs, and nothing
-strips them on production. `preflight.sh` unsets both variables at start and passes them only to the smoke, so the same
-prefix works for `all`. `postflight.sh` passes them to everything it starts, so give them only to its `surface-smoke`
-subcommand. Set them for the one command, so the values never stay in the shell:
+both set and the target is exactly `STAGING_URL_DEFAULT`, through a pipe to curl rather than argv or a file. Any other
+target gets no headers and a warning: Access strips them on staging before the Worker runs, and nothing strips them on
+production. For the same reason the smoke first sends one request without them and withholds the token unless Access
+answers. `preflight.sh` unsets both variables at start and passes them only to the smoke, so the same prefix works for
+`all`. `postflight.sh` passes them to everything it starts, so give them only to its `surface-smoke` subcommand. Set
+them for the one command, so the values never stay in the shell:
 
 ```bash
 # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
@@ -146,16 +147,19 @@ CF_ACCESS_CLIENT_ID="$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/clie
 ```
 
 A browser passes Access by signing in. A manual `curl` of staging needs the same two headers, the Turnstile-tokenless
-`POST` included: without them it reads the Access login's `302`. Define this once for the checks below. `printf` is a
-shell builtin, so the values reach only a pipe, never an argv, and `-q` keeps `~/.curlrc` out of the request:
+`POST` included: without them it reads the Access login's `302`. Define this once for the checks below. It takes a path
+and supplies the host, so the token can only go to staging. `printf` is a shell builtin, so the values reach only a
+pipe, never an argv, and `-q` keeps `~/.curlrc` out of the request:
 
 ```bash
 # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
 staging_curl() {
+  local route="$1"
+  shift
   curl -q -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' \
     "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id")" \
     "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret")") \
-    -sS --max-time 10 "$@"
+    -sS --max-time 10 "$@" "https://dev.lmgroktfy.com$route"
 }
 ```
 
@@ -166,7 +170,7 @@ staging_curl() {
   locale's `index.md` twin all return `200` with the expected content type. The smoke covers all but `agent.json`:
 
   ```bash
-  staging_curl -o /dev/null -w '%{http_code} %{content_type}\n' https://dev.lmgroktfy.com/.well-known/agent.json
+  staging_curl /.well-known/agent.json -o /dev/null -w '%{http_code} %{content_type}\n'
   ```
 
 - [ ] Manual real-challenge check: in a browser at `https://dev.lmgroktfy.com`, solve the live Turnstile challenge,
@@ -182,7 +186,7 @@ staging_curl() {
   ```bash
   rc=0
   for route in / /preflight-smoke; do
-    staging_curl -D - -o /dev/null --suppress-connect-headers "https://dev.lmgroktfy.com$route" |
+    staging_curl "$route" -D - -o /dev/null --suppress-connect-headers |
       awk 'NR == 1 { status = $2 }
         { name = tolower($1) }
         name == "strict-transport-security:" { hsts = 1 }

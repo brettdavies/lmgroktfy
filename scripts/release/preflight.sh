@@ -160,9 +160,12 @@ gate_drift() {
 # the SAME script against the deployed env.
 
 gate_surface_smoke() {
-  local surface_script
+  local surface_script before
   surface_script="$(dirname "$0")/surface-smoke.sh"
-  [[ -x "$surface_script" ]] || return 0
+  if [[ ! -x "$surface_script" ]]; then
+    gate_fail "surface-smoke" "$surface_script is missing or not executable"
+    return
+  fi
   header "Surface smoke (delegated to surface-smoke.sh against staging)"
   # A deployed staging URL (--staging-url, else STAGING_URL_DEFAULT from
   # release.env, the same default postflight reads) is smoked as given: an
@@ -172,8 +175,14 @@ gate_surface_smoke() {
     gate_skip "surface-smoke" "no staging URL (pass --staging-url or set STAGING_URL_DEFAULT in scripts/release/release.env)"
     return
   fi
+  before=$((PASS_COUNT + FAIL_COUNT + SKIP_COUNT))
   CF_ACCESS_CLIENT_ID="$ACCESS_CLIENT_ID" CF_ACCESS_CLIENT_SECRET="$ACCESS_CLIENT_SECRET" \
     delegate_to_subscript "$surface_script" "$url"
+  # delegate_to_subscript counts nothing when the smoke wrote no result file, as
+  # when it rejects the URL before it reaches --result-file.
+  if ((PASS_COUNT + FAIL_COUNT + SKIP_COUNT == before)); then
+    gate_fail "surface-smoke against $url" "the smoke recorded no gates, so nothing was checked"
+  fi
 }
 
 # Gate: changelog-sections ---------------------------------------------------

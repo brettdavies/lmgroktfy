@@ -22,9 +22,10 @@
 #   Cloudflare Access gates staging (dev.lmgroktfy.com); production is public.
 #   CF_ACCESS_CLIENT_ID + CF_ACCESS_CLIENT_SECRET, when both are set, attach
 #   the Access service-token headers to every request, but only when the base
-#   URL is https on the STAGING_URL_DEFAULT host. Any other target gets no
-#   headers and a warning. Unset, no headers are sent, and a gated deployment
-#   answers its Access login redirect, which the transport gate fails.
+#   URL is exactly STAGING_URL_DEFAULT and Access answers a request sent without
+#   them (see gate_access). Any other target gets no headers and a warning.
+#   Unset, no headers are sent, and a gated deployment answers its Access login
+#   redirect, which the transport gate fails.
 #   Turnstile gates POST /api/grok itself (see gate_live), not the transport.
 #   Values may hold only [A-Za-z0-9._-]; any other character fails the run
 #   before a request goes out.
@@ -85,18 +86,9 @@ done
 }
 require_bin curl
 
-# Prints the host of a URL, lowercased, without userinfo or port.
-url_host() {
-  local rest="${1#*://}"
-  rest="${rest%%[/?#]*}"
-  rest="${rest##*@}"
-  rest="${rest%%:*}"
-  printf '%s' "${rest,,}"
-}
-
 # delegate_to_subscript ignores this script's exit status and counts nothing
-# from an empty result file, so a setup failure has to go through the counters
-# or the orchestrators report it as a pass.
+# from an empty result file, so a rejected credential has to go through the
+# counters or the orchestrators report it as a pass.
 report_counts() {
   if [[ -n "$RESULT_FILE" ]]; then
     printf "%d %d %d\n" "$PASS_COUNT" "$FAIL_COUNT" "$SKIP_COUNT" >"$RESULT_FILE"
@@ -114,10 +106,12 @@ if [[ -n "$ACCESS_ID" && -n "$ACCESS_SECRET" ]]; then
     report_counts
     exit 2
   fi
-  if [[ "$BASE_URL" == https://* && "$(url_host "$BASE_URL")" == "$(url_host "${STAGING_URL_DEFAULT:-}")" ]]; then
+  # An exact match rather than a parsed host: curl expands URL globs, so a URL
+  # whose host parses as staging can still reach another host.
+  if [[ "${STAGING_URL_DEFAULT:-}" == https://* && "${BASE_URL%/}" == "${STAGING_URL_DEFAULT%/}" ]]; then
     printf -v ACCESS_HEADERS 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' "$ACCESS_ID" "$ACCESS_SECRET"
   else
-    echo "Access credentials are set, but $BASE_URL is not the https staging host: sending no Access headers" >&2
+    echo "Access credentials are set, but $BASE_URL is not the staging URL: sending no Access headers" >&2
   fi
 fi
 unset ACCESS_ID ACCESS_SECRET
@@ -133,6 +127,28 @@ smoke_curl() {
   fi
 }
 
+# Gate: Access in front -------------------------------------------------------
+#
+# Access strips the token's headers before the Worker runs. Without Access the
+# Worker receives them, and its logs may keep them, so the token goes out only
+# after a request sent without it shows Access still answers for this host: a
+# redirect to its login, or the 401 or 403 of its strict service-token mode.
+
+gate_access() {
+  [[ -n "$ACCESS_HEADERS" ]] || return 0
+  header "Access in front of $BASE_URL"
+  local out code location=""
+  out=$(curl -q -sSo /dev/null -w '%{http_code} %{redirect_url}' --max-time 10 "$BASE_URL/" || echo "000")
+  code="${out%% *}"
+  [[ "$out" == *" "* ]] && location="${out#* }"
+  if [[ "$code" == 401 || "$code" == 403 ]] || [[ "$code" =~ ^3[0-9][0-9]$ && "$location" == */cdn-cgi/access/* ]]; then
+    gate_pass "$BASE_URL/ without credentials -> HTTP $code (Access answers)"
+    return
+  fi
+  ACCESS_HEADERS=""
+  gate_fail "$BASE_URL/ without credentials" "HTTP $code: Access is not answering for this host, so the token was withheld"
+}
+
 # Gate: transport reachable --------------------------------------------------
 #
 # Confirms the surface is reachable at all. An unreachable deployment fails
@@ -142,6 +158,15 @@ smoke_curl() {
 # deploy answers a request whose auth headers are missing or rejected with a
 # redirect to its login page (Cloudflare Access sends it to the team domain
 # or to /cdn-cgi/access/login), and that redirect is not the surface.
+
+# Prints the host of a URL, lowercased, without userinfo or port.
+url_host() {
+  local rest="${1#*://}"
+  rest="${rest%%[/?#]*}"
+  rest="${rest##*@}"
+  rest="${rest%%:*}"
+  printf '%s' "${rest,,}"
+}
 
 gate_transport() {
   header "Transport reachable at $BASE_URL"
@@ -220,6 +245,7 @@ gate_live() {
 
 # Main -----------------------------------------------------------------------
 
+gate_access
 gate_transport
 gate_contract
 gate_live
