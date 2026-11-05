@@ -156,19 +156,23 @@ to send them.
 - [ ] Second identical question on staging serves the cached answer (KV `ANSWER_CACHE` hit). Already asserted by
   `bun run test:e2e`; re-confirm manually if the cache layer changed this release.
 - [ ] Security headers present with no HSTS on staging (`CLOUDFLARE_ENV=staging` never emits it). Expect
-  `HTTP 200, HSTS absent` and exit `0`. Only a `200` shows the check reached the Worker, because the Access login's
-  `302` carries no HSTS either. `printf` is a shell builtin, so the values never reach an argv:
+  `HTTP 200, CSP present, HSTS absent` and exit `0`. Only a `200` shows the check reached the deployment, because the
+  Access login's `302` carries no HSTS either, and `Content-Security-Policy` shows the build's security headers are
+  served. `-q` keeps `~/.curlrc` out, `--suppress-connect-headers` keeps a proxy's `200 Connection established` out
+  of the headers read, and `printf` is a shell builtin, so the values never reach an argv:
 
   ```bash
   # 3pjk4ix2jxratdogd6viheavoi: CF Service Token - Surface Smoke (lmgroktfy), vault secrets-dev
-  curl -sS -D - -o /dev/null --max-time 10 \
+  curl -q -sS --suppress-connect-headers -D - -o /dev/null --max-time 10 \
     -K <(printf 'header = "CF-Access-Client-Id: %s"\nheader = "CF-Access-Client-Secret: %s"\n' \
       "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_id")" \
       "$(op read "op://secrets-dev/3pjk4ix2jxratdogd6viheavoi/client_secret")") \
     https://dev.lmgroktfy.com/ |
     awk 'NR == 1 { status = $2 }
+      tolower($0) ~ /^content-security-policy:/ { csp = 1 }
       tolower($0) ~ /^strict-transport-security:/ { hsts = 1 }
-      END { print "HTTP " status ", HSTS " (hsts ? "present" : "absent"); exit !(status == 200 && !hsts) }'
+      END { print "HTTP " status ", CSP " (csp ? "present" : "absent") ", HSTS " (hsts ? "present" : "absent")
+        exit !(status == 200 && csp && !hsts) }'
   ```
 
 ### Release mechanics sanity
