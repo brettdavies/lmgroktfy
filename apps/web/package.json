@@ -21,7 +21,7 @@
     "@astrojs/cloudflare": "14.4.4",
     "@playwright/test": "1.61.1",
     "@tailwindcss/vite": "4.3.3",
-    "astro": "7.4.5",
+    "astro": "7.4.7",
     "daisyui": "5.7.50",
     "tailwindcss": "4.3.3",
     "typescript": "^5.7.0",
